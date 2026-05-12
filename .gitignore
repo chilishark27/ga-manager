@@ -1,41 +1,17 @@
-# Build artifacts
+# Build output
+build/
 *.exe
-*.exe~
-*.dll
-*.so
-*.dylib
 
-# Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/tsconfig.tsbuildinfo
-
-# Backend
-backend/static/
-
-# Desktop
-desktop/*.ico
-desktop/*.syso
-
-# Runtime
-*.log
-*.pid
-backend_pid.txt
-bridge_debug.log
-ws_debug.log
-user_image_*.png
-
-# Temp
-temp/
-__pycache__/
-*.pyc
+# Dependencies
+node_modules/
 
 # IDE
-.vscode/
 .idea/
-*.swp
-*.swo
+.vscode/
 
 # OS
 .DS_Store
 Thumbs.db
+
+# Screenshots (uploaded to release)
+screenshots/

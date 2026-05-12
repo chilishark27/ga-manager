@@ -1,16 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store';
+import { useI18n } from '../i18n';
 
 type Tab = 'overview' | 'schedules' | 'sophub';
-
-const CRON_PRESETS = [
-  { label: '每5分钟', value: '*/5 * * * *' },
-  { label: '每30分钟', value: '*/30 * * * *' },
-  { label: '每小时', value: '0 * * * *' },
-  { label: '每天9点', value: '0 9 * * *' },
-  { label: '每天18点', value: '0 18 * * *' },
-  { label: '工作日9点', value: '0 9 * * 1-5' },
-];
 
 function RightPanel() {
   const {
@@ -23,6 +15,7 @@ function RightPanel() {
     showIMSelector, setShowIMSelector, setIMChannel,
     showToast,
   } = useStore();
+  const { t } = useI18n();
 
   const [tab, setTab] = useState<Tab>('overview');
   const [showConfig, setShowConfig] = useState(false);
@@ -37,6 +30,15 @@ function RightPanel() {
   const inst = activeInstance();
   const id = activeInstanceId;
   const resourceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const CRON_PRESETS = [
+    { label: t.cronEvery5m, value: '*/5 * * * *' },
+    { label: t.cronEvery30m, value: '*/30 * * * *' },
+    { label: t.cronEveryHour, value: '0 * * * *' },
+    { label: t.cronDaily9, value: '0 9 * * *' },
+    { label: t.cronDaily18, value: '0 18 * * *' },
+    { label: t.cronWeekday9, value: '0 9 * * 1-5' },
+  ];
 
   // Auto-fetch resources every 10s when instance is active
   useEffect(() => {
@@ -59,6 +61,14 @@ function RightPanel() {
     return null;
   }
 
+  const featureConfigs = {
+    autonomous: { icon: '⚡', activeIcon: '⚡', label: t.featAutonomous, color: '#f59e0b' },
+    goal: { icon: '🎯', activeIcon: '💫', label: t.featGoal, color: '#8b5cf6' },
+    reflect: { icon: '🔮', activeIcon: '✨', label: t.featReflect, color: '#06b6d4' },
+    scheduler: { icon: '⏰', activeIcon: '🔥', label: t.featScheduler, color: '#10b981' },
+    team_worker: { icon: '🤝', activeIcon: '💪', label: t.featTeamWorker, color: '#ec4899' },
+  };
+
   return (
     <div className="right-panel">
       {/* Instance Header */}
@@ -69,13 +79,13 @@ function RightPanel() {
           <span style={{ fontSize: '12px', color: 'var(--text-3)' }}>PID: {inst.pid || '-'}</span>
         </div>
         <div className="rp-row">
-          <span>⏱️ 运行时间</span><span>{inst.uptime || '-'}</span>
+          <span>⏱️ {t.uptime}</span><span>{inst.uptime || '-'}</span>
         </div>
         <div className="rp-row">
-          <span>🎯 Token 用量</span><span>{inst.tokens_used || 0}</span>
+          <span>🎯 {t.tokenUsage}</span><span>{inst.tokens_used || 0}</span>
         </div>
         <div className="rp-row">
-          <span>💚 健康状态</span><span style={{ color: inst.health === 'healthy' ? 'var(--green)' : 'var(--yellow)' }}>{inst.health || 'unknown'}</span>
+          <span>💚 {t.healthStatus}</span><span style={{ color: inst.health === 'healthy' ? 'var(--green)' : 'var(--yellow)' }}>{inst.health || 'unknown'}</span>
         </div>
         <div className="rp-row">
           <span>🤖 LLM</span>
@@ -84,23 +94,23 @@ function RightPanel() {
           </span>
         </div>
         <div className="rp-row">
-          <span>📡 IM渠道</span>
+          <span>📡 {t.imChannel}</span>
           <span className="clickable" onClick={() => setShowIMSelector(true)}>
-            {inst.im_channel || '未配置'} ✏️
+            {inst.im_channel || t.notConfigured} ✏️
           </span>
         </div>
       </div>
 
       {/* System Resources - Always Visible */}
       <div className="rp-card">
-        <h5 style={{ marginBottom: '10px' }}>💻 系统资源</h5>
+        <h5 style={{ marginBottom: '10px' }}>💻 {t.systemResources}</h5>
         {resources.length === 0 ? (
-          <p style={{ color: 'var(--text-3)', fontSize: '13px' }}>加载中...</p>
+          <p style={{ color: 'var(--text-3)', fontSize: '13px' }}>{t.loading}</p>
         ) : (
           resources.map((r, i) => (
             <div key={i} className="resource-row">
               <span className="resource-label">
-                {r.type === 'cpu' ? '🖥️ CPU' : r.type === 'memory' ? '🧠 内存' : '💾 磁盘'}
+                {r.type === 'cpu' ? '🖥️ CPU' : r.type === 'memory' ? `🧠 ${t.memory}` : `💾 ${t.disk}`}
               </span>
               <div className="resource-bar">
                 <div
@@ -118,15 +128,9 @@ function RightPanel() {
 
       {/* Feature Toggles */}
       <div className="rp-card">
-        <h5 style={{ marginBottom: '10px' }}>⚡ 功能开关</h5>
+        <h5 style={{ marginBottom: '10px' }}>⚡ {t.featureToggles}</h5>
         {(['autonomous', 'goal', 'reflect', 'scheduler', 'team_worker'] as const).map(feat => {
-          const featureConfig = {
-            autonomous: { icon: '⚡', activeIcon: '⚡', label: '自主行动', color: '#f59e0b' },
-            goal: { icon: '🎯', activeIcon: '💫', label: '目标模式', color: '#8b5cf6' },
-            reflect: { icon: '🔮', activeIcon: '✨', label: '反思模式', color: '#06b6d4' },
-            scheduler: { icon: '⏰', activeIcon: '🔥', label: '定时任务', color: '#10b981' },
-            team_worker: { icon: '🤝', activeIcon: '💪', label: '团队协作', color: '#ec4899' },
-          }[feat];
+          const featureConfig = featureConfigs[feat];
           const isActive = !!inst[feat];
           return (
             <div className={`feat-row ${isActive ? 'feat-active' : ''}`} key={feat}>
@@ -147,8 +151,8 @@ function RightPanel() {
 
       {/* Tab Navigation */}
       <div className="rp-tabs">
-        {([['overview', '📊 概览'], ['schedules', '⏰ 定时'], ['sophub', '📦 SOP']] as [Tab, string][]).map(([t, label]) => (
-          <button key={t} className={`rp-tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)}>{label}</button>
+        {([['overview', `📊 ${t.tabOverview}`], ['schedules', `⏰ ${t.tabSchedules}`], ['sophub', `📦 ${t.tabSophub}`]] as [Tab, string][]).map(([tabKey, label]) => (
+          <button key={tabKey} className={`rp-tab ${tab === tabKey ? 'active' : ''}`} onClick={() => setTab(tabKey)}>{label}</button>
         ))}
       </div>
 
@@ -156,44 +160,44 @@ function RightPanel() {
       <div className="rp-card rp-tab-content">
         {tab === 'overview' && (
           <div>
-            <h5>快捷操作</h5>
+            <h5>{t.quickActions}</h5>
             <div className="action-grid">
-              <button className="action-btn" onClick={() => id && exportChat(id)}>📤 导出对话</button>
-              <button className="action-btn" onClick={() => setShowConfig(true)}>⚙️ 配置</button>
-              <button className="action-btn" onClick={() => batchAction('restart', instances.filter(i => i.status === 'running').map(i => i.id))}>🔄 全部重启</button>
-              <button className="action-btn" onClick={() => batchAction('stop', instances.filter(i => i.status === 'running').map(i => i.id))}>⏹️ 全部停止</button>
+              <button className="action-btn" onClick={() => id && exportChat(id)}>📤 {t.exportChat}</button>
+              <button className="action-btn" onClick={() => setShowConfig(true)}>⚙️ {t.config}</button>
+              <button className="action-btn" onClick={() => batchAction('restart', instances.filter(i => i.status === 'running').map(i => i.id))}>🔄 {t.restartAll}</button>
+              <button className="action-btn" onClick={() => batchAction('stop', instances.filter(i => i.status === 'running').map(i => i.id))}>⏹️ {t.stopAll}</button>
             </div>
 
             {/* Send Command */}
-            <h5 style={{ marginTop: '16px' }}>发送指令</h5>
+            <h5 style={{ marginTop: '16px' }}>{t.sendCommand}</h5>
             <div style={{ display: 'flex', gap: '8px' }}>
-              <input className="rp-input" placeholder="输入系统指令..." value={cmdInput} onChange={e => setCmdInput(e.target.value)}
+              <input className="rp-input" placeholder={t.commandPlaceholder} value={cmdInput} onChange={e => setCmdInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && cmdInput.trim() && id) { sendCommand(id, cmdInput); setCmdInput(''); } }} />
-              <button className="action-btn" onClick={() => { if (cmdInput.trim() && id) { sendCommand(id, cmdInput); setCmdInput(''); } }}>发送</button>
+              <button className="action-btn" onClick={() => { if (cmdInput.trim() && id) { sendCommand(id, cmdInput); setCmdInput(''); } }}>{t.send}</button>
             </div>
 
             {/* Forward Message */}
-            <h5 style={{ marginTop: '16px' }}>消息转发</h5>
+            <h5 style={{ marginTop: '16px' }}>{t.forwardMessage}</h5>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <select className="rp-input" value={fwdTarget} onChange={e => setFwdTarget(e.target.value)}>
-                <option value="">选择目标实例</option>
+                <option value="">{t.selectTargetInstance}</option>
                 {instances.filter(i => i.id !== id).map(i => (
                   <option key={i.id} value={i.id}>{i.name}</option>
                 ))}
               </select>
               <div style={{ display: 'flex', gap: '8px' }}>
-                <input className="rp-input" placeholder="转发内容..." value={fwdMsg} onChange={e => setFwdMsg(e.target.value)} />
-                <button className="action-btn" onClick={() => { if (fwdTarget && fwdMsg.trim() && id) { forwardMessage(id, fwdTarget, fwdMsg); setFwdMsg(''); } }}>转发</button>
+                <input className="rp-input" placeholder={t.forwardContent} value={fwdMsg} onChange={e => setFwdMsg(e.target.value)} />
+                <button className="action-btn" onClick={() => { if (fwdTarget && fwdMsg.trim() && id) { forwardMessage(id, fwdTarget, fwdMsg); setFwdMsg(''); } }}>{t.forward}</button>
               </div>
             </div>
 
             {/* mykey.py Configuration Guide */}
-            <h5 style={{ marginTop: '16px' }}>🔑 LLM密钥配置 (mykey.py)</h5>
+            <h5 style={{ marginTop: '16px' }}>🔑 {t.llmKeyConfig}</h5>
             <div className="mykey-guide" style={{ fontSize: '13px', color: 'var(--text-2)', lineHeight: '1.6' }}>
-              <p style={{ margin: '0 0 8px' }}>在GA项目根目录创建 <code style={{ background: 'var(--bg3)', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>mykey.py</code>，配置LLM密钥：</p>
+              <p style={{ margin: '0 0 8px' }}>{t.mykeyGuide} <code style={{ background: 'var(--bg3)', padding: '2px 6px', borderRadius: '4px', fontSize: '12px' }}>mykey.py</code></p>
               <div style={{ background: 'var(--bg2)', border: '1px solid var(--border)', borderRadius: '8px', padding: '12px', fontFamily: "'JetBrains Mono', monospace", fontSize: '12px', overflowX: 'auto', whiteSpace: 'pre' }}>
-{`# mykey.py 模板示例
-# Claude (推荐)
+{`# mykey.py
+# Claude
 claude47 = "sk-ant-xxx..."
 claude47_apibase = "https://api.anthropic.com"
 
@@ -201,15 +205,15 @@ claude47_apibase = "https://api.anthropic.com"
 gpt4 = "sk-xxx..."
 gpt4_apibase = "https://api.openai.com/v1"
 
-# 自定义代理
+# Custom proxy
 claude47_apibase = "https://your-proxy.com"
 `}
               </div>
               <p style={{ margin: '8px 0 4px', fontSize: '12px', color: 'var(--text-3)' }}>
-                💡 格式：<code style={{ background: 'var(--bg3)', padding: '1px 4px', borderRadius: '3px' }}>模型名 = "API Key"</code> + <code style={{ background: 'var(--bg3)', padding: '1px 4px', borderRadius: '3px' }}>模型名_apibase = "URL"</code>
+                💡 {t.mykeyFormat}
               </p>
               <p style={{ margin: '4px 0 0', fontSize: '12px', color: 'var(--text-3)' }}>
-                📂 文件位置：<code style={{ background: 'var(--bg3)', padding: '1px 4px', borderRadius: '3px' }}>{configForm.ga_path || '<GA项目路径>'}/mykey.py</code>
+                📂 {t.mykeyLocation}: <code style={{ background: 'var(--bg3)', padding: '1px 4px', borderRadius: '3px' }}>{configForm.ga_path || '<GA_PATH>'}/mykey.py</code>
               </p>
             </div>
           </div>
@@ -217,7 +221,7 @@ claude47_apibase = "https://your-proxy.com"
 
         {tab === 'schedules' && (
           <div>
-            <h5>添加定时任务</h5>
+            <h5>{t.addSchedule}</h5>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '16px' }}>
               {/* Cron presets */}
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
@@ -233,12 +237,12 @@ claude47_apibase = "https://your-proxy.com"
               </div>
               <input
                 className="rp-input"
-                placeholder="Cron 表达式 (如 */5 * * * *)"
+                placeholder={t.cronPlaceholder}
                 value={schedCron}
                 onChange={e => setSchedCron(e.target.value)}
                 style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: '13px' }}
               />
-              <input className="rp-input" placeholder="任务内容 (如: 检查邮件并汇报)" value={schedTask} onChange={e => setSchedTask(e.target.value)} />
+              <input className="rp-input" placeholder={t.taskPlaceholder} value={schedTask} onChange={e => setSchedTask(e.target.value)} />
               <button
                 className="action-btn"
                 style={{ alignSelf: 'flex-start' }}
@@ -248,17 +252,17 @@ claude47_apibase = "https://your-proxy.com"
                     setSchedCron('');
                     setSchedTask('');
                   } else {
-                    showToast('请填写 Cron 表达式和任务内容');
+                    showToast(t.fillCronAndTask);
                   }
                 }}
               >
-                ➕ 添加任务
+                ➕ {t.addTask}
               </button>
             </div>
 
-            <h5>任务列表</h5>
+            <h5>{t.taskList}</h5>
             {schedules.length === 0 ? (
-              <p style={{ color: 'var(--text-3)', fontSize: '13px', padding: '12px 0' }}>暂无定时任务，使用上方表单添加</p>
+              <p style={{ color: 'var(--text-3)', fontSize: '13px', padding: '12px 0' }}>{t.noSchedules}</p>
             ) : (
               <div className="schedule-list">
                 {schedules.map(s => (
@@ -266,7 +270,7 @@ claude47_apibase = "https://your-proxy.com"
                     <div className="schedule-info">
                       <span className="schedule-cron">{s.cron}</span>
                       <span className="schedule-action">{s.task}</span>
-                      {s.next_run && <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>下次: {s.next_run}</span>}
+                      {s.next_run && <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>{t.nextRun}: {s.next_run}</span>}
                     </div>
                     <button className="schedule-del" onClick={() => id && deleteSchedule(id, s.id)}>×</button>
                   </div>
@@ -278,10 +282,10 @@ claude47_apibase = "https://your-proxy.com"
 
         {tab === 'sophub' && (
           <div>
-            <h5>SOP Hub 搜索</h5>
+            <h5>{t.sophubSearch}</h5>
             <div className="sophub-search">
               <input
-                placeholder="搜索 SOP (如: 爬虫、自动化、数据分析)..."
+                placeholder={t.sophubPlaceholder}
                 value={sophubQ}
                 onChange={e => setSophubQ(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && sophubQ.trim()) searchSophub(sophubQ); }}
@@ -298,19 +302,19 @@ claude47_apibase = "https://your-proxy.com"
                     <div className="sophub-item-desc">{sop.description}</div>
                     <div className="sophub-item-footer">
                       <div className="sophub-tags">
-                        {sop.tags?.map(t => <span key={t} className="sophub-tag">{t}</span>)}
+                        {sop.tags?.map((tag: string) => <span key={tag} className="sophub-tag">{tag}</span>)}
                       </div>
-                      <button className="sophub-dl-btn" onClick={() => downloadSop(sop.id, id || undefined)}>⬇️ 下载</button>
+                      <button className="sophub-dl-btn" onClick={() => downloadSop(sop.id, id || undefined)}>{t.download}</button>
                     </div>
                   </div>
                 ))}
               </div>
             )}
             {!sophubLoading && sophubResults.length === 0 && sophubQ && (
-              <p className="sophub-empty">无结果，试试其他关键词</p>
+              <p className="sophub-empty">{t.noResults}</p>
             )}
             <p style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-3)' }}>
-              来源: <a href="https://fudankw.cn/sophub/" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>fudankw.cn/sophub</a>
+              {t.source}: <a href="https://fudankw.cn/sophub/" target="_blank" rel="noreferrer" style={{ color: 'var(--accent)' }}>fudankw.cn/sophub</a>
             </p>
           </div>
         )}
@@ -320,7 +324,7 @@ claude47_apibase = "https://your-proxy.com"
       {showLLMSelector && (
         <div className="modal-overlay" onClick={() => setShowLLMSelector(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h4>选择 LLM</h4>
+            <h4>{t.selectLLMTitle}</h4>
             <div className="llm-grid">
               {llmConfigs.map(llm => (
                 <button key={llm.index} className={`llm-option ${inst.llm_no === llm.index ? 'active' : ''}`}
@@ -331,7 +335,7 @@ claude47_apibase = "https://your-proxy.com"
                 </button>
               ))}
             </div>
-            <button className="modal-btn cancel" onClick={() => setShowLLMSelector(false)}>关闭</button>
+            <button className="modal-btn cancel" onClick={() => setShowLLMSelector(false)}>{t.close}</button>
           </div>
         </div>
       )}
@@ -340,7 +344,7 @@ claude47_apibase = "https://your-proxy.com"
       {showIMSelector && (
         <div className="modal-overlay" onClick={() => setShowIMSelector(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h4>选择 IM 渠道</h4>
+            <h4>{t.selectIMTitle}</h4>
             <div className="im-grid">
               {imChannels.map(ch => (
                 <button key={ch} className={`im-option ${inst.im_channel === ch ? 'active' : ''}`}
@@ -348,12 +352,12 @@ claude47_apibase = "https://your-proxy.com"
                   {ch === 'qq' ? '🐧' : ch === 'telegram' ? '✈️' : ch === 'discord' ? '🎮' : ch === 'dingtalk' ? '💬' : ch === 'feishu' ? '🐦' : ch === 'wechat' ? '💚' : '🏢'} {ch}
                 </button>
               ))}
-              <button className="im-option" onClick={() => { setIMChannel(inst.id, ''); }}>❌ 清除</button>
+              <button className="im-option" onClick={() => { setIMChannel(inst.id, ''); }}>{t.clearIM}</button>
             </div>
             <div style={{ marginTop: '12px', padding: '10px', background: 'var(--bg3)', borderRadius: '8px', fontSize: '12px', color: 'var(--text-2)' }}>
-              💡 提示：启用IM渠道前，请确保已在GA项目的对应配置文件中完成渠道配置（如QQ需配置go-cqhttp，Telegram需配置Bot Token等）
+              {t.imEnableTip}
             </div>
-            <button className="modal-btn cancel" style={{ marginTop: '12px' }} onClick={() => setShowIMSelector(false)}>关闭</button>
+            <button className="modal-btn cancel" style={{ marginTop: '12px' }} onClick={() => setShowIMSelector(false)}>{t.close}</button>
           </div>
         </div>
       )}
@@ -362,14 +366,14 @@ claude47_apibase = "https://your-proxy.com"
       {showConfig && (
         <div className="modal-overlay" onClick={() => setShowConfig(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h4>⚙️ 系统配置</h4>
-            <label className="config-label">GA 项目路径</label>
+            <h4>{t.systemConfig}</h4>
+            <label className="config-label">{t.gaPath}</label>
             <input className="rp-input" value={configForm.ga_path} onChange={e => setConfigForm(f => ({ ...f, ga_path: e.target.value }))} placeholder="D:\GenericAgent" />
-            <label className="config-label">Python 路径</label>
+            <label className="config-label">{t.pythonPath}</label>
             <input className="rp-input" value={configForm.python_path} onChange={e => setConfigForm(f => ({ ...f, python_path: e.target.value }))} placeholder="python" />
             <div className="modal-actions">
-              <button className="modal-btn cancel" onClick={() => setShowConfig(false)}>取消</button>
-              <button className="modal-btn confirm" onClick={() => { showToast('配置已保存'); setShowConfig(false); }}>💾 保存</button>
+              <button className="modal-btn cancel" onClick={() => setShowConfig(false)}>{t.cancel}</button>
+              <button className="modal-btn confirm" onClick={() => { showToast(t.configSaved); setShowConfig(false); }}>{t.save}</button>
             </div>
           </div>
         </div>

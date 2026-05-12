@@ -58,6 +58,26 @@ interface AppState {
   runningCount: () => number;
   totalTokens: () => string;
   healthPercent: () => string;
+
+  // Resources
+  resources: { type: string; usage: number; detail: string }[];
+  fetchResources: (id: string) => Promise<void>;
+
+  // Schedules
+  schedules: { id: string; instance_id: string; cron: string; task: string; enabled: boolean; last_run?: string; next_run?: string }[];
+  fetchSchedules: (id: string) => Promise<void>;
+  addSchedule: (id: string, cron: string, task: string) => Promise<void>;
+  deleteSchedule: (instanceId: string, scheduleId: string) => Promise<void>;
+
+  // Batch actions
+  batchAction: (action: string, instanceIds: string[]) => Promise<void>;
+
+  // Sophub
+  sophubResults: { id: string; title: string; description: string; tags: string[]; author?: string; downloads?: number }[];
+  sophubQuery: string;
+  sophubLoading: boolean;
+  searchSophub: (query: string) => Promise<void>;
+  downloadSop: (sopId: string, instanceId?: string) => Promise<void>;
 }
 
 export const useStore = create<AppState>((set, get) => ({

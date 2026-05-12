@@ -1,145 +1,105 @@
-# 🦈 GA Manager
+# GA Manager
 
-<p align="center">
-  <img src="chilishark.png" width="120" alt="ChiliShark Logo">
-</p>
+A desktop management UI for [GenericAgent](https://github.com/chilishark27/GenericAgent) — create, monitor, and control GA instances with a modern dark-themed interface.
 
-<p align="center">
-  <b>多实例 GenericAgent 管理面板</b><br>
-  一键启动、实时对话、图片识别、配置管理、IM渠道绑定
-</p>
+![GA Manager Screenshot](screenshots/main_zh.png)
 
-<p align="center">
-  <a href="#功能特性">功能</a> •
-  <a href="#快速开始">快速开始</a> •
-  <a href="#架构">架构</a> •
-  <a href="#截图">截图</a> •
-  <a href="https://github.com/lsdefine/GenericAgent">GenericAgent</a>
-</p>
+## Features
 
----
+- 🖥️ **Instance Management** — Create, start, stop, and delete GA instances
+- 💬 **Chat Interface** — Send messages to instances, view markdown-rendered responses
+- ⏰ **Scheduled Tasks** — Cron-based task scheduling with preset templates
+- 📦 **SOP Hub** — Search and download SOPs from the community hub
+- 🌐 **Multi-language** — Chinese (中文) and English, switchable in sidebar
+- 📱 **Responsive** — Works on screens from 1024px to 4K
+- 🎨 **Dark Theme** — Easy on the eyes with a modern UI
 
-## 关于
+## Quick Start
 
-GA Manager 是 [GenericAgent](https://github.com/lsdefine/GenericAgent) 的图形化管理工具，提供 Web 和桌面两种使用方式。无需修改 GA 源码，通过 Bridge 机制实现多实例并行管理。
+### Download Release
 
-## 功能特性
+Download the latest release from [Releases](https://github.com/chilishark27/ga-manager/releases):
+- `ga_manager_backend.exe` — HTTP backend server (serves UI + API)
+- `ga_manager_desktop.exe` — Native desktop window (WebView2)
 
-| 功能 | 说明 |
-|------|------|
-| 🚀 多实例管理 | 创建/启动/停止/删除多个 GA 实例 |
-| 💬 实时对话 | WebSocket 实时通信，支持 Markdown 渲染 |
-| 🖼️ 图片识别 | 粘贴图片发送，自动调用 Vision API 分析 |
-| 🔄 模式切换 | chat / goal / auto / plan 四种运行模式 |
-| 🤖 LLM 切换 | 运行时动态切换模型（Claude/GPT/Gemini等） |
-| 🔌 IM 渠道 | QQ / Telegram / 微信 / 钉钉 / 飞书 / Discord |
-| ⚙️ 功能开关 | 自主行动、反思模式、定时任务一键切换 |
-| 📊 系统监控 | CPU / 内存 / 磁盘实时监控 |
-| 📦 SOP 市场 | 从 [SophHub](https://fudankw.cn/sophub/) 浏览下载 SOP |
-| 🌗 主题切换 | 深色 / 浅色主题 |
-| 🖥️ 桌面应用 | Windows 桌面版 + 系统托盘 |
+### Run
 
-## 架构
+1. Place both executables in the same directory as your GA project (or configure the path in Settings)
+2. Start `ga_manager_backend.exe` — starts HTTP server on port 3000
+3. Start `ga_manager_desktop.exe` — opens the native window pointing to localhost:3000
+4. Or just open `http://localhost:3000` in your browser
 
-```
-┌─────────────┐     WS/HTTP      ┌──────────────┐    WS     ┌─────────────┐
-│  React UI   │ ◄──────────────► │  Go Backend  │ ◄───────► │  Bridge.py  │
-│  (Vite+TS)  │    :3000→:18600  │  (net/http)  │  随机端口  │  (per inst) │
-└─────────────┘                  └──────────────┘           └──────┬──────┘
-                                                                   │ import
-                                                            ┌──────▼──────┐
-                                                            │ GenericAgent│
-                                                            │  (不修改)   │
-                                                            └─────────────┘
-```
+### Language Switch
 
-| 层 | 技术 | 说明 |
-|---|---|---|
-| 前端 | React 18 + TypeScript + Zustand | 深色/浅色主题，响应式布局 |
-| 后端 | Go 1.21+ (net/http + gorilla/websocket) | 零框架，标准库路由 |
-| 桥接 | Python (asyncio + websockets) | 每实例独立进程，直接 import GA |
+Click the 🌐 button in the bottom-left corner of the sidebar to toggle between Chinese and English.
 
-## 快速开始
+## Build from Source
 
-### 前置条件
+### Prerequisites
 
-- [GenericAgent](https://github.com/lsdefine/GenericAgent) 已克隆到本地
 - Go 1.21+
-- Node.js 18+
-- Python 3.10+（GA 运行环境）
+- Node.js 18+ & npm
+- Windows (for desktop WebView2 build)
 
-### 安装
+### Build Steps
 
 ```bash
+# 1. Clone
 git clone https://github.com/chilishark27/ga-manager.git
 cd ga-manager
+
+# 2. Build frontend
+cd frontend
+npm install
+npx vite build --outDir ../build/static
+cd ..
+
+# 3. Build backend (embeds static files)
+cd backend
+go build -o ../build/ga_manager_backend.exe .
+cd ..
+
+# 4. Build desktop (optional, WebView2 wrapper)
+cd desktop
+go build -ldflags "-H windowsgui" -o ../build/ga_manager_desktop.exe .
+cd ..
 ```
 
-### 开发模式
+Output in `build/`:
+- `ga_manager_backend.exe` (~10MB, includes embedded frontend)
+- `ga_manager_desktop.exe` (~6MB, native window)
+- `static/` (frontend assets, served by backend)
 
-```bash
-# Windows 一键启动
-start_dev.bat
-
-# 或手动：
-# 后端
-cd backend && go build -o ga_manager.exe . && ga_manager.exe
-
-# 前端
-cd frontend && npm install && npm run dev
-```
-
-访问 http://localhost:18600
-
-### 桌面版
-
-从 [Releases](https://github.com/chilishark27/ga-manager/releases) 下载预编译版本，双击运行即可。
-
-## 目录结构
+## Project Structure
 
 ```
 ga-manager/
-├── backend/         # Go 后端服务
-│   ├── main.go
-│   ├── handlers/    # HTTP/WS 路由处理
-│   ├── services/    # 业务逻辑
-│   └── models/      # 数据结构
-├── bridge/          # Python 桥接层
-│   └── bridge.py   # GA 实例 wrapper
-├── desktop/         # 桌面版入口
-│   └── main.go     # systray + Edge --app
-├── frontend/        # React 前端
+├── frontend/          # React + TypeScript + Vite
 │   ├── src/
-│   │   ├── components/
-│   │   ├── store/
-│   │   ├── styles/
-│   │   └── types/
+│   │   ├── components/   # Sidebar, ChatPanel, RightPanel
+│   │   ├── i18n/         # Internationalization (zh/en)
+│   │   ├── store/        # Zustand state management
+│   │   └── App.tsx
 │   └── package.json
-├── start_dev.bat    # 开发启动脚本
-├── DESIGN.md        # 设计文档
-└── PLAN.md          # 规划文档
+├── backend/           # Go HTTP server + API proxy
+│   └── main.go
+├── desktop/           # Go WebView2 wrapper
+│   └── main.go
+├── build/             # Build output
+└── screenshots/
 ```
 
-## API
+## Configuration
 
-| Method | Path | 说明 |
-|--------|------|------|
-| GET | /api/instances | 列出所有实例 |
-| POST | /api/instances | 创建实例 |
-| DELETE | /api/instances/:id | 删除实例 |
-| POST | /api/instances/:id/stop | 停止实例 |
-| POST | /api/instances/:id/chat | 发送消息 |
-| POST | /api/instances/:id/clear | 清空对话 |
-| GET | /ws/:id | WebSocket 对话通道 |
-| GET | /api/llm | 获取可用 LLM 列表 |
-| GET | /api/config/mykey | 获取 mykey 配置 |
-| PUT | /api/config/mykey | 更新 mykey 配置 |
-| GET | /api/resources | 系统资源监控 |
+On first launch, click ⚙️ in the right panel to configure:
+- **GA Project Path** — Path to your GenericAgent installation
+- **Python Path** — Python interpreter path
 
-## 致谢
+## Tech Stack
 
-- [GenericAgent](https://github.com/lsdefine/GenericAgent) - 核心 Agent 框架
-- [genericagent-launcher](https://github.com/dhdbv-cbs/genericagent-launcher) - 参考实现
+- **Frontend**: React 18, TypeScript, Vite, Zustand, react-markdown
+- **Backend**: Go, net/http, embed
+- **Desktop**: Go, WebView2
 
 ## License
 

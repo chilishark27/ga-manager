@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useStore } from '../store';
+import { useI18n } from '../i18n';
 
 const formatUptime = (seconds: number | string): string => {
   const s = typeof seconds === 'string' ? parseInt(seconds) || 0 : seconds;
@@ -16,6 +17,7 @@ function Sidebar() {
     toggleTheme, theme, runningCount, totalTokens, healthPercent,
     createInstance, deleteInstance, llmConfigs, fetchLLMs,
   } = useStore();
+  const { t, tf, lang, setLang } = useI18n();
 
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
@@ -51,6 +53,9 @@ function Sidebar() {
       <div className="logo">
         <div className="logo-icon"><img src="/app.png" alt="GA" style={{width:'28px',height:'28px',borderRadius:'6px'}} /></div>
         <div className="logo-text">GA Manager</div>
+        <div className="lang-btn" onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')} title={t.language}>
+          {lang === 'zh' ? '🌐EN' : '🌐中'}
+        </div>
         <div className="theme-btn" onClick={toggleTheme}>
           {theme === 'dark' ? '🌙' : '☀️'}
         </div>
@@ -59,15 +64,15 @@ function Sidebar() {
       <div className="stats-bar">
         <div className="stat-mini">
           <div className="sv">{runningCount()}</div>
-          <div className="sl">运行中</div>
+          <div className="sl">{t.running}</div>
         </div>
         <div className="stat-mini">
           <div className="sv">{totalTokens()}</div>
-          <div className="sl">Tokens</div>
+          <div className="sl">{t.tokens}</div>
         </div>
         <div className="stat-mini">
           <div className="sv">{healthPercent()}</div>
-          <div className="sl">健康</div>
+          <div className="sl">{t.health}</div>
         </div>
       </div>
 
@@ -91,8 +96,8 @@ function Sidebar() {
                 />
                 <span
                   className="ic-del"
-                  title="删除实例"
-                  onClick={(e) => { e.stopPropagation(); if(confirm('确定删除实例 '+inst.name+'？')) deleteInstance(inst.id); }}
+                  title={t.deleteInstance}
+                  onClick={(e) => { e.stopPropagation(); if(confirm(tf('confirmDelete', { name: inst.name }))) deleteInstance(inst.id); }}
                 >✕</span>
               </span>
             </div>
@@ -100,36 +105,36 @@ function Sidebar() {
               PID {inst.pid} · {formatUptime(inst.uptime)} · {inst.tokens_used >= 1000 ? `${(inst.tokens_used / 1000).toFixed(1)}K` : inst.tokens_used} tok
             </div>
             <div className="ic-tags">
-              <span className={`ic-tag ${inst.health === 'healthy' ? 'on' : ''}`}>健康</span>
-              <span className={`ic-tag ${inst.autonomous ? 'on' : ''}`}>自主</span>
-              <span className={`ic-tag ${inst.scheduler ? 'on' : ''}`}>定时</span>
-              <span className={`ic-tag ${inst.goal ? 'on' : ''}`}>Goal</span>
+              <span className={`ic-tag ${inst.health === 'healthy' ? 'on' : ''}`}>{t.healthy}</span>
+              <span className={`ic-tag ${inst.autonomous ? 'on' : ''}`}>{t.autonomous}</span>
+              <span className={`ic-tag ${inst.scheduler ? 'on' : ''}`}>{t.scheduler}</span>
+              <span className={`ic-tag ${inst.goal ? 'on' : ''}`}>{t.goal}</span>
             </div>
           </div>
         ))}
       </div>
 
       <div className="add-btn" onClick={() => { fetchLLMs(); setShowCreate(true); }}>
-        + 新建实例
+        {t.newInstance}
       </div>
 
       {/* Create Instance Modal */}
       {showCreate && (
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
-            <h3>创建新实例</h3>
+            <h3>{t.createInstance}</h3>
             <input
               className="modal-input"
-              placeholder="实例名称 (可选)"
+              placeholder={t.instanceName}
               value={newName}
               onChange={e => setNewName(e.target.value)}
               autoFocus
             />
             <div className="modal-llm-section">
-              <label className="modal-label">选择 LLM 模型</label>
+              <label className="modal-label">{t.selectLLM}</label>
               {llmConfigs.length === 0 ? (
                 <div className="llm-setup-hint">
-                  ⚠️ 未检测到LLM配置，请先在 GA 目录下配置 mykey.py
+                  {t.noLLMConfig}
                 </div>
               ) : (
                 <div className="llm-select-grid">
@@ -147,8 +152,8 @@ function Sidebar() {
               )}
             </div>
             <div className="modal-actions">
-              <button className="modal-btn cancel" onClick={() => setShowCreate(false)}>取消</button>
-              <button className="modal-btn confirm" onClick={handleCreate}>创建</button>
+              <button className="modal-btn cancel" onClick={() => setShowCreate(false)}>{t.cancel}</button>
+              <button className="modal-btn confirm" onClick={handleCreate}>{t.create}</button>
             </div>
           </div>
         </div>
