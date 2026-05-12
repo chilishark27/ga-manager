@@ -51,7 +51,7 @@ function Sidebar() {
   return (
     <div className="sidebar">
       <div className="logo">
-        <div className="logo-icon"><img src="/app.png" alt="GA" style={{width:'28px',height:'28px',borderRadius:'6px'}} /></div>
+        <div className="logo-icon"><img src="/app.png?v=2" alt="GA" style={{width:'28px',height:'28px',borderRadius:'6px'}} /></div>
         <div className="logo-text">GA Manager</div>
         <div className="lang-btn" onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')} title={t.language}>
           {lang === 'zh' ? '🌐EN' : '🌐中'}

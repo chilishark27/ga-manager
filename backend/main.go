@@ -86,6 +86,39 @@ func main() {
 	mux.HandleFunc("GET /api/config/status", cfgHandler.Status)
 	mux.HandleFunc("GET /api/config/llms", cfgHandler.GetLLMs)
 
+	// App config (GA path, etc.)
+	mux.HandleFunc("GET /api/config/app", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(cfg)
+	})
+	mux.HandleFunc("PUT /api/config/app", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		var update models.AppConfig
+		if err := json.NewDecoder(r.Body).Decode(&update); err != nil {
+			http.Error(w, `{"error":"invalid json"}`, 400)
+			return
+		}
+		if update.GARoot != "" {
+			cfg.GARoot = update.GARoot
+		}
+		if update.PythonPath != "" {
+			cfg.PythonPath = update.PythonPath
+		}
+		// Persist to file
+		configPath := filepath.Join(getExeDir(), defaultConfigFile)
+		data, _ := json.MarshalIndent(cfg, "", "  ")
+		os.WriteFile(configPath, data, 0644)
+		// Update services
+		instanceMgr.UpdateConfig(cfg)
+		configSvc.UpdateRoot(cfg.GARoot)
+		json.NewEncoder(w).Encode(cfg)
+	})
+	mux.HandleFunc("GET /api/config/detect-ga", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		candidates := detectGAPath()
+		json.NewEncoder(w).Encode(map[string]interface{}{"paths": candidates, "configured": cfg.GARoot})
+	})
+
 	// Health check
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -219,6 +252,46 @@ func loadConfig() *models.AppConfig {
 func getExeDir() string {
 	exe, _ := os.Executable()
 	return filepath.Dir(exe)
+}
+
+func detectGAPath() []string {
+	var found []string
+	// Common locations to check
+	candidates := []string{
+		filepath.Join(os.Getenv("USERPROFILE"), "GenericAgent"),
+		filepath.Join(os.Getenv("USERPROFILE"), "Desktop", "GenericAgent"),
+		filepath.Join(os.Getenv("USERPROFILE"), "Documents", "GenericAgent"),
+		`D:\python3_project\GenericAgent`,
+		`C:\GenericAgent`,
+		filepath.Join(os.Getenv("HOME"), "GenericAgent"),
+	}
+	// Also check sibling directories of exe
+	exeDir := getExeDir()
+	candidates = append(candidates, filepath.Join(filepath.Dir(exeDir), "GenericAgent"))
+	candidates = append(candidates, filepath.Join(exeDir, "..", "GenericAgent"))
+
+	for _, p := range candidates {
+		if p == "" {
+			continue
+		}
+		agentMain := filepath.Join(p, "agentmain.py")
+		if _, err := os.Stat(agentMain); err == nil {
+			// Normalize path
+			abs, _ := filepath.Abs(p)
+			// Deduplicate
+			dup := false
+			for _, f := range found {
+				if strings.EqualFold(f, abs) {
+					dup = true
+					break
+				}
+			}
+			if !dup {
+				found = append(found, abs)
+			}
+		}
+	}
+	return found
 }
 
 // corsMiddleware adds CORS headers for development

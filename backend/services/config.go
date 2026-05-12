@@ -22,6 +22,11 @@ func NewConfigService(gaRoot string) *ConfigService {
 	return &ConfigService{gaRoot: gaRoot}
 }
 
+// UpdateRoot updates the GA root path
+func (s *ConfigService) UpdateRoot(newRoot string) {
+	s.gaRoot = newRoot
+}
+
 // GetMyKeyRaw returns the raw source of mykey.py
 func (s *ConfigService) GetMyKeyRaw() (string, error) {
 	path := filepath.Join(s.gaRoot, "mykey.py")

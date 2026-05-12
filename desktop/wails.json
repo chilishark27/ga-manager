@@ -1,0 +1,19 @@
+{
+  "name": "GA Manager",
+  "outputfilename": "ga_manager_desktop",
+  "frontend:install": "",
+  "frontend:build": "",
+  "frontend:dev:watcher": "",
+  "frontend:dev:serverUrl": "",
+  "author": {
+    "name": "dhdbv-cbs",
+    "email": ""
+  },
+  "info": {
+    "companyName": "GA Manager",
+    "productName": "GA Manager",
+    "productVersion": "1.0.0",
+    "copyright": "2025",
+    "comments": "GenericAgent Manager Desktop"
+  }
+}

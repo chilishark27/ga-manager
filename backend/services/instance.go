@@ -106,6 +106,13 @@ func NewInstanceManager(cfg *models.AppConfig) *InstanceManager {
 	}
 }
 
+// UpdateConfig updates the manager's config reference (e.g. after GA root change).
+func (m *InstanceManager) UpdateConfig(cfg *models.AppConfig) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.config = cfg
+}
+
 // Subscribe registers a WS client to receive events from an instance.
 // Returns a channel and an unsubscribe function.
 func (m *InstanceManager) Subscribe(id string) (string, <-chan []byte, func(), error) {

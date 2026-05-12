@@ -1,0 +1,6 @@
+{
+  "ga_root": "D:\\python3_project\\GenericAgent",
+  "port": 18600,
+  "max_instances": 10,
+  "python_path": "python"
+}

@@ -1,0 +1,12 @@
+[19:23:41] bridge started, pid=66956, llm_no=1
+[19:24:31] relay() entered, waiting for dq items...
+[19:24:31] relay got: keys=['next', 'source'], preview={'next': '\n\n**LLM Running (Turn 1) ...**\n\n', 'source': 'user'}
+[19:24:37] relay got: keys=['next', 'source'], preview={'next': '\n\n**LLM Running (Turn 1) ...**\n\n<summary>测试消息，无需工具调用</summary>\n\n你好！收到测试消息，一切正常。有什么需', 'source': 'user'}
+[19:24:38] relay got: keys=['next', 'source'], preview={'next': '\n\n**LLM Running (Turn 1) ...**\n\n<summary>测试消息，无需工具调用</summary>\n\n你好！收到测试消息，一切正常。有什么需要帮忙的随时说。\n\n`````\n[Info] Final response to user.\n`````\n', 'source': 'user'}
+[19:24:38] relay got: keys=['done', 'source'], preview={'done': '\n\n**LLM Running (Turn 1) ...**\n\n<summary>测试消息，无需工具调用</summary>\n\n\n\n你好！收到测试消息，一切正常。有什么需要帮忙的随时说。\n\n`````\n[Info] Final response to user.\n`````\n', 'source': 'user'}
+[19:24:38] relay sent done, len=138, tokens=106
+[19:26:19] relay() entered, waiting for dq items...
+[19:26:19] relay got: keys=['next', 'source'], preview={'next': '\n\n**LLM Running (Turn 1) ...**\n\n', 'source': 'user'}
+[19:26:23] relay got: keys=['next', 'source'], preview={'next': '\n\n**LLM Running (Turn 1) ...**\n\n<summary>收到切换测试，状态正常</summary>\n\n收到，切换后连接正常。\n\n`````\n', 'source': 'user'}
+[19:26:23] relay got: keys=['done', 'source'], preview={'done': '\n\n**LLM Running (Turn 1) ...**\n\n<summary>收到切换测试，状态正常</summary>\n\n\n\n收到，切换后连接正常。\n\n`````\n[Info] Final response to user.\n`````\n', 'source': 'user'}
+[19:26:23] relay sent done, len=122, tokens=93

@@ -13,6 +13,11 @@ function getWsUrl(instanceId: string): string {
 }
 
 interface AppState {
+  // Setup / Configuration
+  configured: boolean;
+  checkConfigured: () => Promise<void>;
+  setConfigured: (v: boolean) => void;
+
   // Theme
   theme: 'dark' | 'light';
   toggleTheme: () => void;
@@ -42,7 +47,7 @@ interface AppState {
   wsConnected: boolean;
   connectWs: (instanceId: string) => void;
   disconnectWs: () => void;
-  sendMessage: (content: string) => void;
+  sendMessage: (content: string, images?: string[]) => void;
   clearChat: () => void;
   interruptChat: (id: string) => Promise<void>;
   deleteInstance: (id: string) => Promise<void>;
@@ -52,6 +57,31 @@ interface AppState {
   setShowLLMSelector: (v: boolean) => void;
   toast: string | null;
   showToast: (msg: string) => void;
+
+  // Resources
+  resources: { type: string; usage: number; detail: string }[];
+  fetchResources: (id: string) => Promise<void>;
+
+  // Schedules
+  schedules: any[];
+  fetchSchedules: (id: string) => Promise<void>;
+  addSchedule: (id: string, cron: string, task: string) => Promise<void>;
+  deleteSchedule: (instanceId: string, scheduleId: string) => Promise<void>;
+
+  // Actions
+  exportChat: (id: string) => void;
+  sendCommand: (id: string, cmd: string) => Promise<void>;
+  forwardMessage: (fromId: string, toId: string, message: string) => Promise<void>;
+
+  // Batch
+  batchAction: (action: string, instanceIds: string[]) => Promise<void>;
+
+  // Sophub
+  sophubQuery: string;
+  sophubResults: any[];
+  sophubLoading: boolean;
+  searchSophub: (query: string) => Promise<void>;
+  downloadSop: (sopId: string, instanceId?: string) => Promise<void>;
 
   // Computed helpers
   activeInstance: () => Instance | null;
@@ -81,6 +111,18 @@ interface AppState {
 }
 
 export const useStore = create<AppState>((set, get) => ({
+  configured: false,
+  checkConfigured: async () => {
+    try {
+      const res = await fetch(`${API_BASE}/config`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ configured: !!data.ga_root });
+      }
+    } catch { /* not configured */ }
+  },
+  setConfigured: (v: boolean) => set({ configured: v }),
+
   theme: 'dark',
   toggleTheme: () => set(state => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
 
