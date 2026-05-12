@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GA Manager - v9</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+
+/* ===== Dark Theme ===== */
+[data-theme="dark"] {
+  --bg: #0a0e1a; --bg2: #111827; --bg3: #1a2035;
+  --card: #1e2642; --card-hover: #243052;
+  --border: #2a3555; --border-glow: #4f6ef755;
+  --accent: #6c5ce7; --accent2: #00cec9; --accent3: #fd79a8;
+  --green: #00b894; --yellow: #fdcb6e; --red: #e17055;
+  --text-1: #f0f0f0; --text-2: #a0aec0; --text-3: #5a6a8a;
+  --sidebar-bg: #0d1220; --sidebar-hover: #1a2540;
+  --input-bg: #111d33; --msg-user: #2d1f5e; --msg-agent: #1a2642;
+  --shadow: 0 4px 24px #0005;
+  --toggle-bg: #2a3555; --toggle-on: #6c5ce7;
+}
+
+/* ===== Light Theme ===== */
+[data-theme="light"] {
+  --bg: #f0f2f5; --bg2: #ffffff; --bg3: #f8f9fb;
+  --card: #ffffff; --card-hover: #f0f4ff;
+  --border: #e2e8f0; --border-glow: #6c5ce722;
+  --accent: #6c5ce7; --accent2: #0891b2; --accent3: #e11d48;
+  --green: #16a34a; --yellow: #ca8a04; --red: #dc2626;
+  --text-1: #1a202c; --text-2: #4a5568; --text-3: #a0aec0;
+  --sidebar-bg: #ffffff; --sidebar-hover: #f0f4ff;
+  --input-bg: #f7f8fa; --msg-user: #ede9fe; --msg-agent: #f0f9ff;
+  --shadow: 0 4px 24px #0001;
+  --toggle-bg: #cbd5e1; --toggle-on: #6c5ce7;
+}
+
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text-1); display: flex; height: 100vh; overflow: hidden; transition: background 0.3s, color 0.3s; }
+
+/* Sidebar */
+.sidebar { width: 260px; background: var(--sidebar-bg); display: flex; flex-direction: column; border-right: 1px solid var(--border); }
+.logo { display: flex; align-items: center; gap: 10px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+.logo-icon { width: 32px; height: 32px; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; color: #fff; }
+.logo-text { font-size: 15px; font-weight: 700; color: var(--text-1); }
+.theme-btn { margin-left: auto; width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 14px; transition: all 0.2s; }
+.theme-btn:hover { border-color: var(--accent); transform: scale(1.1); }
+.stats-bar { display: flex; gap: 2px; padding: 12px 14px; border-bottom: 1px solid var(--border); }
+.stat-mini { flex:1; text-align: center; }
+.stat-mini .sv { font-size: 16px; font-weight: 700; color: var(--accent2); }
+.stat-mini .sl { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+.inst-list { flex:1; overflow-y: auto; padding: 8px; }
+.inst-card { padding: 10px 12px; border-radius: 8px; cursor: pointer; margin-bottom: 4px; border: 1px solid transparent; transition: all 0.2s; }
+.inst-card:hover { background: var(--sidebar-hover); }
+.inst-card.active { background: var(--sidebar-hover); border-color: var(--accent); box-shadow: 0 0 12px var(--border-glow); }
+.inst-card .ic-top { display: flex; align-items: center; gap: 8px; }
+.inst-card .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }
+.dot.yellow { background: var(--yellow); animation: pulse 1s infinite; }
+.dot.gray { background: var(--text-3); }
+@keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.5; } }
+.inst-card .ic-name { font-size: 13px; font-weight: 600; color: var(--text-1); }
+.inst-card .ic-mode { font-size: 10px; padding: 1px 6px; border-radius: 3px; background: var(--accent); color: #fff; }
+.inst-card .ic-right { margin-left: auto; display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.inst-card .ic-meta { font-size: 10px; color: var(--text-3); margin-top: 4px; padding-left: 16px; }
+.inst-card .ic-tags { display: flex; gap: 3px; margin-top: 5px; padding-left: 16px; flex-wrap: wrap; }
+.ic-tag { font-size: 9px; padding: 1px 5px; border-radius: 3px; background: var(--bg3); color: var(--text-2); border: 1px solid var(--border); }
+.ic-tag.on { background: var(--accent); color: #fff; border-color: var(--accent); opacity: 0.85; }
+.inst-card .toggle { width: 32px; height: 18px; border-radius: 9px; background: var(--toggle-bg); cursor: pointer; transition: all 0.3s; position: relative; flex-shrink: 0; }
+.inst-card .toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: all 0.3s; }
+.inst-card .toggle.on { background: var(--toggle-on); }
+.inst-card .toggle.on::after { left: 16px; }
+.add-btn { margin: 8px; padding: 10px; border-radius: 8px; border: 1px dashed var(--border); text-align: center; color: var(--text-3); font-size: 12px; cursor: pointer; transition: all 0.2s; }
+.add-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* Main Chat */
+.main { flex:1; display: flex; flex-direction: column; background: var(--bg2); }
+.topbar { display: flex; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border); gap: 12px; }
+.topbar h3 { font-size: 14px; font-weight: 600; }
+.topbar .badge { font-size: 10px; padding: 2px 8px; border-radius: 10px; background: var(--green); color: #fff; }
+.spacer { flex:1; }
+.topbar button { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text-2); font-size: 11px; cursor: pointer; transition: all 0.2s; }
+.topbar button:hover { border-color: var(--accent); color: var(--accent); }
+.chat-area { flex:1; overflow-y: auto; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+.msg { max-width: 75%; padding: 12px 16px; border-radius: 12px; font-size: 13px; line-height: 1.6; }
+.msg.user { align-self: flex-end; background: var(--msg-user); border-bottom-right-radius: 4px; }
+.msg.agent { align-self: flex-start; background: var(--msg-agent); border-bottom-left-radius: 4px; border: 1px solid var(--border); }
+.msg code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+.input-area { padding: 16px 20px; border-top: 1px solid var(--border); }
+.input-row { display: flex; gap: 8px; }
+.input-row input { flex:1; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-1); font-size: 13px; outline: none; transition: border 0.2s; }
+.input-row input:focus { border-color: var(--accent); }
+.input-row button { padding: 10px 20px; border-radius: 8px; border: none; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; font-weight: 600; font-size: 13px; cursor: pointer; transition: transform 0.1s; }
+.input-row button:active { transform: scale(0.96); }
+.input-hints { display: flex; gap: 12px; margin-top: 8px; font-size: 11px; color: var(--text-3); }
+
+/* Right Panel */
+.right-panel { width: 300px; background: var(--bg3); border-left: 1px solid var(--border); overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+.rp-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px; transition: all 0.2s; }
+.rp-card:hover { border-color: var(--border-glow); box-shadow: 0 0 16px var(--border-glow); }
+.rp-card h5 { font-size: 12px; font-weight: 700; color: var(--text-2); margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px; }
+.rp-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 12px; }
+.rp-row .label { color: var(--text-3); }
+.rp-row .val { color: var(--text-1); font-weight: 500; }
+.rp-row .val.accent { color: var(--accent); }
+.feat-row { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--border); }
+.feat-row:last-child { border-bottom: none; }
+.feat-icon { font-size: 18px; margin-top: 2px; }
+.feat-info { flex:1; }
+.feat-name { font-size: 12px; font-weight: 600; color: var(--text-1); }
+.feat-desc { font-size: 10px; color: var(--text-3); margin-top: 2px; }
+.feat-detail { font-size: 10px; color: var(--accent2); margin-top: 3px; }
+.mini-toggle { width: 28px; height: 16px; border-radius: 8px; background: var(--toggle-bg); cursor: pointer; transition: all 0.3s; position: relative; flex-shrink: 0; margin-top: 3px; }
+.mini-toggle::after { content: ''; position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: all 0.3s; }
+.mini-toggle.on { background: var(--toggle-on); }
+.mini-toggle.on::after { left: 14px; }
+.progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.progress-bar .fill { height: 100%; border-radius: 2px; transition: width 0.5s; }
+.fill.accent { background: linear-gradient(90deg, var(--accent), var(--accent2)); }
+.qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.qa-btn { border: 1px solid var(--border); border-radius: 6px; padding: 8px; text-align: center; font-size: 11px; color: var(--text-2); cursor: pointer; transition: all 0.2s; }
+.qa-btn:hover { border-color: var(--accent); color: var(--accent); background: #6c5ce711; }
+</style>
+</head>
+<body>
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="logo">
+    <div class="logo-icon">GA</div>
+    <div class="logo-text">GA Manager</div>
+    <div class="theme-btn" id="themeToggle">🌙</div>
+  </div>
+  <div class="stats-bar">
+    <div class="stat-mini"><div class="sv">5</div><div class="sl">运行中</div></div>
+    <div class="stat-mini"><div class="sv">48K</div><div class="sl">Tokens</div></div>
+    <div class="stat-mini"><div class="sv">99%</div><div class="sl">健康</div></div>
+  </div>
+  <div class="inst-list">
+    <div class="inst-card active">
+      <div class="ic-top"><div class="dot green"></div><span class="ic-name">主对话</span><span class="ic-mode" style="background:var(--accent)">Web</span><span class="ic-right"><span class="toggle on"></span></span></div>
+      <div class="ic-meta">PID 12847 · 2h15m · 12K tok</div>
+      <div class="ic-tags"><span class="ic-tag on">健康</span><span class="ic-tag on">自主</span><span class="ic-tag on">定时</span><span class="ic-tag">Goal</span></div>
+    </div>
+    <div class="inst-card">
+      <div class="ic-top"><div class="dot green"></div><span class="ic-name">QQ 机器人</span><span class="ic-mode" style="background:var(--accent2)">IM</span><span class="ic-right"><span class="toggle on"></span></span></div>
+      <div class="ic-meta">PID 9021 · 5h · 8.2K tok</div>
+      <div class="ic-tags"><span class="ic-tag on">健康</span><span class="ic-tag">自主</span><span class="ic-tag on">定时</span><span class="ic-tag">Goal</span></div>
+    </div>
+    <div class="inst-card">
+      <div class="ic-top"><div class="dot green"></div><span class="ic-name">Telegram</span><span class="ic-mode" style="background:var(--accent2)">IM</span><span class="ic-right"><span class="toggle on"></span></span></div>
+      <div class="ic-meta">PID 7733 · 12h · 22K tok</div>
+      <div class="ic-tags"><span class="ic-tag on">健康</span><span class="ic-tag on">自主</span><span class="ic-tag">定时</span><span class="ic-tag">Goal</span></div>
+    </div>
+    <div class="inst-card">
+      <div class="ic-top"><div class="dot yellow"></div><span class="ic-name">代码重构</span><span class="ic-mode" style="background:var(--accent3)">Goal</span><span class="ic-right"><span class="toggle on"></span></span></div>
+      <div class="ic-meta">PID 4401 · 45m · 35K tok · 预算 78%</div>
+      <div class="ic-tags"><span class="ic-tag on">健康</span><span class="ic-tag">自主</span><span class="ic-tag">定时</span><span class="ic-tag on">Goal</span></div>
+    </div>
+    <div class="inst-card">
+      <div class="ic-top"><div class="dot green"></div><span class="ic-name">定时调度</span><span class="ic-mode" style="background:var(--yellow);color:#000">Sche</span><span class="ic-right"><span class="toggle on"></span></span></div>
+      <div class="ic-meta">PID 5512 · 8h · 4.1K tok</div>
+      <div class="ic-tags"><span class="ic-tag on">健康</span><span class="ic-tag">自主</span><span class="ic-tag on">定时</span><span class="ic-tag">Goal</span></div>
+    </div>
+    <div class="inst-card">
+      <div class="ic-top"><div class="dot gray"></div><span class="ic-name">Discord</span><span class="ic-mode" style="background:var(--accent2)">IM</span><span class="ic-right"><span class="toggle"></span></span></div>
+      <div class="ic-meta">已停止</div>
+      <div class="ic-tags"><span class="ic-tag">健康</span><span class="ic-tag">自主</span><span class="ic-tag">定时</span><span class="ic-tag">Goal</span></div>
+    </div>
+    <div class="inst-card">
+      <div class="toggle"></div>
+      <div class="ic-top"><div class="dot gray"></div><span class="ic-name">Team Worker</span><span class="ic-mode" style="background:var(--text-3)">Team</span></div>
+      <div class="ic-meta">已停止</div>
+      <div class="ic-tags"><span class="ic-tag">健康</span><span class="ic-tag">自主</span><span class="ic-tag">定时</span><span class="ic-tag">Goal</span></div>
+    </div>
+  </div>
+  <div class="add-btn">+ 新建实例</div>
+</div>
+
+<!-- Main Chat Area -->
+<div class="main">
+  <div class="topbar">
+    <h3>主对话</h3>
+    <span class="badge">运行中</span>
+    <div class="spacer"></div>
+    <button>▶ /resume</button>
+    <button>🆕 /new</button>
+    <button>⚡ 切换LLM</button>
+    <button>⏹ 中断</button>
+  </div>
+  <div class="chat-area">
+    <div class="msg user">帮我重构一下 utils.py，把重复的文件操作抽成工具函数</div>
+    <div class="msg agent">好的，我先读一下 utils.py 的当前内容，看看有哪些重复模式。<br><br><code>file_read utils.py</code> 执行中...</div>
+    <div class="msg agent">已识别出 3 处重复的文件操作模式：<br>1. 读取JSON配置 (出现5次)<br>2. 安全写入+备份 (出现3次)<br>3. 路径拼接+存在检查 (出现7次)<br><br>我来抽取为 <code>read_json_config()</code>、<code>safe_write()</code>、<code>ensure_path()</code> 三个工具函数。</div>
+    <div class="msg user">可以，顺便加上类型注解</div>
+  </div>
+  <div class="input-area">
+    <div class="input-row">
+      <input type="text" placeholder="输入消息... (支持 Ctrl+V 粘贴图片)">
+      <button>发送</button>
+    </div>
+    <div class="input-hints">
+      <span>📎 附件</span><span>🖼️ 粘贴图片</span>
+      <span style="margin-left:auto;color:var(--accent2)">claude-opus-4-6 (mixin #0)</span>
+    </div>
+  </div>
+</div>
+<!-- Right Panel -->
+<div class="right-panel">
+  <div class="rp-card">
+    <h5>实例信息</h5>
+    <div class="rp-row"><span class="label">名称</span><span class="val">主对话</span></div>
+    <div class="rp-row"><span class="label">模式</span><span class="val">Web 对话 (--task)</span></div>
+    <div class="rp-row"><span class="label">PID</span><span class="val accent">12847</span></div>
+    <div class="rp-row"><span class="label">Uptime</span><span class="val">2h 15m</span></div>
+    <div class="rp-row"><span class="label">Token</span><span class="val">12,340</span></div>
+  </div>
+
+  <div class="rp-card">
+    <h5>⚡ 自主行动</h5>
+    <div class="feat-row">
+      <div class="feat-icon">🤖</div>
+      <div class="feat-info">
+        <div class="feat-name">自主模式 (Autonomous)</div>
+        <div class="feat-desc">无人时每30min自动唤醒执行任务</div>
+        <div class="feat-detail">间隔: 1800s · 上次: 12min前</div>
+      </div>
+      <div class="mini-toggle on"></div>
+    </div>
+    <div class="feat-row">
+      <div class="feat-icon">🎯</div>
+      <div class="feat-info">
+        <div class="feat-name">Goal 模式</div>
+        <div class="feat-desc">设定目标持续自驱，直到预算耗尽</div>
+        <div class="feat-detail">目标: 重构utils模块 · 预算: 60min</div>
+      </div>
+      <div class="mini-toggle"></div>
+    </div>
+    <div class="feat-row">
+      <div class="feat-icon">📅</div>
+      <div class="feat-info">
+        <div class="feat-name">定时调度 (Scheduler)</div>
+        <div class="feat-desc">按 sche_tasks/ 下的JSON执行定时任务</div>
+        <div class="feat-detail">3 个任务 · 下次: 14:00 日报</div>
+      </div>
+      <div class="mini-toggle on"></div>
+    </div>
+    <div class="feat-row">
+      <div class="feat-icon">👥</div>
+      <div class="feat-info">
+        <div class="feat-name">Team Worker</div>
+        <div class="feat-desc">BBS接单协作，自动抢单执行</div>
+        <div class="feat-detail">BBS: localhost:8080 · 已接: 3单</div>
+      </div>
+      <div class="mini-toggle"></div>
+    </div>
+  </div>
+
+  <div class="rp-card">
+    <h5>🛡️ 健康监控</h5>
+    <div class="feat-row">
+      <div class="feat-icon">💓</div>
+      <div class="feat-info">
+        <div class="feat-name">自动健康检查</div>
+        <div class="feat-desc">检测卡死/无响应，自动重启</div>
+        <div class="feat-detail">间隔: 60s · 阈值: 300s · 状态: 正常</div>
+      </div>
+      <div class="mini-toggle on"></div>
+    </div>
+    <div class="feat-row">
+      <div class="feat-icon">🔄</div>
+      <div class="feat-info">
+        <div class="feat-name">崩溃自动重启</div>
+        <div class="feat-desc">进程异常退出时自动拉起</div>
+        <div class="feat-detail">最大重试: 3次 · 已重启: 0次</div>
+      </div>
+      <div class="mini-toggle on"></div>
+    </div>
+  </div>
+
+  <div class="rp-card">
+    <h5>🧠 LLM 配置</h5>
+    <div class="rp-row"><span class="label">当前</span><span class="val accent">[0] claude-opus-4-6</span></div>
+    <div class="rp-row"><span class="label">类型</span><span class="val">MixinSession (故障转移)</span></div>
+    <div class="rp-row"><span class="label">Fallback</span><span class="val">[1] gpt-4o → [2] qwen-72b</span></div>
+    <div class="progress-bar" style="margin-top:8px"><div class="fill accent" style="width:35%"></div></div>
+    <div style="font-size:10px;color:var(--text-3);margin-top:4px">Token 预算: 35% 已用 (12K / 35K)</div>
+  </div>
+
+  <div class="rp-card">
+    <h5>⚙️ 快捷操作</h5>
+    <div class="qa-grid">
+      <div class="qa-btn">▶️ /resume</div>
+      <div class="qa-btn">🆕 /new</div>
+      <div class="qa-btn">📋 查看日志</div>
+      <div class="qa-btn">📂 打开目录</div>
+      <div class="qa-btn">🔀 切换LLM</div>
+      <div class="qa-btn">🐛 verbose</div>
+      <div class="qa-btn">⏹️ 停止实例</div>
+      <div class="qa-btn">🗑️ 清空历史</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Theme toggle
+const themeBtn = document.getElementById('themeToggle');
+themeBtn.addEventListener('click', () => {
+  const html = document.documentElement;
+  const current = html.getAttribute('data-theme');
+  if (current === 'dark') {
+    html.setAttribute('data-theme', 'light');
+    themeBtn.textContent = '☀️';
+  } else {
+    html.setAttribute('data-theme', 'dark');
+    themeBtn.textContent = '🌙';
+  }
+});
+
+// Toggle switches
+document.querySelectorAll('.toggle, .mini-toggle').forEach(t => {
+  t.addEventListener('click', e => {
+    e.stopPropagation();
+    t.classList.toggle('on');
+  });
+});
+
+// Instance card selection
+document.querySelectorAll('.inst-card').forEach(card => {
+  card.addEventListener('click', function(e) {
+    if (e.target.classList.contains('toggle')) return;
+    document.querySelectorAll('.inst-card').forEach(c => c.classList.remove('active'));
+    this.classList.add('active');
+  });
+});
+</script>
+</body>
+</html>

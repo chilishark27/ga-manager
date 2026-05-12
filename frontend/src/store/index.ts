@@ -1,0 +1,649 @@
+import { create } from 'zustand';
+import { Instance, ChatMessage, LLMConfig } from '../types';
+
+const API_BASE = '/api';
+
+// WebSocket connection manager
+let ws: WebSocket | null = null;
+let wsInstanceId: string | null = null;
+
+function getWsUrl(instanceId: string): string {
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${proto}//${window.location.host}/api/instances/${instanceId}/ws`;
+}
+
+interface AppState {
+  // Theme
+  theme: 'dark' | 'light';
+  toggleTheme: () => void;
+
+  // Instances
+  instances: Instance[];
+  activeInstanceId: string | null;
+  fetchInstances: () => Promise<void>;
+  selectInstance: (id: string) => void;
+  toggleInstance: (id: string) => void;
+  restartInstance: (id: string) => Promise<void>;
+  createInstance: (data: Partial<Instance>) => Promise<void>;
+
+  // Instance feature toggles
+  toggleFeature: (id: string, feature: 'autonomous' | 'goal' | 'reflect' | 'scheduler' | 'team_worker') => Promise<void>;
+  switchLLM: (id: string, llmNo: number) => Promise<void>;
+  setIMChannel: (id: string, channel: string) => Promise<void>;
+  showIMSelector: boolean;
+  setShowIMSelector: (v: boolean) => void;
+
+  // LLM configs
+  llmConfigs: LLMConfig[];
+  fetchLLMs: () => Promise<void>;
+
+  // Chat (WebSocket-based)
+  messages: ChatMessage[];
+  wsConnected: boolean;
+  connectWs: (instanceId: string) => void;
+  disconnectWs: () => void;
+  sendMessage: (content: string) => void;
+  clearChat: () => void;
+  interruptChat: (id: string) => Promise<void>;
+  deleteInstance: (id: string) => Promise<void>;
+
+  // UI state
+  showLLMSelector: boolean;
+  setShowLLMSelector: (v: boolean) => void;
+  toast: string | null;
+  showToast: (msg: string) => void;
+
+  // Computed helpers
+  activeInstance: () => Instance | null;
+  runningCount: () => number;
+  totalTokens: () => string;
+  healthPercent: () => string;
+}
+
+export const useStore = create<AppState>((set, get) => ({
+  theme: 'dark',
+  toggleTheme: () => set(state => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
+
+  instances: [],
+  activeInstanceId: null,
+
+  fetchInstances: async () => {
+    try {
+      const res = await fetch(`${API_BASE}/instances`);
+      if (res.ok) {
+        const raw = await res.json();
+        // Map backend fields to frontend Instance type
+        const instances: Instance[] = (raw || []).map((r: any) => ({
+          id: r.id || '',
+          name: r.name || '',
+          status: r.state || r.status || 'stopped',
+          pid: r.pid || 0,
+          llm_no: r.llm_no || 0,
+          autonomous: r.autonomous || false,
+          goal: r.goal || '',
+          reflect: r.reflect || false,
+          scheduler: r.scheduler || false,
+          team_worker: r.team_worker || false,
+          uptime: r.uptime || '0',
+          tokens_used: r.tokens_used || r.total_turns || 0,
+          health: (r.state === 'running' || r.state === 'busy' || r.state === 'starting') ? 'healthy' : 'error',
+          mode: r.mode || (r.autonomous ? 'Goal' : 'Web'),
+          im_channel: r.im_channel || '',
+        }));
+        // Auto-select first instance if none selected
+        const currentId = get().activeInstanceId;
+        const shouldSelect = !currentId || !instances.find(i => i.id === currentId);
+        set({
+          instances,
+          ...(shouldSelect && instances.length > 0 ? { activeInstanceId: instances[0].id } : {}),
+        });
+        // Auto-connect WS for the selected running instance
+        if (shouldSelect && instances.length > 0 && instances[0].status === 'running') {
+          get().connectWs(instances[0].id);
+        } else if (!shouldSelect && currentId) {
+          const current = instances.find(i => i.id === currentId);
+          if (current && current.status === 'running' && (!ws || ws.readyState !== WebSocket.OPEN)) {
+            get().connectWs(currentId);
+          }
+        }
+      }
+    } catch {
+      // Network error - keep existing state
+    }
+  },
+
+  selectInstance: (id: string) => {
+    set({ activeInstanceId: id, messages: [] });
+    // Always connect WebSocket when selecting an instance
+    get().connectWs(id);
+  },
+
+  toggleInstance: async (id: string) => {
+    const inst = get().instances.find(i => i.id === id);
+    if (!inst) return;
+    const action = inst.status === 'running' ? 'stop' : 'start';
+    try {
+      await fetch(`${API_BASE}/instances/${id}/${action}`, { method: 'POST' });
+      await get().fetchInstances();
+    } catch {
+      get().showToast(`${action} 失败`);
+    }
+  },
+
+  restartInstance: async (id: string) => {
+    try {
+      get().showToast('正在重启...');
+      await fetch(`${API_BASE}/instances/${id}/stop`, { method: 'POST' });
+      // Wait briefly for process cleanup
+      await new Promise(r => setTimeout(r, 1000));
+      await fetch(`${API_BASE}/instances/${id}/start`, { method: 'POST' });
+      await get().fetchInstances();
+      get().showToast('✅ 重启完成');
+    } catch {
+      get().showToast('❌ 重启失败');
+    }
+  },
+
+  createInstance: async (data) => {
+    try {
+      await fetch(`${API_BASE}/instances`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      await get().fetchInstances();
+    } catch {
+      // ignore
+    }
+  },
+
+  messages: [],
+  wsConnected: false,
+
+  connectWs: (instanceId: string) => {
+    // Disconnect existing connection if switching instances
+    if (ws && wsInstanceId !== instanceId) {
+      ws.close();
+      ws = null;
+      wsInstanceId = null;
+    }
+    if (ws && ws.readyState === WebSocket.OPEN) return; // Already connected
+
+    // Clear stale ws reference so sendMessage's setInterval can detect new connection
+    if (ws && ws.readyState !== WebSocket.OPEN) {
+      ws = null;
+    }
+
+    const url = getWsUrl(instanceId);
+    const socket = new WebSocket(url);
+    wsInstanceId = instanceId;
+
+    socket.onopen = () => {
+      ws = socket;
+      set({ wsConnected: true });
+    };
+
+    socket.onmessage = (evt) => {
+      try {
+        console.log('[WS_DEBUG] raw message:', evt.data);
+        const data = JSON.parse(evt.data);
+        const event = data.event || data.type;
+        console.log('[WS_DEBUG] parsed event:', event, 'text:', data.text);
+
+        if (event === 'reply_chunk' || event === 'next') {
+          // Streaming partial — update or append agent message
+          const rawText = data.text || '';
+          // Extract actual content: strip thinking prefix like "**LLM Running (Turn N) ...**\n\n"
+          // and strip <summary>...</summary> tags and code fences like [Info]...
+          let text = rawText
+            .replace(/^\s*\*\*LLM Running[^*]*\*\*\s*/g, '')
+            .replace(/<summary>[\s\S]*?<\/summary>\s*/g, '')
+            .replace(/`{3,}\s*\[Info\][^\n]*\n?/g, '')
+            .replace(/`{3,}\s*$/g, '')
+            .trim();
+
+          if (!text) {
+            // Only thinking prefix, no real content yet — show typing indicator
+            set(state => {
+              const msgs = [...state.messages];
+              const lastMsg = msgs[msgs.length - 1];
+              if (!(lastMsg && lastMsg.role === 'agent' && lastMsg.status === 'streaming')) {
+                msgs.push({ role: 'agent', content: '⏳ 思考中...', timestamp: Date.now(), status: 'streaming' });
+              }
+              return { messages: msgs };
+            });
+          } else {
+            // Real content available
+            set(state => {
+              const msgs = [...state.messages];
+              const lastMsg = msgs[msgs.length - 1];
+              if (lastMsg && lastMsg.role === 'agent' && lastMsg.status === 'streaming') {
+                msgs[msgs.length - 1] = { ...lastMsg, content: text };
+              } else {
+                msgs.push({ role: 'agent', content: text, timestamp: Date.now(), status: 'streaming' });
+              }
+              return { messages: msgs };
+            });
+          }
+        } else if (event === 'reply_done' || event === 'done') {
+          // Final response — strip thinking prefix same as streaming
+          const rawText = data.text || '';
+          let text = rawText
+            .replace(/^\s*\*\*LLM Running[^*]*\*\*\s*/g, '')
+            .replace(/<summary>[\s\S]*?<\/summary>\s*/g, '')
+            .replace(/`{3,}\s*\[Info\][^\n]*\n?/g, '')
+            .replace(/`{3,}\s*$/g, '')
+            .trim();
+          set(state => {
+            const msgs = [...state.messages];
+            const lastMsg = msgs[msgs.length - 1];
+            if (lastMsg && lastMsg.role === 'agent' && lastMsg.status === 'streaming') {
+              msgs[msgs.length - 1] = { ...lastMsg, content: text || lastMsg.content, status: 'done' };
+            } else {
+              msgs.push({ role: 'agent', content: text, timestamp: Date.now(), status: 'done' });
+            }
+            return { messages: msgs };
+          });
+        } else if (event === 'error') {
+          const errText = data.text || data.error || '未知错误';
+          set(state => ({
+            messages: [...state.messages, { role: 'agent', content: `⚠️ ${errText}`, timestamp: Date.now(), status: 'error' }],
+          }));
+        }
+      } catch {
+        // Non-JSON message, ignore
+      }
+    };
+
+    socket.onclose = () => {
+      ws = null;
+      wsInstanceId = null;
+      set({ wsConnected: false });
+    };
+
+    socket.onerror = () => {
+      get().showToast('WebSocket 连接失败');
+    };
+  },
+
+  disconnectWs: () => {
+    if (ws) {
+      ws.close();
+      ws = null;
+      wsInstanceId = null;
+    }
+    set({ wsConnected: false });
+  },
+
+  sendMessage: async (content: string, images?: string[]) => {
+    const id = get().activeInstanceId;
+    if (!id) return;
+
+    // Add user message to UI (with images if any)
+    const userMsg: ChatMessage = { role: 'user', content, timestamp: Date.now(), images };
+    set(state => ({ messages: [...state.messages, userMsg] }));
+
+    // Ensure WS is connected for receiving replies
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      get().connectWs(id);
+    }
+
+    // Send via HTTP POST (reliable, not affected by state checks in WS path)
+    try {
+      const body: Record<string, unknown> = { message: content };
+      if (images && images.length > 0) {
+        body.images = images;
+      }
+      const resp = await fetch(`${API_BASE}/instances/${id}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      if (!resp.ok) {
+        const err = await resp.text();
+        set(state => ({
+          messages: [...state.messages, { role: 'agent', content: `⚠️ 发送失败: ${err}`, timestamp: Date.now(), status: 'error' }],
+        }));
+      }
+    } catch (e) {
+      set(state => ({
+        messages: [...state.messages, { role: 'agent', content: `⚠️ 网络错误: ${e}`, timestamp: Date.now(), status: 'error' }],
+      }));
+    }
+  },
+
+  clearChat: async () => {
+    const id = get().activeInstanceId;
+    if (id) {
+      try { await fetch(`${API_BASE}/instances/${id}/clear`, { method: 'POST' }); } catch {}
+    }
+    set({ messages: [] });
+  },
+
+  deleteInstance: async (id: string) => {
+    try {
+      const resp = await fetch(`${API_BASE}/instances/${id}`, { method: 'DELETE' });
+      if (resp.ok) {
+        set(state => ({
+          instances: state.instances.filter(i => i.id !== id),
+          activeInstanceId: state.activeInstanceId === id ? null : state.activeInstanceId,
+          messages: state.activeInstanceId === id ? [] : state.messages,
+        }));
+        get().showToast('实例已删除');
+      } else {
+        get().showToast('删除失败');
+      }
+    } catch {
+      get().showToast('删除失败');
+    }
+  },
+
+  interruptChat: async (id: string) => {
+    try {
+      await fetch(`${API_BASE}/instances/${id}/interrupt`, { method: 'POST' });
+      get().showToast('已发送中断指令');
+    } catch {
+      get().showToast('中断失败');
+    }
+  },
+
+  toggleFeature: async (id: string, feature: 'autonomous' | 'goal' | 'reflect' | 'scheduler' | 'team_worker') => {
+    const inst = get().instances.find(i => i.id === id);
+    if (!inst) return;
+    const newVal = !inst[feature];
+    try {
+      await fetch(`${API_BASE}/instances/${id}/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [feature]: newVal }),
+      });
+      // Optimistic update
+      set(state => ({
+        instances: state.instances.map(i =>
+          i.id === id ? { ...i, [feature]: newVal } : i
+        ),
+      }));
+      get().showToast(`${feature} ${newVal ? '已启用' : '已关闭'}`);
+    } catch {
+      get().showToast(`切换 ${feature} 失败`);
+    }
+  },
+
+  switchLLM: async (id: string, llmNo: number) => {
+    try {
+      await fetch(`${API_BASE}/instances/${id}/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ llm_no: llmNo }),
+      });
+      set(state => ({
+        instances: state.instances.map(i =>
+          i.id === id ? { ...i, llm_no: llmNo } : i
+        ),
+        showLLMSelector: false,
+      }));
+      get().showToast(`已切换到 LLM #${llmNo}`);
+    } catch {
+      get().showToast('切换LLM失败');
+    }
+  },
+
+  setIMChannel: async (id: string, channel: string) => {
+    try {
+      await fetch(`${API_BASE}/instances/${id}/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ im_channel: channel }),
+      });
+      set(state => ({
+        instances: state.instances.map(i =>
+          i.id === id ? { ...i, im_channel: channel } : i
+        ),
+        showIMSelector: false,
+      }));
+      get().showToast(`IM渠道已切换为 ${channel || '无'}`);
+    } catch {
+      get().showToast('切换IM渠道失败');
+    }
+  },
+
+  showIMSelector: false,
+  setShowIMSelector: (v: boolean) => set({ showIMSelector: v }),
+
+  // LLM configs from backend
+  llmConfigs: [],
+  fetchLLMs: async () => {
+    try {
+      const res = await fetch(`${API_BASE}/config/llms`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ llmConfigs: data || [] });
+      }
+    } catch {
+      // Keep empty list on error
+    }
+  },
+
+  // UI state
+  showLLMSelector: false,
+  setShowLLMSelector: (v: boolean) => set({ showLLMSelector: v }),
+
+  toast: null,
+  showToast: (msg: string) => {
+    set({ toast: msg });
+    setTimeout(() => set({ toast: null }), 2500);
+  },
+
+  activeInstance: () => {
+    const { instances, activeInstanceId } = get();
+    return instances.find(i => i.id === activeInstanceId) || null;
+  },
+
+  runningCount: () => get().instances.filter(i => i.status === 'running' || i.status === 'busy' || i.status === 'starting').length,
+
+  totalTokens: () => {
+    const total = get().instances.reduce((sum, i) => sum + (i.tokens_used || 0), 0);
+    if (total >= 1000) return `${(total / 1000).toFixed(1)}K`;
+    return String(total);
+  },
+
+  healthPercent: () => {
+    const insts = get().instances;
+    if (insts.length === 0) return '100%';
+    const healthy = insts.filter(i => i.health === 'healthy').length;
+    return `${Math.round((healthy / insts.length) * 100)}%`;
+  },
+
+  // === New Feature States ===
+  resources: [] as { type: string; usage: number; detail: string }[],
+  schedules: [] as { id: string; instance_id: string; cron: string; task: string; enabled: boolean; last_run?: string; next_run?: string }[],
+  sophubResults: [] as { id: string; title: string; description: string; tags: string[]; author?: string; downloads?: number }[],
+  sophubQuery: '',
+  sophubLoading: false,
+
+  // === Resources ===
+  fetchResources: async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/instances/${id}/resources`);
+      if (res.ok) {
+        const data = await res.json();
+        const raw = Array.isArray(data) ? data[0] : data;
+        if (raw) {
+          const cpuPct = Math.round(raw.cpu_percent || 0);
+          const memMB = raw.memory_mb || 0;
+          // Estimate memory percentage (cap at 100)
+          const memPct = Math.min(100, Math.round(memMB / 100 * 100) || 1);
+          const resources = [
+            { type: 'cpu', usage: cpuPct, detail: `${cpuPct}%` },
+            { type: 'memory', usage: memPct, detail: `${memMB.toFixed(1)} MB` },
+          ];
+          set({ resources });
+        } else {
+          set({ resources: [] });
+        }
+      }
+    } catch {
+      set({ resources: [] });
+    }
+  },
+
+  // === Schedules ===
+  fetchSchedules: async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/instances/${id}/schedules`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ schedules: data || [] });
+      }
+    } catch {
+      set({ schedules: [] });
+    }
+  },
+
+  addSchedule: async (id: string, cron: string, task: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/instances/${id}/schedules`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cron, task }),
+      });
+      if (res.ok) {
+        get().showToast('定时任务已添加');
+        get().fetchSchedules(id);
+      } else {
+        get().showToast('添加定时任务失败');
+      }
+    } catch {
+      get().showToast('添加定时任务失败');
+    }
+  },
+
+  deleteSchedule: async (instanceId: string, scheduleId: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/instances/${instanceId}/schedules/${scheduleId}`, { method: 'DELETE' });
+      if (res.ok) {
+        get().showToast('定时任务已删除');
+        get().fetchSchedules(instanceId);
+      } else {
+        get().showToast('删除失败');
+      }
+    } catch {
+      get().showToast('删除失败');
+    }
+  },
+
+  // === Batch Actions ===
+  batchAction: async (action: string, instanceIds: string[]) => {
+    try {
+      const res = await fetch(`${API_BASE}/instances/batch`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, instance_ids: instanceIds }),
+      });
+      if (res.ok) {
+        get().showToast(`批量${action}完成`);
+        get().fetchInstances();
+      } else {
+        get().showToast(`批量操作失败`);
+      }
+    } catch {
+      get().showToast('批量操作失败');
+    }
+  },
+
+  // === Sophub Integration ===
+  searchSophub: async (query: string) => {
+    set({ sophubQuery: query, sophubLoading: true });
+    try {
+      const res = await fetch(`${API_BASE}/sophub/search?q=${encodeURIComponent(query)}`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ sophubResults: data.items || data || [], sophubLoading: false });
+      } else {
+        set({ sophubResults: [], sophubLoading: false });
+        get().showToast('Sophub 搜索失败');
+      }
+    } catch {
+      set({ sophubResults: [], sophubLoading: false });
+      get().showToast('Sophub 网络错误');
+    }
+  },
+
+  downloadSop: async (sopId: string, instanceId?: string) => {
+    try {
+      const url = instanceId
+        ? `${API_BASE}/instances/${instanceId}/sophub/download/${sopId}`
+        : `${API_BASE}/sophub/download/${sopId}`;
+      const res = await fetch(url);
+      if (res.ok) {
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `sop_${sopId}.md`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        get().showToast('SOP 下载成功');
+      } else {
+        get().showToast('SOP 下载失败');
+      }
+    } catch {
+      get().showToast('SOP 下载失败');
+    }
+  },
+
+  // === Export Chat ===
+  exportChat: async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/instances/${id}/export`);
+      if (res.ok) {
+        const blob = await res.blob();
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `chat_${id}_${Date.now()}.md`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        get().showToast('对话已导出');
+      } else {
+        get().showToast('导出失败');
+      }
+    } catch {
+      get().showToast('导出失败');
+    }
+  },
+
+  // === Send Command ===
+  sendCommand: async (id: string, command: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/instances/${id}/command`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command }),
+      });
+      if (res.ok) {
+        get().showToast('指令已发送');
+      } else {
+        get().showToast('指令发送失败');
+      }
+    } catch {
+      get().showToast('指令发送失败');
+    }
+  },
+
+  // === Forward Message ===
+  forwardMessage: async (fromId: string, toId: string, message: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/instances/${fromId}/forward`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_id: toId, message }),
+      });
+      if (res.ok) {
+        get().showToast('消息已转发');
+      } else {
+        get().showToast('转发失败');
+      }
+    } catch {
+      get().showToast('转发失败');
+    }
+  },
+}));
