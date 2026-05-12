@@ -25,9 +25,9 @@ Download the latest release from [Releases](https://github.com/chilishark27/ga-m
 ### Run
 
 1. Place both executables in the same directory as your GA project (or configure the path in Settings)
-2. Start `ga_manager_backend.exe` — starts HTTP server on port 3000
-3. Start `ga_manager_desktop.exe` — opens the native window pointing to localhost:3000
-4. Or just open `http://localhost:3000` in your browser
+2. Start `ga_manager_backend.exe` — starts HTTP server on port 18080
+3. Start `ga_manager_desktop.exe` — opens the native desktop window
+4. Or just open `http://localhost:18080` in your browser
 
 ### Language Switch
 
@@ -66,8 +66,8 @@ cd ..
 ```
 
 Output in `build/`:
-- `ga_manager_backend.exe` (~10MB, includes embedded frontend)
-- `ga_manager_desktop.exe` (~6MB, native window)
+- `ga_manager_backend.exe` (~7MB, includes embedded frontend)
+- `ga_manager_desktop.exe` (~6.5MB, native desktop window)
 - `static/` (frontend assets, served by backend)
 
 ## Project Structure
