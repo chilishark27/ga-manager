@@ -25,9 +25,9 @@ Download the latest release from [Releases](https://github.com/chilishark27/ga-m
 ### Run
 
 1. Place both executables in the same directory as your GA project (or configure the path in Settings)
-2. Start `ga_manager_backend.exe` — starts HTTP server on port 18080
+2. Start `ga_manager_backend.exe` — starts HTTP server on port 18600
 3. Start `ga_manager_desktop.exe` — opens the native desktop window
-4. Or just open `http://localhost:18080` in your browser
+4. Or just open `http://localhost:18600` in your browser
 
 ### Language Switch
 
