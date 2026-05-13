@@ -10,6 +10,8 @@ const en: Locale = {
   selectLLM: 'Select LLM Model', noLLMConfig: '⚠️ No LLM config found. Please configure mykey.py in GA directory first.',
   create: 'Create', deleteInstance: 'Delete Instance', confirmDelete: 'Delete instance "{name}"?',
   language: 'Language', langZh: '中文', langEn: 'English',
+  health: 'Health', healthy: 'Healthy', autonomous: 'Autonomous', scheduler: 'Scheduler', goal: 'Goal',
+  running: 'Running', tokens: 'Tokens',
 
   // ChatPanel - Welcome
   welcomeTitle: 'Welcome to GA Manager', welcomeDesc: 'Create an Agent instance to start intelligent conversations and automation tasks',
@@ -22,6 +24,7 @@ const en: Locale = {
   selectLLMModel: 'Select LLM (current: {current})', selectIMChannel: 'Select IM Channel (current: {current})',
   chatWith: 'Chat with {name}', chatHint: 'Type a message or use quick actions', sendFailed: 'Send failed',
   inputPlaceholder: 'Type a message... (Ctrl+V to paste images)', pastedCount: '{n} image(s) pasted',
+  pasteImage: 'Image {n} pasted',
   supportPaste: 'Supports image paste', llmNotConfigured: 'LLM not configured',
 
   // ChatPanel - IM
@@ -43,6 +46,8 @@ const en: Locale = {
   // RightPanel - Features
   featureToggles: 'Feature Toggles', featAutonomous: 'Autonomous', featGoal: 'Goal Mode',
   featReflect: 'Reflect', featScheduler: 'Scheduler', featTeamWorker: 'Team Worker',
+  featPeerHint: 'Peer Hint', goalPlaceholder: 'Enter goal (e.g. monitor emails and report)',
+  peerHintPlaceholder: 'Enter peer hint (e.g. ask R2 for help)',
 
   // RightPanel - Tabs
   tabOverview: 'Overview', tabSchedules: 'Schedules', tabSophub: 'SOP',

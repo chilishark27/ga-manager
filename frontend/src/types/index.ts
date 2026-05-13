@@ -5,7 +5,8 @@ export interface Instance {
   pid: number;
   llm_no: number;
   autonomous: boolean;
-  goal: boolean;
+  goal: string;
+  peer_hint: string;
   reflect: boolean;
   scheduler: boolean;
   team_worker: boolean;

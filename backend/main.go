@@ -59,6 +59,8 @@ func main() {
 	mux.HandleFunc("POST /api/instances/{id}/clear", chatHandler.ClearChat)
 	mux.HandleFunc("POST /api/instances/{id}/interrupt", chatHandler.Interrupt)
 	mux.HandleFunc("PATCH /api/instances/{id}/config", chatHandler.UpdateConfig)
+	mux.HandleFunc("GET /api/instances/{id}/sessions", chatHandler.ListSessions)
+	mux.HandleFunc("GET /api/instances/{id}/sessions/{file}", chatHandler.GetSessionContent)
 
 	// WebSocket proxy
 	mux.HandleFunc("GET /api/instances/{id}/ws", wsHandler.Handle)
@@ -123,6 +125,90 @@ func main() {
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	})
+
+	// Local SOPs - list memory directory files
+	mux.HandleFunc("GET /api/sops/local", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		memDir := filepath.Join(cfg.GARoot, "memory")
+		entries, err := os.ReadDir(memDir)
+		if err != nil {
+			json.NewEncoder(w).Encode(map[string]interface{}{"sops": []string{}, "error": err.Error()})
+			return
+		}
+		type SopItem struct {
+			Name string `json:"name"`
+			Type string `json:"type"` // "md", "py", "dir"
+			Size int64  `json:"size"`
+		}
+		var sops []SopItem
+		for _, e := range entries {
+			name := e.Name()
+			if name == "__pycache__" || name == ".git" || strings.HasPrefix(name, ".") {
+				continue
+			}
+			info, _ := e.Info()
+			item := SopItem{Name: name}
+			if e.IsDir() {
+				item.Type = "dir"
+			} else if strings.HasSuffix(name, ".md") {
+				item.Type = "md"
+			} else if strings.HasSuffix(name, ".py") {
+				item.Type = "py"
+			} else if strings.HasSuffix(name, ".txt") {
+				item.Type = "txt"
+			} else {
+				item.Type = "file"
+			}
+			if info != nil {
+				item.Size = info.Size()
+			}
+			sops = append(sops, item)
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"sops": sops, "count": len(sops)})
+	})
+
+	// Local SOP content - read a specific file
+	mux.HandleFunc("GET /api/sops/local/{name}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		name := r.PathValue("name")
+		if name == "" {
+			http.Error(w, `{"error":"name required"}`, 400)
+			return
+		}
+		// Security: prevent path traversal
+		if strings.Contains(name, "..") || strings.Contains(name, "/") || strings.Contains(name, "\\") {
+			http.Error(w, `{"error":"invalid name"}`, 400)
+			return
+		}
+		memDir := filepath.Join(cfg.GARoot, "memory")
+		fullPath := filepath.Join(memDir, name)
+		info, err := os.Stat(fullPath)
+		if err != nil {
+			http.Error(w, `{"error":"not found"}`, 404)
+			return
+		}
+		if info.IsDir() {
+			// List directory contents
+			entries, _ := os.ReadDir(fullPath)
+			var files []string
+			for _, e := range entries {
+				files = append(files, e.Name())
+			}
+			json.NewEncoder(w).Encode(map[string]interface{}{"name": name, "type": "dir", "files": files})
+			return
+		}
+		// Limit file size to 200KB
+		if info.Size() > 200*1024 {
+			json.NewEncoder(w).Encode(map[string]interface{}{"name": name, "type": "file", "content": "[File too large to display]", "size": info.Size()})
+			return
+		}
+		content, err := os.ReadFile(fullPath)
+		if err != nil {
+			http.Error(w, `{"error":"read failed"}`, 500)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"name": name, "type": "file", "content": string(content), "size": info.Size()})
 	})
 
 	// SopHub proxy - forward requests to fudankw.cn

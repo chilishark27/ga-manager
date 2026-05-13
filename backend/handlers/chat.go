@@ -3,6 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"ga_manager/services"
 )
@@ -111,9 +114,15 @@ func (h *ChatHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 	// Send remaining config keys individually — bridge expects {"cmd":"set_config","key":"x","value":y}
 	// Keys that are manager-level only (not forwarded to bridge)
 	managerOnly := map[string]bool{"im_channel": true}
+	// Keys that should also update in-memory instance state
+	featureKeys := map[string]bool{"autonomous": true, "reflect": true, "goal": true}
 	for key, value := range body {
 		if key == "llm_no" || key == "" {
 			continue // already handled above / skip empty keys
+		}
+		// Update in-memory state for feature keys
+		if featureKeys[key] {
+			_ = h.manager.UpdateFeature(id, key, value)
 		}
 		if managerOnly[key] {
 			continue // manager-level only, frontend handles optimistically
@@ -130,4 +139,85 @@ func (h *ChatHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
+}
+
+// ListSessions handles GET /api/instances/{id}/sessions
+// Returns list of session log files from model_responses directory
+func (h *ChatHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	_, err := h.manager.Get(id)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "instance not found")
+		return
+	}
+
+	// model_responses is at <ga_root>/temp/model_responses/
+	gaRoot := h.manager.GetGARoot()
+	sessDir := filepath.Join(gaRoot, "temp", "model_responses")
+
+	entries, err := os.ReadDir(sessDir)
+	if err != nil {
+		writeJSON(w, http.StatusOK, []interface{}{})
+		return
+	}
+
+	type SessionInfo struct {
+		Name     string `json:"name"`
+		Modified string `json:"modified"`
+		Size     int64  `json:"size"`
+	}
+
+	var sessions []SessionInfo
+	for _, e := range entries {
+		if e.IsDir() || (!strings.HasSuffix(e.Name(), ".txt") && !strings.HasSuffix(e.Name(), ".log")) {
+			continue
+		}
+		info, err := e.Info()
+		if err != nil {
+			continue
+		}
+		sessions = append(sessions, SessionInfo{
+			Name:     e.Name(),
+			Modified: info.ModTime().Format("2006-01-02 15:04"),
+			Size:     info.Size(),
+		})
+	}
+
+	// Sort by modified desc (newest first) - entries are already sorted by name,
+	// but we want by time
+	for i := 0; i < len(sessions); i++ {
+		for j := i + 1; j < len(sessions); j++ {
+			if sessions[j].Modified > sessions[i].Modified {
+				sessions[i], sessions[j] = sessions[j], sessions[i]
+			}
+		}
+	}
+
+	writeJSON(w, http.StatusOK, sessions)
+}
+
+// GetSessionContent handles GET /api/instances/{id}/sessions/{file}
+// Returns raw content of a session file
+func (h *ChatHandler) GetSessionContent(w http.ResponseWriter, r *http.Request) {
+	_ = r.PathValue("id") // validate instance exists if needed
+	fileName := r.PathValue("file")
+
+	gaRoot := h.manager.GetGARoot()
+	filePath := filepath.Join(gaRoot, "temp", "model_responses", fileName)
+
+	// Security: prevent path traversal
+	if strings.Contains(fileName, "..") || strings.Contains(fileName, "/") || strings.Contains(fileName, "\\") {
+		writeError(w, http.StatusBadRequest, "invalid file name")
+		return
+	}
+
+	data, err := os.ReadFile(filePath)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "session file not found")
+		return
+	}
+
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Write(data)
 }

@@ -571,7 +571,7 @@ func (m *InstanceManager) ForwardMessage(fromID, toID, message string) error {
 	prefixed := fmt.Sprintf("[来自实例 %s] %s", fromID[:8], message)
 
 	cmd := map[string]interface{}{
-		"cmd":  "chat",
+		"cmd":  "send",
 		"text": prefixed,
 	}
 	return m.SendCommand(toID, cmd)
@@ -660,12 +660,15 @@ func (m *InstanceManager) AddScheduledTask(instanceID, name, cron, command strin
 	}
 	scheduledTasks[task.ID] = task
 
-	// Enable scheduler mode on the instance
-	cfg := map[string]interface{}{
-		"cmd":    "set_config",
-		"config": map[string]interface{}{"scheduler": true},
-	}
-	_ = m.SendCommand(instanceID, cfg)
+	// Enable scheduler mode on the instance (correct format: key/value)
+	_ = m.SendCommand(instanceID, map[string]interface{}{
+		"cmd":   "set_config",
+		"key":   "scheduler",
+		"value": true,
+	})
+
+	// Start the scheduler goroutine for this task
+	go m.runScheduledTask(task)
 
 	return task, nil
 }
@@ -693,6 +696,94 @@ func (m *InstanceManager) ToggleScheduledTask(taskID string) error {
 	}
 	task.Enabled = !task.Enabled
 	return nil
+}
+
+// runScheduledTask runs a scheduled task based on its cron expression.
+// Supports: "*/N * * * *" (every N minutes), "0 H * * *" (daily at hour H),
+// or interval format "every Nm" / "every Nh".
+func (m *InstanceManager) runScheduledTask(task *ScheduledTask) {
+	interval := parseCronInterval(task.Cron)
+	if interval <= 0 {
+		log.Printf("[Scheduler] Invalid cron expression for task %s: %s", task.ID, task.Cron)
+		return
+	}
+
+	log.Printf("[Scheduler] Task %s (%s) started, interval=%v", task.ID, task.Name, interval)
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for range ticker.C {
+		scheduledTasksMu.RLock()
+		t, exists := scheduledTasks[task.ID]
+		if !exists {
+			scheduledTasksMu.RUnlock()
+			log.Printf("[Scheduler] Task %s removed, stopping goroutine", task.ID)
+			return
+		}
+		enabled := t.Enabled
+		instanceID := t.InstanceID
+		command := t.Command
+		scheduledTasksMu.RUnlock()
+
+		if !enabled {
+			continue
+		}
+
+		// Send the command as a chat message to the instance
+		cmd := map[string]interface{}{
+			"cmd":  "chat",
+			"text": fmt.Sprintf("[定时任务: %s] %s", task.Name, command),
+		}
+		if err := m.SendCommand(instanceID, cmd); err != nil {
+			log.Printf("[Scheduler] Failed to execute task %s: %v", task.ID, err)
+		} else {
+			scheduledTasksMu.Lock()
+			if t, ok := scheduledTasks[task.ID]; ok {
+				t.LastRun = time.Now().Format("2006-01-02 15:04:05")
+				t.NextRun = time.Now().Add(interval).Format("2006-01-02 15:04:05")
+			}
+			scheduledTasksMu.Unlock()
+			log.Printf("[Scheduler] Task %s executed successfully", task.ID)
+		}
+	}
+}
+
+// parseCronInterval converts a cron expression to a time.Duration.
+// Supports: "*/N * * * *" → every N minutes, "every Nm" → N minutes, "every Nh" → N hours.
+func parseCronInterval(cron string) time.Duration {
+	cron = strings.TrimSpace(cron)
+
+	// Handle "every Xm" or "every Xh" format
+	if strings.HasPrefix(cron, "every ") {
+		part := strings.TrimPrefix(cron, "every ")
+		part = strings.TrimSpace(part)
+		if strings.HasSuffix(part, "m") {
+			if n, err := strconv.Atoi(strings.TrimSuffix(part, "m")); err == nil && n > 0 {
+				return time.Duration(n) * time.Minute
+			}
+		}
+		if strings.HasSuffix(part, "h") {
+			if n, err := strconv.Atoi(strings.TrimSuffix(part, "h")); err == nil && n > 0 {
+				return time.Duration(n) * time.Hour
+			}
+		}
+	}
+
+	// Handle standard cron "*/N * * * *" (every N minutes)
+	parts := strings.Fields(cron)
+	if len(parts) >= 5 && strings.HasPrefix(parts[0], "*/") {
+		if n, err := strconv.Atoi(strings.TrimPrefix(parts[0], "*/")); err == nil && n > 0 {
+			return time.Duration(n) * time.Minute
+		}
+	}
+
+	// Handle "0 H * * *" (daily at hour H) → approximate as 24h
+	if len(parts) >= 5 && parts[0] == "0" {
+		return 24 * time.Hour
+	}
+
+	// Default: 1 hour
+	return time.Hour
 }
 
 // ============================================================

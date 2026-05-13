@@ -8,6 +8,8 @@ const zh = {
   selectLLM: '选择 LLM 模型', noLLMConfig: '⚠️ 未检测到LLM配置，请先在 GA 目录下配置 mykey.py',
   create: '创建', deleteInstance: '删除实例', confirmDelete: '确定删除实例 "{name}"？',
   language: '语言', langZh: '中文', langEn: 'English',
+  health: '健康', healthy: '健康', autonomous: '自主', scheduler: '定时', goal: '目标',
+  running: '运行中', tokens: 'Tokens',
 
   // ChatPanel - Welcome
   welcomeTitle: '欢迎使用 GA Manager', welcomeDesc: '创建一个 Agent 实例，开始智能对话与自动化任务',
@@ -20,6 +22,7 @@ const zh = {
   selectLLMModel: '选择LLM模型 (当前: {current})', selectIMChannel: '选择IM渠道 (当前: {current})',
   chatWith: '与 {name} 对话', chatHint: '输入消息或使用快捷操作', sendFailed: '发送失败',
   inputPlaceholder: '输入消息... (Ctrl+V 粘贴图片)', pastedCount: '已粘贴 {n} 张图片',
+  pasteImage: '已粘贴第 {n} 张图片',
   supportPaste: '支持粘贴图片', llmNotConfigured: 'LLM 未配置',
 
   // ChatPanel - IM
@@ -41,6 +44,8 @@ const zh = {
   // RightPanel - Features
   featureToggles: '功能开关', featAutonomous: '自主行动', featGoal: '目标模式',
   featReflect: '反思模式', featScheduler: '定时任务', featTeamWorker: '团队协作',
+  featPeerHint: '同伴提示', goalPlaceholder: '输入目标 (如: 监控邮件并汇报)',
+  peerHintPlaceholder: '输入同伴提示 (如: 有问题找R2)',
 
   // RightPanel - Tabs
   tabOverview: '概览', tabSchedules: '定时', tabSophub: 'SOP',

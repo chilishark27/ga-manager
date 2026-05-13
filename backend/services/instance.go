@@ -113,6 +113,13 @@ func (m *InstanceManager) UpdateConfig(cfg *models.AppConfig) {
 	m.config = cfg
 }
 
+// GetGARoot returns the configured GA root path.
+func (m *InstanceManager) GetGARoot() string {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return m.config.GARoot
+}
+
 // Subscribe registers a WS client to receive events from an instance.
 // Returns a channel and an unsubscribe function.
 func (m *InstanceManager) Subscribe(id string) (string, <-chan []byte, func(), error) {
@@ -487,6 +494,46 @@ func (m *InstanceManager) UpdateLLMNo(id string, llmNo int) error {
 		"llm_no": llmNo,
 	})
 
+	return nil
+}
+
+// UpdateFeature updates a boolean or string feature on an instance in memory
+// and sends the change to the bridge process via set_config command.
+func (m *InstanceManager) UpdateFeature(id string, key string, value interface{}) error {
+	m.mu.RLock()
+	inst, ok := m.instances[id]
+	m.mu.RUnlock()
+	if !ok {
+		return fmt.Errorf("instance %s not found", id)
+	}
+
+	inst.mu.Lock()
+	switch key {
+	case "autonomous":
+		if v, ok := value.(bool); ok {
+			inst.autonomous = v
+		}
+	case "reflect":
+		if v, ok := value.(bool); ok {
+			inst.reflect = v
+		}
+	case "goal":
+		if v, ok := value.(string); ok {
+			inst.goal = v
+		}
+	}
+	inst.mu.Unlock()
+
+	// Send set_config to bridge process so it takes effect at runtime
+	cmd := map[string]interface{}{
+		"cmd":   "set_config",
+		"key":   key,
+		"value": value,
+	}
+	if err := m.SendCommand(id, cmd); err != nil {
+		log.Printf("[UpdateFeature] Failed to send set_config for %s.%s: %v", id, key, err)
+		return err
+	}
 	return nil
 }
 

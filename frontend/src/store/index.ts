@@ -32,7 +32,8 @@ interface AppState {
   createInstance: (data: Partial<Instance>) => Promise<void>;
 
   // Instance feature toggles
-  toggleFeature: (id: string, feature: 'autonomous' | 'goal' | 'reflect' | 'scheduler' | 'team_worker') => Promise<void>;
+  toggleFeature: (id: string, feature: 'autonomous' | 'reflect' | 'scheduler' | 'team_worker') => Promise<void>;
+  setStringConfig: (id: string, key: 'goal' | 'peer_hint', value: string) => Promise<void>;
   switchLLM: (id: string, llmNo: number) => Promise<void>;
   setIMChannel: (id: string, channel: string) => Promise<void>;
   showIMSelector: boolean;
@@ -88,26 +89,6 @@ interface AppState {
   runningCount: () => number;
   totalTokens: () => string;
   healthPercent: () => string;
-
-  // Resources
-  resources: { type: string; usage: number; detail: string }[];
-  fetchResources: (id: string) => Promise<void>;
-
-  // Schedules
-  schedules: { id: string; instance_id: string; cron: string; task: string; enabled: boolean; last_run?: string; next_run?: string }[];
-  fetchSchedules: (id: string) => Promise<void>;
-  addSchedule: (id: string, cron: string, task: string) => Promise<void>;
-  deleteSchedule: (instanceId: string, scheduleId: string) => Promise<void>;
-
-  // Batch actions
-  batchAction: (action: string, instanceIds: string[]) => Promise<void>;
-
-  // Sophub
-  sophubResults: { id: string; title: string; description: string; tags: string[]; author?: string; downloads?: number }[];
-  sophubQuery: string;
-  sophubLoading: boolean;
-  searchSophub: (query: string) => Promise<void>;
-  downloadSop: (sopId: string, instanceId?: string) => Promise<void>;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -217,6 +198,17 @@ export const useStore = create<AppState>((set, get) => ({
     } catch {
       // ignore
     }
+  },
+
+  moveInstance: (id: string, direction: number) => {
+    const { instances } = get();
+    const idx = instances.findIndex(i => i.id === id);
+    if (idx < 0) return;
+    const newIdx = idx + direction;
+    if (newIdx < 0 || newIdx >= instances.length) return;
+    const newList = [...instances];
+    [newList[idx], newList[newIdx]] = [newList[newIdx], newList[idx]];
+    set({ instances: newList });
   },
 
   messages: [],
@@ -380,6 +372,12 @@ export const useStore = create<AppState>((set, get) => ({
       try { await fetch(`${API_BASE}/instances/${id}/clear`, { method: 'POST' }); } catch {}
     }
     set({ messages: [] });
+    get().showToast('对话已清空');
+    // Reconnect WS to get fresh state
+    if (id) {
+      get().disconnectWs();
+      setTimeout(() => get().connectWs(id), 300);
+    }
   },
 
   deleteInstance: async (id: string) => {
@@ -409,7 +407,7 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  toggleFeature: async (id: string, feature: 'autonomous' | 'goal' | 'reflect' | 'scheduler' | 'team_worker') => {
+  toggleFeature: async (id: string, feature: 'autonomous' | 'reflect' | 'scheduler' | 'team_worker') => {
     const inst = get().instances.find(i => i.id === id);
     if (!inst) return;
     const newVal = !inst[feature];
@@ -428,6 +426,24 @@ export const useStore = create<AppState>((set, get) => ({
       get().showToast(`${feature} ${newVal ? '已启用' : '已关闭'}`);
     } catch {
       get().showToast(`切换 ${feature} 失败`);
+    }
+  },
+
+  setStringConfig: async (id: string, key: 'goal' | 'peer_hint', value: string) => {
+    try {
+      await fetch(`${API_BASE}/instances/${id}/config`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [key]: value }),
+      });
+      set(state => ({
+        instances: state.instances.map(i =>
+          i.id === id ? { ...i, [key]: value } : i
+        ),
+      }));
+      get().showToast(value ? `${key} 已设置` : `${key} 已清除`);
+    } catch {
+      get().showToast(`设置 ${key} 失败`);
     }
   },
 
@@ -552,7 +568,7 @@ export const useStore = create<AppState>((set, get) => ({
   // === Schedules ===
   fetchSchedules: async (id: string) => {
     try {
-      const res = await fetch(`${API_BASE}/instances/${id}/schedules`);
+      const res = await fetch(`${API_BASE}/instances/${id}/tasks`);
       if (res.ok) {
         const data = await res.json();
         set({ schedules: data || [] });
@@ -564,10 +580,10 @@ export const useStore = create<AppState>((set, get) => ({
 
   addSchedule: async (id: string, cron: string, task: string) => {
     try {
-      const res = await fetch(`${API_BASE}/instances/${id}/schedules`, {
+      const res = await fetch(`${API_BASE}/instances/${id}/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ cron, task }),
+        body: JSON.stringify({ cron, command: task }),
       });
       if (res.ok) {
         get().showToast('定时任务已添加');
@@ -582,7 +598,7 @@ export const useStore = create<AppState>((set, get) => ({
 
   deleteSchedule: async (instanceId: string, scheduleId: string) => {
     try {
-      const res = await fetch(`${API_BASE}/instances/${instanceId}/schedules/${scheduleId}`, { method: 'DELETE' });
+      const res = await fetch(`${API_BASE}/instances/${instanceId}/tasks/${scheduleId}`, { method: 'DELETE' });
       if (res.ok) {
         get().showToast('定时任务已删除');
         get().fetchSchedules(instanceId);

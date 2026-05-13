@@ -15,7 +15,7 @@ function Sidebar() {
   const {
     instances, activeInstanceId, selectInstance, toggleInstance,
     toggleTheme, theme, runningCount, totalTokens, healthPercent,
-    createInstance, deleteInstance, llmConfigs, fetchLLMs,
+    createInstance, deleteInstance, llmConfigs, fetchLLMs, moveInstance,
   } = useStore();
   const { t, tf, lang, setLang } = useI18n();
 
@@ -77,7 +77,7 @@ function Sidebar() {
       </div>
 
       <div className="inst-list">
-        {instances.map(inst => (
+        {instances.map((inst, idx) => (
           <div
             key={inst.id}
             className={`inst-card ${inst.id === activeInstanceId ? 'active' : ''}`}
@@ -90,6 +90,18 @@ function Sidebar() {
                 {inst.mode}
               </span>
               <span className="ic-right">
+                <span
+                  className="ic-move"
+                  title="上移"
+                  onClick={(e) => { e.stopPropagation(); moveInstance(inst.id, -1); }}
+                  style={{ opacity: idx === 0 ? 0.3 : 1 }}
+                >▲</span>
+                <span
+                  className="ic-move"
+                  title="下移"
+                  onClick={(e) => { e.stopPropagation(); moveInstance(inst.id, 1); }}
+                  style={{ opacity: idx === instances.length - 1 ? 0.3 : 1 }}
+                >▼</span>
                 <span
                   className={`toggle ${(inst.status === 'running' || inst.status === 'busy' || inst.status === 'starting') ? 'on' : ''}`}
                   onClick={(e) => { e.stopPropagation(); toggleInstance(inst.id); }}

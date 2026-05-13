@@ -15,7 +15,7 @@ function AppInner() {
 
   useEffect(() => {
     fetchInstances();
-    const interval = setInterval(fetchInstances, 5000);
+    const interval = setInterval(fetchInstances, 2000);
     return () => clearInterval(interval);
   }, [fetchInstances]);
 
