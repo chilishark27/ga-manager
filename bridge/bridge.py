@@ -161,6 +161,55 @@ def send(obj: dict):
         sys.stdout.flush()
 
 
+def _recover_history(ga_root):
+    """Parse the latest model_responses file to recover conversation history."""
+    import glob
+    mr_dir = os.path.join(ga_root, "temp", "model_responses")
+    if not os.path.isdir(mr_dir):
+        return []
+    files = sorted(glob.glob(os.path.join(mr_dir, "model_responses_*.txt")),
+                   key=os.path.getmtime, reverse=True)
+    if not files:
+        return []
+    # Use the most recent file
+    latest = files[0]
+    history = []
+    try:
+        with open(latest, "r", encoding="utf-8", errors="replace") as f:
+            content = f.read()
+        # Parse === Prompt === and === Response === blocks
+        import re
+        blocks = re.split(r"=== (Prompt|Response) === [^\n]*\n", content)
+        # blocks: ['', 'Prompt', '{...}', 'Response', '{...}', ...]
+        i = 1
+        while i < len(blocks) - 1:
+            block_type = blocks[i]
+            block_content = blocks[i + 1].strip()
+            if block_type == "Prompt" and block_content:
+                try:
+                    msg = json.loads(block_content)
+                    if isinstance(msg, dict) and msg.get("role"):
+                        history.append(msg)
+                except (json.JSONDecodeError, ValueError):
+                    # Try to extract text content
+                    history.append({"role": "user", "content": block_content[:500]})
+            elif block_type == "Response" and block_content:
+                # Response is typically raw text or list
+                text = block_content[:1000]
+                if text.startswith("[{"):
+                    try:
+                        parts = json.loads(text)
+                        text = " ".join(p.get("text", "") for p in parts if isinstance(p, dict))
+                    except (json.JSONDecodeError, ValueError):
+                        pass
+                if text:
+                    history.append({"role": "assistant", "content": text[:500]})
+            i += 2
+    except Exception:
+        pass
+    return history
+
+
 def main():
     parser = argparse.ArgumentParser(description="GA Bridge subprocess")
     parser.add_argument("--ga-root", required=True, help="Path to GenericAgent root directory")
@@ -168,6 +217,7 @@ def main():
     parser.add_argument("--name", default="", help="Instance display name")
     parser.add_argument("--autonomous", action="store_true", help="Enable autonomous mode")
     parser.add_argument("--goal", default="", help="Goal prompt")
+    parser.add_argument("--recover", action="store_true", help="Recover history from model_responses")
     args = parser.parse_args()
 
     agent_dir = os.path.abspath(args.ga_root)
@@ -217,6 +267,28 @@ def main():
         agent.peer_hint = False
 
         # Image support: build multimodal content_blocks in chat handler below
+
+        # Recover history from model_responses if --recover flag
+        if args.recover:
+            send({"event": "log", "msg": "Recovering history from model_responses..."})
+            try:
+                recovered = _recover_history(agent_dir)
+                if recovered:
+                    agent.history = recovered
+                    send({"event": "log", "msg": f"Recovered {len(recovered)} messages from model_responses"})
+                    # Send recovered messages to frontend as chat history
+                    for msg in recovered:
+                        role = msg.get("role", "")
+                        content = msg.get("content", "")
+                        if isinstance(content, list):
+                            # Extract text from content blocks
+                            content = " ".join(b.get("text", "") for b in content if b.get("type") == "text")
+                        if role and content:
+                            send({"event": "recovered_msg", "role": role, "content": content[:500]})
+                else:
+                    send({"event": "log", "msg": "No history to recover"})
+            except Exception as e:
+                send({"event": "log", "msg": f"Recovery failed (non-fatal): {e}"})
 
         # Start agent's task consumer thread
         threading.Thread(target=agent.run, daemon=True).start()

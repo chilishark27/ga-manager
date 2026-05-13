@@ -53,6 +53,12 @@ type AppConfig struct {
 	PythonPath   string `json:"python_path"`
 }
 
+// AdoptInstanceRequest is the payload for POST /api/instances/adopt
+type AdoptInstanceRequest struct {
+	Port int    `json:"port"`
+	Name string `json:"name"`
+}
+
 // MyKeyProvider represents one LLM provider entry in mykey.py
 type MyKeyProvider struct {
 	Name    string `json:"name"`

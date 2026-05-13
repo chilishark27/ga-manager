@@ -44,6 +44,7 @@ func main() {
 	// Instance management
 	mux.HandleFunc("GET /api/instances", instHandler.List)
 	mux.HandleFunc("POST /api/instances", instHandler.Create)
+	mux.HandleFunc("POST /api/instances/adopt", instHandler.Adopt)
 	mux.HandleFunc("GET /api/instances/{id}", instHandler.Get)
 	mux.HandleFunc("POST /api/instances/{id}/start", instHandler.Start)
 	mux.HandleFunc("POST /api/instances/{id}/stop", instHandler.Stop)

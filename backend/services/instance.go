@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -287,7 +288,121 @@ func (m *InstanceManager) Create(req models.CreateInstanceRequest) (*models.Inst
 	return &dto, nil
 }
 
-// readBridgeOutput reads JSON lines from bridge stdout and dispatches events.
+// Adopt takes over a running GA instance by killing its process and starting a bridge with --recover.
+func (m *InstanceManager) Adopt(req models.AdoptInstanceRequest) (*models.Instance, error) {
+	m.mu.RLock()
+	count := len(m.instances)
+	m.mu.RUnlock()
+
+	if count >= m.config.MaxInstances {
+		return nil, fmt.Errorf("max instances (%d) reached", m.config.MaxInstances)
+	}
+
+	// Find and kill the process using the port
+	pid, err := findPIDByPort(req.Port)
+	if err != nil {
+		return nil, fmt.Errorf("cannot find process on port %d: %w", req.Port, err)
+	}
+
+	log.Printf("[InstanceManager] Adopt: killing PID %d on port %d", pid, req.Port)
+	killErr := killProcessTree(pid)
+	if killErr != nil {
+		log.Printf("[InstanceManager] Adopt: kill warning: %v", killErr)
+	}
+
+	// Wait briefly for port to free up
+	time.Sleep(1 * time.Second)
+
+	// Start bridge with --recover flag (same as Create but with --recover)
+	id := uuid.New().String()[:8]
+	name := req.Name
+	if name == "" {
+		name = fmt.Sprintf("Adopted-%s", id[:4])
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+
+	bridgePath := filepath.Join(getBridgeDir(), "bridge.py")
+	pythonPath := m.config.PythonPath
+	if pythonPath == "" {
+		pythonPath = "python"
+	}
+
+	args := []string{"-u", bridgePath,
+		"--ga-root", m.config.GARoot,
+		"--llm-no", "0",
+		"--recover",
+	}
+
+	cmd := exec.CommandContext(ctx, pythonPath, args...)
+	cmd.Dir = m.config.GARoot
+	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1")
+	hideWindow(cmd)
+
+	stdinPipe, err := cmd.StdinPipe()
+	if err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to create stdin pipe: %w", err)
+	}
+
+	stdoutPipe, err := cmd.StdoutPipe()
+	if err != nil {
+		cancel()
+		return nil, fmt.Errorf("failed to create stdout pipe: %w", err)
+	}
+
+	var stderrBuf safeBuffer
+	cmd.Stderr = &stderrBuf
+
+	if err := cmd.Start(); err != nil {
+		cancel()
+		stderrOut := stderrBuf.String()
+		return nil, fmt.Errorf("failed to start bridge: %w\nstderr: %s", err, stderrOut)
+	}
+
+	inst := &managedInstance{
+		id:          id,
+		name:        name,
+		state:       models.StateStarting,
+		pid:         cmd.Process.Pid,
+		llmNo:       0,
+		createdAt:   time.Now(),
+		autonomous:  false,
+		goal:        "",
+		cmd:         cmd,
+		cancel:      cancel,
+		stdin:       stdinPipe,
+		stderrBuf:   &stderrBuf,
+		subscribers: make(map[string]chan []byte),
+		logs:        newLogBuffer(),
+		chat:        newChatHistory(),
+	}
+
+	m.mu.Lock()
+	m.instances[id] = inst
+	m.mu.Unlock()
+
+	readyCh := make(chan struct{})
+	go m.readBridgeOutput(inst, stdoutPipe, readyCh)
+
+	select {
+	case <-readyCh:
+		log.Printf("[InstanceManager] Adopted instance %s ready (pid=%d)", inst.id, inst.pid)
+	case <-time.After(30 * time.Second):
+		inst.mu.Lock()
+		inst.state = models.StateError
+		inst.lastError = "bridge startup timeout (30s)"
+		inst.mu.Unlock()
+		log.Printf("[InstanceManager] Adopted instance %s startup timeout", inst.id)
+	}
+
+	go m.waitForExit(inst)
+
+	inst.mu.RLock()
+	dto := inst.toDTO()
+	inst.mu.RUnlock()
+	return &dto, nil
+}
 func (m *InstanceManager) readBridgeOutput(inst *managedInstance, stdout io.Reader, readyCh chan struct{}) {
 	svcLog("READ_BRIDGE_OUTPUT STARTED instance=%s", inst.id)
 	scanner := bufio.NewScanner(stdout)
@@ -765,4 +880,38 @@ func (m *InstanceManager) GetLogs(id string) ([]string, error) {
 
 	// TODO: implement log buffer per instance
 	return []string{"[log collection via event stream]"}, nil
+}
+
+// findPIDByPort uses netstat to find the PID listening on a given port (Windows).
+func findPIDByPort(port int) (int, error) {
+	cmd := exec.Command("netstat", "-ano")
+	out, err := cmd.Output()
+	if err != nil {
+		return 0, fmt.Errorf("netstat failed: %w", err)
+	}
+
+	target := fmt.Sprintf(":%d", port)
+	lines := strings.Split(string(out), "\n")
+	for _, line := range lines {
+		if strings.Contains(line, target) && strings.Contains(line, "LISTENING") {
+			fields := strings.Fields(line)
+			if len(fields) >= 5 {
+				pid, err := strconv.Atoi(fields[len(fields)-1])
+				if err == nil && pid > 0 {
+					return pid, nil
+				}
+			}
+		}
+	}
+	return 0, fmt.Errorf("no process found listening on port %d", port)
+}
+
+// killProcessTree kills a process and its children on Windows using taskkill /T /F.
+func killProcessTree(pid int) error {
+	cmd := exec.Command("taskkill", "/F", "/T", "/PID", strconv.Itoa(pid))
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("taskkill failed: %w, output: %s", err, string(out))
+	}
+	return nil
 }

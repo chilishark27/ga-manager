@@ -16,7 +16,7 @@ function Sidebar() {
     instances, activeInstanceId, selectInstance, toggleInstance,
     toggleTheme, theme, runningCount, totalTokens, healthPercent,
     createInstance, deleteInstance, llmConfigs, fetchLLMs, moveInstance,
-    discoveredInstances, discoverLoading, attachedPort, discoverInstances, attachInstance,
+    discoveredInstances, discoverLoading, attachedPort, discoverInstances, attachInstance, adoptInstance,
   } = useStore();
   const { t, tf, lang, setLang } = useI18n();
 
@@ -141,14 +141,17 @@ function Sidebar() {
           {discoveredInstances.map(d => (
             <div
               key={d.port}
-              className={`inst-card discovered ${attachedPort === d.port ? 'active' : ''}`}
-              onClick={() => attachInstance(d.port)}
+              className="inst-card discovered"
             >
               <div className="ic-top">
-                <span className="ic-name">GA :{ d.port }</span>
+                <span className="ic-name">GA :{d.port}</span>
                 <span className="ic-status running">●</span>
               </div>
               <div className="ic-url">{d.url}</div>
+              <button
+                className="adopt-btn"
+                onClick={() => adoptInstance(d.port)}
+              >📥 纳管</button>
             </div>
           ))}
         </div>

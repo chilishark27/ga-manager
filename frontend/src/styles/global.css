@@ -420,6 +420,22 @@ body {
   color: var(--text-3);
   padding: 2px 12px 6px;
 }
+.adopt-btn {
+  margin: 4px 12px 8px;
+  padding: 6px 14px;
+  border-radius: 6px;
+  border: none;
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.adopt-btn:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+}
 
 /* === Attached GA iframe === */
 .attached-ga-header {

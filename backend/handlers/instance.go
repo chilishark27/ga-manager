@@ -132,6 +132,28 @@ func (h *InstanceHandler) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "saved"})
 }
 
+// Adopt takes over a running GA by killing its process and starting a managed bridge with --recover.
+// POST /api/instances/adopt
+func (h *InstanceHandler) Adopt(w http.ResponseWriter, r *http.Request) {
+	var req models.AdoptInstanceRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid request body")
+		return
+	}
+	if req.Port <= 0 {
+		writeError(w, http.StatusBadRequest, "port is required")
+		return
+	}
+
+	inst, err := h.manager.Adopt(req)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusCreated, inst)
+}
+
 // --- Helpers ---
 
 func writeJSON(w http.ResponseWriter, status int, data interface{}) {
