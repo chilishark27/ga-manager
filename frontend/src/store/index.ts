@@ -336,8 +336,12 @@ export const useStore = create<AppState>((set, get) => ({
             if (wsInstanceId) saveMessages(wsInstanceId, msgs);
             return { messages: msgs };
           });
+        } else if (event === 'queued') {
+          // Supplementary message queued while GA is busy - show as system info
+          const queueMsg = data.msg || data.text || '消息已排队';
+          get().showToast(`📨 ${queueMsg}`);
         } else if (event === 'error') {
-          const errText = data.text || data.error || '未知错误';
+          const errText = data.text || data.error || data.msg || '未知错误';
           set(state => {
             const msgs = [...state.messages, { role: 'agent' as const, content: `⚠️ ${errText}`, timestamp: Date.now(), status: 'error' as const }];
             if (wsInstanceId) saveMessages(wsInstanceId, msgs);

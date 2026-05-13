@@ -251,6 +251,23 @@ def main():
     start_time = time.time()
     total_turns = 0
     is_busy = False
+    pending_queue = []  # Messages queued while busy
+
+    def process_pending():
+        """Process next pending message after current task finishes"""
+        nonlocal is_busy, total_turns
+        if not pending_queue:
+            return
+        queued = pending_queue.pop(0)
+        _dbg(f"process_pending: sending queued msg, len={len(queued)}")
+        is_busy = True
+        total_turns += 1
+        try:
+            dq = agent.put_task(queued)
+            threading.Thread(target=relay, args=(dq,), daemon=True).start()
+        except Exception as e:
+            is_busy = False
+            send({"event": "error", "msg": f"put_task (queued) failed: {e}"})
 
     def relay(dq):
         """Blocking relay: read from display_queue, write to stdout"""
@@ -274,6 +291,8 @@ def main():
             send({"event": "error", "msg": f"relay error: {e}"})
         finally:
             is_busy = False
+            # Auto-process pending messages
+            process_pending()
 
     # --- Main stdin command loop ---
     # NOTE: Must use readline() instead of `for line in sys.stdin`
@@ -295,12 +314,15 @@ def main():
         c = cmd.get("cmd", "")
 
         if c == "send":
-            if is_busy:
-                send({"event": "error", "msg": "Agent is busy"})
-                continue
             text = str(cmd.get("text", "")).strip()
             if not text:
                 send({"event": "error", "msg": "Empty text"})
+                continue
+            if is_busy:
+                # Queue supplementary message - will be sent after current task finishes
+                pending_queue.append(text)
+                _dbg(f"Queued message while busy, queue_len={len(pending_queue)}")
+                send({"event": "queued", "msg": f"已排队，当前任务完成后自动发送 (队列: {len(pending_queue)})"})
                 continue
             images = cmd.get("images") or []
             # Vision preprocess: call Claude API directly to describe images
