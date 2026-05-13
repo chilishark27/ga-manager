@@ -161,7 +161,7 @@ func (m *InstanceManager) SendCommand(id string, cmd map[string]interface{}) err
 	stdinPipe := inst.stdin
 	inst.mu.RUnlock()
 
-	if state != models.StateRunning {
+	if state != models.StateRunning && state != models.StateBusy {
 		return fmt.Errorf("instance %s is not running (state=%s)", id, state)
 	}
 	if stdinPipe == nil {
