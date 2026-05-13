@@ -80,6 +80,10 @@ func main() {
 	mux.HandleFunc("POST /api/instances/batch/start", featHandler.StartAll)
 	mux.HandleFunc("POST /api/instances/batch/stop", featHandler.StopAll)
 
+	// Discover existing GA instances (port scan)
+	discoverHandler := handlers.NewDiscoverHandler()
+	mux.HandleFunc("GET /api/discover", discoverHandler.Discover)
+
 	// Configuration
 	mux.HandleFunc("GET /api/config/mykey", cfgHandler.GetMasked)
 	mux.HandleFunc("GET /api/config/mykey/raw", cfgHandler.GetRaw)

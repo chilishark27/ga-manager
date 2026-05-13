@@ -390,6 +390,70 @@ body {
   transform: translateY(0) scale(0.98);
 }
 
+/* === Discover Button & List === */
+.discover-btn {
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  margin-top: 4px;
+}
+.discover-btn:hover {
+  box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+}
+.discovered-list {
+  margin: 6px 12px;
+  padding: 8px;
+  background: var(--bg3);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.discovered-title {
+  font-size: 11px;
+  color: var(--text-2);
+  margin-bottom: 6px;
+  padding: 0 4px;
+}
+.discovered-list .inst-card {
+  margin-bottom: 4px;
+}
+.discovered-list .ic-url {
+  font-size: 10px;
+  color: var(--text-3);
+  padding: 2px 12px 6px;
+}
+
+/* === Attached GA iframe === */
+.attached-ga-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 16px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+  color: var(--text-1);
+}
+.detach-btn {
+  padding: 4px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--bg2);
+  color: var(--text-2);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.detach-btn:hover {
+  background: #ef4444;
+  color: #fff;
+  border-color: #ef4444;
+}
+.attached-ga-iframe {
+  flex: 1;
+  width: 100%;
+  border: none;
+  background: var(--bg1);
+}
+
 /* ===== Main Chat ===== */
 .main {
   flex: 1;

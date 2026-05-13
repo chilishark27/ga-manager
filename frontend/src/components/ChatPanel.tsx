@@ -6,7 +6,7 @@ import { useI18n } from '../i18n';
 import { cleanReply, foldTurns, FoldedTurn, SessionFile, parseSessionLog } from '../utils/chatUtils';
 
 function ChatPanel() {
-  const { messages, sendMessage, activeInstance: getActiveInstance, clearChat, interruptChat, toggleInstance, switchLLM: storeSetLLM, setIMChannel, llmConfigs, fetchLLMs } = useStore();
+  const { messages, sendMessage, activeInstance: getActiveInstance, clearChat, interruptChat, toggleInstance, switchLLM: storeSetLLM, setIMChannel, llmConfigs, fetchLLMs, attachedPort, detachInstance } = useStore();
   const { t, tf } = useI18n();
   const activeInstance = getActiveInstance();
   const [input, setInput] = useState('');
@@ -115,6 +115,22 @@ function ChatPanel() {
   ];
 
   // Welcome screen when no instance selected
+  if (!activeInstance && attachedPort) {
+    return (
+      <div className="chat-panel">
+        <div className="attached-ga-header">
+          <span>🔗 已连接外部 GA (端口 {attachedPort})</span>
+          <button className="detach-btn" onClick={detachInstance}>断开</button>
+        </div>
+        <iframe
+          className="attached-ga-iframe"
+          src={`http://localhost:${attachedPort}`}
+          title={`GA :${attachedPort}`}
+        />
+      </div>
+    );
+  }
+
   if (!activeInstance) {
     return (
       <div className="chat-panel">

@@ -16,6 +16,7 @@ function Sidebar() {
     instances, activeInstanceId, selectInstance, toggleInstance,
     toggleTheme, theme, runningCount, totalTokens, healthPercent,
     createInstance, deleteInstance, llmConfigs, fetchLLMs, moveInstance,
+    discoveredInstances, discoverLoading, attachedPort, discoverInstances, attachInstance,
   } = useStore();
   const { t, tf, lang, setLang } = useI18n();
 
@@ -129,6 +130,29 @@ function Sidebar() {
       <div className="add-btn" onClick={() => { fetchLLMs(); setShowCreate(true); }}>
         {t.newInstance}
       </div>
+
+      <div className="add-btn discover-btn" onClick={() => discoverInstances()}>
+        {discoverLoading ? '🔍 扫描中...' : '🔍 发现已运行GA'}
+      </div>
+
+      {discoveredInstances.length > 0 && (
+        <div className="discovered-list">
+          <div className="discovered-title">已发现 ({discoveredInstances.length})</div>
+          {discoveredInstances.map(d => (
+            <div
+              key={d.port}
+              className={`inst-card discovered ${attachedPort === d.port ? 'active' : ''}`}
+              onClick={() => attachInstance(d.port)}
+            >
+              <div className="ic-top">
+                <span className="ic-name">GA :{ d.port }</span>
+                <span className="ic-status running">●</span>
+              </div>
+              <div className="ic-url">{d.url}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Create Instance Modal */}
       {showCreate && (

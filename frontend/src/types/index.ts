@@ -51,6 +51,12 @@ export interface Schedule {
   next_run?: string;
 }
 
+export interface DiscoveredInstance {
+  port: number;
+  url: string;
+  status: string;     // "active"
+}
+
 export interface Resource {
   type: string;       // "cpu" | "memory" | "disk"
   usage: number;      // percentage 0-100

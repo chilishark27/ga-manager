@@ -110,6 +110,14 @@ interface AppState {
   searchSophub: (query: string) => Promise<void>;
   downloadSop: (sopId: string, instanceId?: string) => Promise<void>;
 
+  // Discover (existing GA instances via port scan)
+  discoveredInstances: { port: number; url: string; status: string }[];
+  discoverLoading: boolean;
+  attachedPort: number | null;
+  discoverInstances: () => Promise<void>;
+  attachInstance: (port: number) => void;
+  detachInstance: () => void;
+
   // Computed helpers
   activeInstance: () => Instance | null;
   runningCount: () => number;
@@ -336,10 +344,21 @@ export const useStore = create<AppState>((set, get) => ({
             if (wsInstanceId) saveMessages(wsInstanceId, msgs);
             return { messages: msgs };
           });
-        } else if (event === 'queued') {
-          // Supplementary message queued while GA is busy - show as system info
-          const queueMsg = data.msg || data.text || '消息已排队';
-          get().showToast(`📨 ${queueMsg}`);
+        } else if (event === 'interrupting') {
+          // User sent supplement while GA busy — aborting current reply
+          const msg = data.msg || '正在打断当前回复...';
+          get().showToast(`⏸️ ${msg}`);
+        } else if (event === 'interrupted') {
+          // Current reply was aborted for supplement — mark streaming msg as interrupted
+          set(state => {
+            const msgs = [...state.messages];
+            const lastMsg = msgs[msgs.length - 1];
+            if (lastMsg && lastMsg.role === 'agent' && lastMsg.status === 'streaming') {
+              msgs[msgs.length - 1] = { ...lastMsg, content: lastMsg.content + '\n\n⏸️ _已打断，正在结合补充重新回复..._', status: 'done' as const };
+            }
+            if (wsInstanceId) saveMessages(wsInstanceId, msgs);
+            return { messages: msgs };
+          });
         } else if (event === 'error') {
           const errText = data.text || data.error || data.msg || '未知错误';
           set(state => {
@@ -588,6 +607,35 @@ export const useStore = create<AppState>((set, get) => ({
   sophubResults: [] as { id: string; title: string; description: string; tags: string[]; author?: string; downloads?: number }[],
   sophubQuery: '',
   sophubLoading: false,
+
+  // === Discover (port scan for existing GA) ===
+  discoveredInstances: [],
+  discoverLoading: false,
+  attachedPort: null,
+
+  discoverInstances: async () => {
+    set({ discoverLoading: true });
+    try {
+      const res = await fetch(`${API_BASE}/discover`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ discoveredInstances: data.instances || [], discoverLoading: false });
+      } else {
+        set({ discoveredInstances: [], discoverLoading: false });
+      }
+    } catch {
+      set({ discoveredInstances: [], discoverLoading: false });
+      get().showToast('扫描端口失败');
+    }
+  },
+
+  attachInstance: (port: number) => {
+    set({ attachedPort: port, activeInstanceId: null });
+  },
+
+  detachInstance: () => {
+    set({ attachedPort: null });
+  },
 
   // === Resources ===
   fetchResources: async (id: string) => {
