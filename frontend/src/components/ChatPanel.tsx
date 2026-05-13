@@ -218,7 +218,7 @@ function ChatPanel() {
                 {msg.images && msg.images.length > 0 && (
                   <div className="msg-images">
                     {msg.images.map((img: string, i: number) => (
-                      <img key={i} src={img} alt="" className="msg-img-thumb" />
+                      <img key={i} src={img} alt="" className="msg-image" />
                     ))}
                   </div>
                 )}
@@ -262,7 +262,11 @@ function ChatPanel() {
             onKeyDown={handleKeyDown}
             rows={2}
           />
-          <button className="send-btn" onClick={handleSend} disabled={!input.trim() && pastedImages.length === 0}>{t.send}</button>
+          {activeInstance.status === 'busy' ? (
+            <button className="interrupt-btn" onClick={() => interruptChat(activeInstance.id)}>⏹ {t.interrupt || '打断'}</button>
+          ) : (
+            <button className="send-btn" onClick={handleSend} disabled={!input.trim() && pastedImages.length === 0}>{t.send}</button>
+          )}
         </div>
         <div className="input-hints">
           <span>{pastedImages.length > 0 ? tf('pastedCount', { n: pastedImages.length }) : t.supportPaste}</span>

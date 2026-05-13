@@ -3,6 +3,32 @@ import { Instance, ChatMessage, LLMConfig } from '../types';
 
 const API_BASE = '/api';
 
+// Chat message persistence helpers
+const MSG_STORAGE_PREFIX = 'ga_chat_';
+const MAX_STORED_MESSAGES = 200;
+
+function saveMessages(instanceId: string, messages: ChatMessage[]) {
+  try {
+    // Only save non-streaming messages, limit count
+    const toSave = messages
+      .filter(m => m.status !== 'streaming')
+      .slice(-MAX_STORED_MESSAGES);
+    localStorage.setItem(MSG_STORAGE_PREFIX + instanceId, JSON.stringify(toSave));
+  } catch { /* quota exceeded — silently ignore */ }
+}
+
+function loadMessages(instanceId: string): ChatMessage[] {
+  try {
+    const raw = localStorage.getItem(MSG_STORAGE_PREFIX + instanceId);
+    if (raw) return JSON.parse(raw);
+  } catch { /* corrupted — ignore */ }
+  return [];
+}
+
+function clearStoredMessages(instanceId: string) {
+  localStorage.removeItem(MSG_STORAGE_PREFIX + instanceId);
+}
+
 // WebSocket connection manager
 let ws: WebSocket | null = null;
 let wsInstanceId: string | null = null;
@@ -136,10 +162,13 @@ export const useStore = create<AppState>((set, get) => ({
         // Auto-select first instance if none selected
         const currentId = get().activeInstanceId;
         const shouldSelect = !currentId || !instances.find(i => i.id === currentId);
-        set({
-          instances,
-          ...(shouldSelect && instances.length > 0 ? { activeInstanceId: instances[0].id } : {}),
-        });
+        if (shouldSelect && instances.length > 0) {
+          const newId = instances[0].id;
+          const cached = loadMessages(newId);
+          set({ instances, activeInstanceId: newId, messages: cached });
+        } else {
+          set({ instances });
+        }
         // Auto-connect WS for the selected running instance
         if (shouldSelect && instances.length > 0 && instances[0].status === 'running') {
           get().connectWs(instances[0].id);
@@ -156,7 +185,14 @@ export const useStore = create<AppState>((set, get) => ({
   },
 
   selectInstance: (id: string) => {
-    set({ activeInstanceId: id, messages: [] });
+    // Save current instance's messages before switching
+    const prevId = get().activeInstanceId;
+    if (prevId && prevId !== id) {
+      saveMessages(prevId, get().messages);
+    }
+    // Load cached messages for the new instance
+    const cached = loadMessages(id);
+    set({ activeInstanceId: id, messages: cached });
     // Always connect WebSocket when selecting an instance
     get().connectWs(id);
   },
@@ -296,13 +332,17 @@ export const useStore = create<AppState>((set, get) => ({
             } else {
               msgs.push({ role: 'agent', content: text, timestamp: Date.now(), status: 'done' });
             }
+            // Persist after receiving final reply
+            if (wsInstanceId) saveMessages(wsInstanceId, msgs);
             return { messages: msgs };
           });
         } else if (event === 'error') {
           const errText = data.text || data.error || '未知错误';
-          set(state => ({
-            messages: [...state.messages, { role: 'agent', content: `⚠️ ${errText}`, timestamp: Date.now(), status: 'error' }],
-          }));
+          set(state => {
+            const msgs = [...state.messages, { role: 'agent', content: `⚠️ ${errText}`, timestamp: Date.now(), status: 'error' }];
+            if (wsInstanceId) saveMessages(wsInstanceId, msgs);
+            return { messages: msgs };
+          });
         }
       } catch {
         // Non-JSON message, ignore
@@ -335,7 +375,11 @@ export const useStore = create<AppState>((set, get) => ({
 
     // Add user message to UI (with images if any)
     const userMsg: ChatMessage = { role: 'user', content, timestamp: Date.now(), images };
-    set(state => ({ messages: [...state.messages, userMsg] }));
+    set(state => {
+      const msgs = [...state.messages, userMsg];
+      saveMessages(id, msgs);
+      return { messages: msgs };
+    });
 
     // Ensure WS is connected for receiving replies
     if (!ws || ws.readyState !== WebSocket.OPEN) {
@@ -370,6 +414,7 @@ export const useStore = create<AppState>((set, get) => ({
     const id = get().activeInstanceId;
     if (id) {
       try { await fetch(`${API_BASE}/instances/${id}/clear`, { method: 'POST' }); } catch {}
+      clearStoredMessages(id);
     }
     set({ messages: [] });
     get().showToast('对话已清空');
@@ -384,6 +429,7 @@ export const useStore = create<AppState>((set, get) => ({
     try {
       const resp = await fetch(`${API_BASE}/instances/${id}`, { method: 'DELETE' });
       if (resp.ok) {
+        clearStoredMessages(id);
         set(state => ({
           instances: state.instances.filter(i => i.id !== id),
           activeInstanceId: state.activeInstanceId === id ? null : state.activeInstanceId,

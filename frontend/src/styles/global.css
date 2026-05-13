@@ -686,6 +686,24 @@ body {
   transform: none;
   box-shadow: none;
 }
+.interrupt-btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: none;
+  background: linear-gradient(135deg, var(--red), #c0392b);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  align-self: stretch;
+  min-width: 60px;
+  animation: pulse-busy 1.2s infinite;
+}
+.interrupt-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--red) 40%, transparent);
+}
 
 /* Input row: textarea + send button side by side */
 .input-row {
