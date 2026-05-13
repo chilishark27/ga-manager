@@ -157,15 +157,11 @@ func (m *InstanceManager) SendCommand(id string, cmd map[string]interface{}) err
 	}
 
 	inst.mu.RLock()
-	state := inst.state
 	stdinPipe := inst.stdin
 	inst.mu.RUnlock()
 
-	if state != models.StateRunning && state != models.StateBusy {
-		return fmt.Errorf("instance %s is not running (state=%s)", id, state)
-	}
 	if stdinPipe == nil {
-		return fmt.Errorf("instance %s stdin not available", id)
+		return fmt.Errorf("instance %s stdin not available (process may have exited)", id)
 	}
 
 	data, err := json.Marshal(cmd)

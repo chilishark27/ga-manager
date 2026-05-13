@@ -262,10 +262,9 @@ function ChatPanel() {
             onKeyDown={handleKeyDown}
             rows={2}
           />
-          {activeInstance.status === 'busy' ? (
+          <button className="send-btn" onClick={handleSend} disabled={!input.trim() && pastedImages.length === 0}>{t.send}</button>
+          {activeInstance.status === 'busy' && (
             <button className="interrupt-btn" onClick={() => interruptChat(activeInstance.id)}>⏹ {t.interrupt || '打断'}</button>
-          ) : (
-            <button className="send-btn" onClick={handleSend} disabled={!input.trim() && pastedImages.length === 0}>{t.send}</button>
           )}
         </div>
         <div className="input-hints">
