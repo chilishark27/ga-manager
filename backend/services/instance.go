@@ -203,8 +203,13 @@ func (m *InstanceManager) Create(req models.CreateInstanceRequest) (*models.Inst
 		pythonPath = "python"
 	}
 
+	gaRoot := req.GARoot
+	if gaRoot == "" {
+		gaRoot = m.config.GARoot
+	}
+
 	args := []string{"-u", bridgePath,
-		"--ga-root", m.config.GARoot,
+		"--ga-root", gaRoot,
 		"--llm-no", strconv.Itoa(req.LLMNo),
 	}
 	if req.Autonomous {
@@ -215,7 +220,7 @@ func (m *InstanceManager) Create(req models.CreateInstanceRequest) (*models.Inst
 	}
 
 	cmd := exec.CommandContext(ctx, pythonPath, args...)
-	cmd.Dir = m.config.GARoot
+	cmd.Dir = gaRoot
 	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1")
 	hideWindow(cmd)
 

@@ -43,6 +43,7 @@ type CreateInstanceRequest struct {
 	LLMNo      int    `json:"llm_no"`
 	Autonomous bool   `json:"autonomous"`
 	Goal       string `json:"goal"`
+	GARoot     string `json:"ga_root"`
 }
 
 // AppConfig holds the manager-level configuration
@@ -55,8 +56,9 @@ type AppConfig struct {
 
 // AdoptInstanceRequest is the payload for POST /api/instances/adopt
 type AdoptInstanceRequest struct {
-	Port int    `json:"port"`
-	Name string `json:"name"`
+	Port   int    `json:"port"`
+	Name   string `json:"name"`
+	GARoot string `json:"ga_root"`
 }
 
 // MyKeyProvider represents one LLM provider entry in mykey.py

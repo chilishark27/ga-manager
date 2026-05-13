@@ -23,6 +23,9 @@ function Sidebar() {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [selectedLLM, setSelectedLLM] = useState(1);
+  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+  const defaultGaRoot = localStorage.getItem('ga_root') || (isMac ? '/Users/Shared/GenericAgent' : 'D:\\python3_project\\GenericAgent');
+  const [gaRoot, setGaRoot] = useState(defaultGaRoot);
 
   // Adopt modal state
   const [showAdopt, setShowAdopt] = useState(false);
@@ -31,7 +34,8 @@ function Sidebar() {
 
   const handleCreate = async () => {
     const name = newName.trim() || `GA-${instances.length + 1}`;
-    await createInstance({ name, llm_no: selectedLLM });
+    localStorage.setItem('ga_root', gaRoot);
+    await createInstance({ name, llm_no: selectedLLM, ga_root: gaRoot });
     setNewName('');
     setSelectedLLM(1);
     setShowCreate(false);
@@ -174,6 +178,15 @@ function Sidebar() {
               onChange={e => setNewName(e.target.value)}
               autoFocus
             />
+            <div className="modal-llm-section">
+              <label className="modal-label">GA 项目路径</label>
+              <input
+                className="modal-input"
+                placeholder={isMac ? '/Users/Shared/GenericAgent' : 'D:\\python3_project\\GenericAgent'}
+                value={gaRoot}
+                onChange={e => setGaRoot(e.target.value)}
+              />
+            </div>
             <div className="modal-llm-section">
               <label className="modal-label">{t.selectLLM}</label>
               {llmConfigs.length === 0 ? (
