@@ -252,10 +252,12 @@ def main():
     total_turns = 0
     is_busy = False
     pending_queue = []  # Messages queued while busy
+    abort_for_supplement = False  # True when aborting to process a supplement
+    current_dq = None  # Reference to current display_queue for abort sentinel
 
     def process_pending():
         """Process next pending message after current task finishes"""
-        nonlocal is_busy, total_turns
+        nonlocal is_busy, total_turns, current_dq
         if not pending_queue:
             return
         queued = pending_queue.pop(0)
@@ -264,6 +266,7 @@ def main():
         total_turns += 1
         try:
             dq = agent.put_task(queued)
+            current_dq = dq  # Save reference for abort sentinel
             threading.Thread(target=relay, args=(dq,), daemon=True).start()
         except Exception as e:
             is_busy = False
@@ -271,11 +274,25 @@ def main():
 
     def relay(dq):
         """Blocking relay: read from display_queue, write to stdout"""
-        nonlocal is_busy, total_turns
+        nonlocal is_busy, total_turns, abort_for_supplement
         _dbg("relay() entered, waiting for dq items...")
         try:
             while True:
                 item = dq.get(timeout=600)  # 10min timeout per chunk
+                # If abort was triggered for supplement, stop relaying immediately
+                if abort_for_supplement:
+                    _dbg("relay: abort_for_supplement detected, draining queue...")
+                    # Drain remaining items from dq until done/error
+                    try:
+                        while True:
+                            drain = dq.get(timeout=5)
+                            if "done" in drain or "error" in drain:
+                                break
+                    except Exception:
+                        pass
+                    send({"event": "interrupted", "msg": "已打断，正在处理补充消息..."})
+                    _dbg("relay: interrupted event sent")
+                    break
                 _dbg(f"relay got: keys={list(item.keys())}, preview={str(item)[:300]}")
                 if "next" in item:
                     send({"event": "next", "text": item["next"]})
@@ -288,10 +305,13 @@ def main():
                     break
         except Exception as e:
             _dbg(f"relay ERROR: {e}")
-            send({"event": "error", "msg": f"relay error: {e}"})
+            if not abort_for_supplement:
+                send({"event": "error", "msg": f"relay error: {e}"})
         finally:
+            was_supplement = abort_for_supplement
+            abort_for_supplement = False
             is_busy = False
-            # Auto-process pending messages
+            # Auto-process pending messages (supplement gets priority)
             process_pending()
 
     # --- Main stdin command loop ---
@@ -319,10 +339,18 @@ def main():
                 send({"event": "error", "msg": "Empty text"})
                 continue
             if is_busy:
-                # Queue supplementary message - will be sent after current task finishes
+                # Scheme A: Abort current task, queue supplement, GA will see it fresh
                 pending_queue.append(text)
-                _dbg(f"Queued message while busy, queue_len={len(pending_queue)}")
-                send({"event": "queued", "msg": f"已排队，当前任务完成后自动发送 (队列: {len(pending_queue)})"})
+                abort_for_supplement = True
+                agent.abort()
+                # Put sentinel to wake up relay if it's blocked on dq.get()
+                if current_dq is not None:
+                    try:
+                        current_dq.put({"__abort_sentinel__": True})
+                    except Exception:
+                        pass
+                _dbg(f"Abort for supplement, queue_len={len(pending_queue)}")
+                send({"event": "interrupting", "msg": "正在打断当前回复，将结合补充内容重新回复..."})
                 continue
             images = cmd.get("images") or []
             # Vision preprocess: call Claude API directly to describe images
@@ -342,6 +370,7 @@ def main():
             total_turns += 1
             try:
                 dq = agent.put_task(query)
+                current_dq = dq  # Save reference for abort sentinel
                 threading.Thread(target=relay, args=(dq,), daemon=True).start()
             except Exception as e:
                 is_busy = False
