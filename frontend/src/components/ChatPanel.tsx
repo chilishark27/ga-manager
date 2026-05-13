@@ -20,6 +20,17 @@ function ChatPanel() {
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // --- Input History (↑/↓) ---
+  const [inputHistory, setInputHistory] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('ga_input_history') || '[]'); } catch { return []; }
+  });
+  const [historyIndex, setHistoryIndex] = useState(-1); // -1 = current draft
+  const [draftInput, setDraftInput] = useState(''); // saves current input when browsing history
+
+  // --- Long conversation: only render last N messages ---
+  const MAX_VISIBLE = 150;
+  const [showAll, setShowAll] = useState(false);
+
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2000); };
 
   useEffect(() => {
@@ -28,9 +39,17 @@ function ChatPanel() {
 
   const handleSend = () => {
     if (!input.trim() && pastedImages.length === 0) return;
+    // Save to input history
+    if (input.trim()) {
+      const newHistory = [input.trim(), ...inputHistory.filter(h => h !== input.trim())].slice(0, 50);
+      setInputHistory(newHistory);
+      localStorage.setItem('ga_input_history', JSON.stringify(newHistory));
+    }
     sendMessage(input, pastedImages);
     setInput('');
     setPastedImages([]);
+    setHistoryIndex(-1);
+    setDraftInput('');
   };
 
   const handlePaste = (e: React.ClipboardEvent) => {
@@ -54,6 +73,37 @@ function ChatPanel() {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+    // ↑ browse older history
+    if (e.key === 'ArrowUp' && !e.shiftKey) {
+      const textarea = e.target as HTMLTextAreaElement;
+      // Only trigger if cursor is at the start (first line)
+      if (textarea.selectionStart === 0 || input === '') {
+        if (inputHistory.length > 0 && historyIndex < inputHistory.length - 1) {
+          e.preventDefault();
+          const newIdx = historyIndex + 1;
+          if (historyIndex === -1) setDraftInput(input); // save current draft
+          setHistoryIndex(newIdx);
+          setInput(inputHistory[newIdx]);
+        }
+      }
+    }
+    // ↓ browse newer history
+    if (e.key === 'ArrowDown' && !e.shiftKey) {
+      const textarea = e.target as HTMLTextAreaElement;
+      // Only trigger if cursor is at the end (last line)
+      if (textarea.selectionStart === input.length || input === '') {
+        if (historyIndex > 0) {
+          e.preventDefault();
+          const newIdx = historyIndex - 1;
+          setHistoryIndex(newIdx);
+          setInput(inputHistory[newIdx]);
+        } else if (historyIndex === 0) {
+          e.preventDefault();
+          setHistoryIndex(-1);
+          setInput(draftInput);
+        }
+      }
     }
   };
 
@@ -183,17 +233,32 @@ function ChatPanel() {
 
       {/* Messages */}
       <div className="messages-area">
-        {messages.map((msg, idx) => {
+        {(() => {
+          const totalCount = messages.length;
+          const visibleMessages = (!showAll && totalCount > MAX_VISIBLE)
+            ? messages.slice(totalCount - MAX_VISIBLE)
+            : messages;
+          const startIdx = (!showAll && totalCount > MAX_VISIBLE) ? totalCount - MAX_VISIBLE : 0;
+          return (
+            <>
+              {!showAll && totalCount > MAX_VISIBLE && (
+                <div className="load-more-bar">
+                  <button className="load-more-btn" onClick={() => setShowAll(true)}>
+                    ⬆️ 显示全部 {totalCount} 条消息（当前显示最近 {MAX_VISIBLE} 条）
+                  </button>
+                </div>
+              )}
+              {visibleMessages.map((msg, idx) => {
           // For agent messages: apply cleanReply and turn folding
           if (msg.role === 'agent') {
             const turns = foldTurns(msg.content);
             if (turns && turns.length > 1) {
               // Multi-turn message: render with fold/unfold
               return (
-                <div key={idx} className="msg agent">
+                <div key={startIdx + idx} className="msg agent">
                   <div className="msg-bubble msg-folded-container">
                     {turns.map((turn, ti) => {
-                      const turnKey = `${idx}-${ti}`;
+                      const turnKey = `${startIdx + idx}-${ti}`;
                       const isExpanded = turn.isLast || expandedTurns.has(turnKey);
                       return (
                         <div key={ti} className={`turn-block ${isExpanded ? 'expanded' : 'collapsed'}`}>
@@ -244,6 +309,9 @@ function ChatPanel() {
             </div>
           );
         })}
+            </>
+          );
+        })()}
         <div ref={messagesEndRef} />
       </div>
 
