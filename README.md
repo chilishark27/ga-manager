@@ -43,6 +43,8 @@
 | ⏰ **Scheduled Tasks** | Set up cron-based recurring tasks for any instance |
 | 📋 **SOP Browser** | Browse and view all available Standard Operating Procedures |
 | 💻 **System Resources** | Monitor CPU, memory, disk usage in real-time |
+| ⬆️ **Input History** | Press ↑/↓ to browse previously sent messages (persisted in localStorage) |
+| ⚡ **Long Chat Optimization** | Auto-virtualizes messages beyond 150 for smooth scrolling in long conversations |
 | 🌐 **i18n** | Full Chinese / English interface toggle |
 
 ---
