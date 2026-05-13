@@ -328,14 +328,19 @@ func (m *InstanceManager) Adopt(req models.AdoptInstanceRequest) (*models.Instan
 		pythonPath = "python"
 	}
 
+	gaRoot := req.GARoot
+	if gaRoot == "" {
+		gaRoot = m.config.GARoot
+	}
+
 	args := []string{"-u", bridgePath,
-		"--ga-root", m.config.GARoot,
+		"--ga-root", gaRoot,
 		"--llm-no", "0",
 		"--recover",
 	}
 
 	cmd := exec.CommandContext(ctx, pythonPath, args...)
-	cmd.Dir = m.config.GARoot
+	cmd.Dir = gaRoot
 	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1")
 	hideWindow(cmd)
 

@@ -24,6 +24,11 @@ function Sidebar() {
   const [newName, setNewName] = useState('');
   const [selectedLLM, setSelectedLLM] = useState(1);
 
+  // Adopt modal state
+  const [showAdopt, setShowAdopt] = useState(false);
+  const [adoptPort, setAdoptPort] = useState(0);
+  const [adoptGaRoot, setAdoptGaRoot] = useState('D:\\python3_project\\GenericAgent');
+
   const handleCreate = async () => {
     const name = newName.trim() || `GA-${instances.length + 1}`;
     await createInstance({ name, llm_no: selectedLLM });
@@ -150,7 +155,7 @@ function Sidebar() {
               <div className="ic-url">{d.url}</div>
               <button
                 className="adopt-btn"
-                onClick={() => adoptInstance(d.port)}
+                onClick={() => { setAdoptPort(d.port); setShowAdopt(true); }}
               >📥 纳管</button>
             </div>
           ))}
@@ -193,6 +198,30 @@ function Sidebar() {
             <div className="modal-actions">
               <button className="modal-btn cancel" onClick={() => setShowCreate(false)}>{t.cancel}</button>
               <button className="modal-btn confirm" onClick={handleCreate}>{t.create}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAdopt && (
+        <div className="modal-overlay" onClick={() => setShowAdopt(false)}>
+          <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h3>📥 纳管实例 (端口 {adoptPort})</h3>
+            <div className="form-group">
+              <label>GA 项目路径 (ga_root)</label>
+              <input
+                type="text"
+                value={adoptGaRoot}
+                onChange={e => setAdoptGaRoot(e.target.value)}
+                placeholder="D:\python3_project\GenericAgent"
+              />
+            </div>
+            <div className="modal-actions">
+              <button className="modal-btn cancel" onClick={() => setShowAdopt(false)}>取消</button>
+              <button className="modal-btn confirm" onClick={async () => {
+                await adoptInstance(adoptPort, `GA-${adoptPort}`, adoptGaRoot);
+                setShowAdopt(false);
+              }}>确认纳管</button>
             </div>
           </div>
         </div>

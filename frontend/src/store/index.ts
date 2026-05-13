@@ -115,7 +115,7 @@ interface AppState {
   discoverLoading: boolean;
   attachedPort: number | null;
   discoverInstances: () => Promise<void>;
-  adoptInstance: (port: number, name?: string) => Promise<void>;
+  adoptInstance: (port: number, name?: string, gaRoot?: string) => Promise<void>;
   attachInstance: (port: number) => void;
   detachInstance: () => void;
 
@@ -634,12 +634,12 @@ export const useStore = create<AppState>((set, get) => ({
     set({ attachedPort: port, activeInstanceId: null });
   },
 
-  adoptInstance: async (port: number, name?: string) => {
+  adoptInstance: async (port: number, name?: string, gaRoot?: string) => {
     try {
       const res = await fetch(`${API_BASE}/instances/adopt`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ port, name: name || `GA-${port}` }),
+        body: JSON.stringify({ port, name: name || `GA-${port}`, ga_root: gaRoot || '' }),
       });
       if (res.ok) {
         get().showToast(`✅ 纳管成功 (端口 ${port})`);
