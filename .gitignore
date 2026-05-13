@@ -13,3 +13,6 @@ node_modules/
 .DS_Store
 Thumbs.db
 
+
+*_debug.log
+frontend/dist/
