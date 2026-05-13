@@ -328,9 +328,9 @@ export const useStore = create<AppState>((set, get) => ({
             const msgs = [...state.messages];
             const lastMsg = msgs[msgs.length - 1];
             if (lastMsg && lastMsg.role === 'agent' && lastMsg.status === 'streaming') {
-              msgs[msgs.length - 1] = { ...lastMsg, content: text || lastMsg.content, status: 'done' };
+              msgs[msgs.length - 1] = { ...lastMsg, content: text || lastMsg.content, status: 'done' as const };
             } else {
-              msgs.push({ role: 'agent', content: text, timestamp: Date.now(), status: 'done' });
+              msgs.push({ role: 'agent' as const, content: text, timestamp: Date.now(), status: 'done' as const });
             }
             // Persist after receiving final reply
             if (wsInstanceId) saveMessages(wsInstanceId, msgs);
@@ -339,7 +339,7 @@ export const useStore = create<AppState>((set, get) => ({
         } else if (event === 'error') {
           const errText = data.text || data.error || '未知错误';
           set(state => {
-            const msgs = [...state.messages, { role: 'agent', content: `⚠️ ${errText}`, timestamp: Date.now(), status: 'error' }];
+            const msgs = [...state.messages, { role: 'agent' as const, content: `⚠️ ${errText}`, timestamp: Date.now(), status: 'error' as const }];
             if (wsInstanceId) saveMessages(wsInstanceId, msgs);
             return { messages: msgs };
           });
