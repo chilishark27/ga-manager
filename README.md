@@ -142,7 +142,7 @@ Grab the latest release from [Releases](https://github.com/chilishark27/ga-manag
 
 - [GenericAgent](https://github.com/chilishark27/GenericAgent) installed
 - Python 3.10+
-- Windows 10/11
+- Windows 10/11 or macOS 12+
 
 ### Run
 
@@ -157,32 +157,77 @@ Grab the latest release from [Releases](https://github.com/chilishark27/ga-manag
 
 ## Build from Source
 
+A cross-platform `Makefile` is provided for streamlined builds.
+
+### Using Makefile (Recommended)
+
 ```bash
 # Clone
 git clone https://github.com/chilishark27/ga-manager.git
 cd ga-manager
 
-# Frontend
+# Windows (can be built from any OS)
+make build-windows
+
+# macOS Apple Silicon (must run ON a Mac)
+make build-mac-arm64
+
+# macOS Intel (must run ON a Mac)
+make build-mac-amd64
+
+# Backend-only for macOS (cross-compilable from Windows/Linux)
+make build-backend-mac
+
+# Package into ZIP
+make package
+
+# Clean
+make clean
+```
+
+### Manual Build (Windows)
+
+```bash
 cd frontend
 npm install
 npx vite build --outDir ../build/static
 cd ..
 
-# Backend (embeds static files)
 cd backend
 go build -o ../build/ga_manager_backend.exe .
 cd ..
 
-# Desktop wrapper (optional)
 cd desktop
 go build -o ../build/ga_manager.exe .
 cd ..
 ```
 
+### Manual Build (macOS)
+
+```bash
+cd frontend
+npm install
+npm run build
+cp -r dist ../backend/static
+cd ..
+
+cd backend
+GOOS=darwin CGO_ENABLED=0 go build -ldflags="-s -w" -o ../build/ga_manager .
+cd ..
+
+# Desktop requires CGO (Cocoa framework for systray)
+cd desktop
+GOOS=darwin CGO_ENABLED=1 go build -ldflags="-s -w" -o ../build/ga-manager-desktop .
+cd ..
+```
+
+> **Note**: The desktop wrapper uses `systray` which depends on Cocoa on macOS, so it **must be compiled on a Mac** with CGO enabled. The backend is pure Go and can be cross-compiled from any platform.
+
 ### Requirements
 
 - Go 1.21+
 - Node.js 18+ & npm
+- macOS: Xcode Command Line Tools (for CGO/systray)
 
 ---
 
