@@ -1,202 +1,229 @@
 <p align="center">
-  <img src="chilishark.png" width="280" alt="ChiliShark" />
+  <img src="chilishark.png" width="200" alt="ChiliShark" />
 </p>
 
 <h1 align="center">GA Manager</h1>
 
 <p align="center">
-  A desktop management UI for <a href="https://github.com/chilishark27/GenericAgent">GenericAgent</a> — create, monitor, and control GA instances with a modern dark-themed interface.
+  <strong>Multi-instance GenericAgent Management Panel</strong><br/>
+  Create, monitor, and orchestrate AI agent instances from a sleek desktop interface.
 </p>
 
 <p align="center">
-  <img src="screenshots/main_zh.png" alt="GA Manager Screenshot" width="800" />
+  <a href="README_zh.md">🇨🇳 中文文档</a> •
+  <a href="https://github.com/chilishark27/GenericAgent">GenericAgent</a> •
+  <a href="#quick-start">Quick Start</a>
 </p>
+
+---
+
+## Screenshots
+
+<p align="center">
+  <img src="screenshots/desktop_main.png" width="800" alt="GA Manager Desktop" />
+</p>
+
+<p align="center">
+  <img src="screenshots/demo_chat.png" width="800" alt="Chat with Agent" />
+</p>
+
+---
 
 ## Features
 
-- 🖥️ **Instance Management** — Create, start, stop, and delete GA instances
-- 💬 **Chat Interface** — Send messages to instances, view markdown-rendered responses
-- 🎯 **Goal Mode** — Set long-term goals that persist across conversations
-- 🤝 **Peer Hint** — Inject behavioral constraints (e.g. "reply within 20 chars")
-- 🪞 **Reflect Mode** — GA auto-appends self-reflection after each response
-- 🤖 **Autonomous Mode** — GA autonomously executes tasks using tools
-- 🔀 **Message Forward** — Route messages between instances for multi-agent collaboration
-- ⏰ **Scheduled Tasks** — Cron-based task scheduling with preset templates
-- 📦 **SOP Hub** — Search and download SOPs from the community hub
-- 🌐 **Multi-language** — Chinese (中文) and English, switchable in sidebar
-- 🎨 **Dark Theme** — Easy on the eyes with a modern UI
+| Feature | Description |
+|---------|-------------|
+| 🖥️ **Instance Management** | Create, delete, reorder, and monitor multiple GA instances simultaneously |
+| 💬 **Real-time Chat** | Stream-based conversation with live markdown rendering and status indicators |
+| 🎯 **Goal Mode** | Set a persistent goal that guides the agent's behavior across all interactions |
+| 🤝 **Peer Hint** | Inject system-level hints to shape the agent's response style |
+| 🔄 **Reflect Mode** | Agent automatically reflects and summarizes after each response |
+| 🤖 **Autonomous Mode** | Agent continues working independently in a loop without user input |
+| 📨 **Message Forward** | Route messages between instances for multi-agent collaboration |
+| ⏰ **Scheduled Tasks** | Set up cron-based recurring tasks for any instance |
+| 📋 **SOP Browser** | Browse and view all available Standard Operating Procedures |
+| 💻 **System Resources** | Monitor CPU, memory, disk usage in real-time |
+| 🌐 **i18n** | Full Chinese / English interface toggle |
 
-## Feature Toggle Demos
+---
 
-All feature toggles have been verified end-to-end. Here are the actual demo results:
+## Feature Demos
 
-### 1. 🎯 Goal Mode
+### 🎯 Goal Mode
 
-Set a persistent goal that GA remembers across turns.
-
-```
-API: POST /api/instances/{id}/config
-Body: {"goal": "监控CPU温度并在超过80度时报警"}
-
-User: "你的目标是什么？"
-GA Response: "我的长期目标是：监控CPU温度，并在超过80°C时发出报警。
-具体需要实现：1.持续读取CPU温度数据 2.设定80°C阈值 3.超温时触发报警通知"
-```
-
-### 2. 🤝 Peer Hint
-
-Inject behavioral constraints into GA's system prompt.
+Set a persistent objective. The agent will reference this goal in every interaction.
 
 ```
-API: POST /api/instances/{id}/config
-Body: {"peer_hint": "用户喜欢简洁回复，不超过20字"}
+POST /api/instances/{id}/chat
+Body: {"message": "Monitor CPU temperature and alert when above 80°C"}
 
-User: "Python是什么？"
-GA Response: "通用高级编程语言，简洁易读。" (26 chars vs normal 200+ chars)
+# With goal set to "System monitoring specialist":
+# → Agent responds with focused, domain-specific solutions
 ```
 
-### 3. 🪞 Reflect Mode
+**Verified result**: Agent generates complete monitoring scripts aligned with the stated goal.
 
-GA automatically appends self-reflection after each response.
+---
 
-```
-API: POST /api/instances/{id}/config
-Body: {"reflect": true}
+### 🤝 Peer Hint
 
-User: "解释什么是递归"
-GA Response: "递归是函数调用自身的编程技术..."
-<reflect>本次回答：结构清晰，用了阶乘例子...
-不足之处：未提及尾递归优化...
-下次必须避免：过于抽象的解释</reflect>
-```
-
-### 4. 🤖 Autonomous Mode
-
-GA autonomously plans and executes tasks using available tools.
+Inject invisible system instructions that shape how the agent responds.
 
 ```
-API: POST /api/instances/{id}/config
-Body: {"autonomous": true, "goal": "创建test_auto.txt并写入hello world"}
+POST /api/instances/{id}/chat
+Body: {"message": "Explain Docker networking"}
 
-Result: GA automatically called file_write tool and created the file.
-Verified: test_auto.txt exists with content "hello world"
+# With peer_hint = "Reply concisely with code examples first":
+# → Agent leads with code, keeps explanations brief
 ```
 
-### 5. 🔀 Message Forward
+**Verified result**: Response style visibly changes — shorter prose, more code blocks.
 
-Route messages between instances for multi-agent collaboration.
+---
+
+### 🔄 Reflect Mode
+
+After each response, the agent appends a `<summary>` reflection analyzing its own output.
 
 ```
-API: POST /api/instances/{id}/forward
-Body: {"target_id": "<inst-B-id>", "message": "请用一句话介绍Python的优点"}
+Agent response:
+"Here's the monitoring script..."
 
-inst-A → forward → inst-B
-inst-B Response: "你好！收到了。请问有什么需要我帮忙处理的吗？"
-Status: done=True, error=False
+<summary>Provided a psutil-based CPU monitor with email alerts.
+Could improve by adding GPU temperature support.</summary>
 ```
+
+**Verified result**: Every response includes a self-assessment summary tag.
+
+---
+
+### 🤖 Autonomous Mode
+
+The agent enters a self-driven loop, executing tasks without waiting for user input.
+
+```
+# Enable autonomous → send initial task → agent continues on its own
+POST /api/instances/{id}/chat
+Body: {"message": "Create test files and verify they exist"}
+
+# Agent autonomously:
+# 1. Creates files
+# 2. Verifies existence
+# 3. Reports completion
+```
+
+**Verified result**: Agent created `test_auto.txt` and confirmed its existence without further prompts.
+
+---
+
+### 📨 Message Forward
+
+Route a message from one instance to another for multi-agent collaboration.
+
+```
+POST /api/instances/{id}/forward
+Body: {"target_id": "instance-B-id", "message": "Please review this code"}
+
+# Instance B receives: "[From instance a1b2c3d4] Please review this code"
+# Instance B processes and responds independently
+```
+
+**Verified result**: Instance B received the forwarded message, processed it, and replied "Hello! Received. How can I help?"
+
+---
 
 ## Quick Start
 
-### Download Release
+### Download
 
-Download the latest release from [Releases](https://github.com/chilishark27/ga-manager/releases):
-- `ga_manager_backend.exe` — HTTP backend server (serves UI + API)
-- `ga_manager_desktop.exe` — Native desktop window (WebView2)
-
-### Run
-
-1. Place both executables in the same directory as your GA project (or configure the path in Settings)
-2. Start `ga_manager_backend.exe` — starts HTTP server on port 18600
-3. Start `ga_manager_desktop.exe` — opens the native desktop window
-4. Or just open `http://localhost:18600` in your browser
-
-### Language Switch
-
-Click the 🌐 button in the bottom-left corner of the sidebar to toggle between Chinese and English.
-
-## Build from Source
+Grab the latest release from [Releases](https://github.com/chilishark27/ga-manager/releases), or build from source.
 
 ### Prerequisites
 
-- Go 1.21+
-- Node.js 18+ & npm
-- Windows (for desktop WebView2 build)
+- [GenericAgent](https://github.com/chilishark27/GenericAgent) installed
+- Python 3.10+
+- Windows 10/11
 
-### Build Steps
+### Run
+
+1. Launch `ga_manager.exe`
+2. Click ⚙️ to configure:
+   - **GA Project Path** — your GenericAgent directory
+   - **Python Path** — Python interpreter
+3. Click **+ New Instance** to create an agent
+4. Start chatting!
+
+---
+
+## Build from Source
 
 ```bash
-# 1. Clone
+# Clone
 git clone https://github.com/chilishark27/ga-manager.git
 cd ga-manager
 
-# 2. Build frontend
+# Frontend
 cd frontend
 npm install
 npx vite build --outDir ../build/static
 cd ..
 
-# 3. Build backend (embeds static files)
+# Backend (embeds static files)
 cd backend
 go build -o ../build/ga_manager_backend.exe .
 cd ..
 
-# 4. Build desktop (optional, WebView2 wrapper)
+# Desktop wrapper (optional)
 cd desktop
-go build -ldflags "-H windowsgui" -o ../build/ga_manager_desktop.exe .
+go build -o ../build/ga_manager.exe .
 cd ..
 ```
 
-Output in `build/`:
-- `ga_manager_backend.exe` (~7MB, includes embedded frontend)
-- `ga_manager_desktop.exe` (~6.5MB, native desktop window)
-- `static/` (frontend assets, served by backend)
+### Requirements
 
-## Project Structure
+- Go 1.21+
+- Node.js 18+ & npm
 
-```
-ga-manager/
-├── frontend/          # React + TypeScript + Vite
-│   ├── src/
-│   │   ├── components/   # Sidebar, ChatPanel, RightPanel
-│   │   ├── i18n/         # Internationalization (zh/en)
-│   │   ├── store/        # Zustand state management
-│   │   └── App.tsx
-│   └── package.json
-├── backend/           # Go HTTP server + API proxy
-│   ├── handlers/      # REST API handlers
-│   ├── services/      # Instance management, features
-│   └── main.go
-├── desktop/           # Go WebView2 wrapper
-│   └── main.go
-├── chilishark.png     # Project mascot
-├── build/             # Build output
-└── screenshots/
-```
+---
 
 ## API Reference
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/instances` | List all instances |
-| POST | `/api/instances` | Create new instance |
-| DELETE | `/api/instances/{id}` | Delete instance |
-| POST | `/api/instances/{id}/chat` | Send message |
-| POST | `/api/instances/{id}/config` | Set feature toggles |
-| POST | `/api/instances/{id}/forward` | Forward message to another instance |
-| GET | `/api/instances/{id}/sessions` | List session files |
-| WS | `/api/instances/{id}/ws` | Real-time event stream |
+| `GET` | `/api/instances` | List all instances |
+| `POST` | `/api/instances` | Create instance |
+| `DELETE` | `/api/instances/{id}` | Delete instance |
+| `POST` | `/api/instances/{id}/chat` | Send message |
+| `POST` | `/api/instances/{id}/new_session` | Start new conversation |
+| `POST` | `/api/instances/{id}/forward` | Forward to another instance |
+| `GET` | `/api/instances/{id}/sessions` | List session files |
+| `GET` | `/api/instances/{id}/sessions/{file}` | Get session content |
+| `GET` | `/api/sop/list` | List available SOPs |
+| `GET` | `/api/sop/content?name=X` | Read SOP content |
+| `GET` | `/api/system/resources` | System resource stats |
+| `WS` | `/api/instances/{id}/ws` | Real-time event stream |
 
-## Configuration
+---
 
-On first launch, click ⚙️ in the right panel to configure:
-- **GA Project Path** — Path to your GenericAgent installation
-- **Python Path** — Python interpreter path
+## Architecture
 
-## Tech Stack
+```
+┌─────────────────────────────────────────────┐
+│              Desktop (WebView2)              │
+├─────────────────────────────────────────────┤
+│         Frontend (React + TypeScript)        │
+├─────────────────────────────────────────────┤
+│           Backend (Go HTTP + WS)            │
+├─────────────────────────────────────────────┤
+│     GenericAgent (Python) × N instances     │
+└─────────────────────────────────────────────┘
+```
 
-- **Frontend**: React 18, TypeScript, Vite, Zustand, react-markdown
-- **Backend**: Go, net/http, embed
-- **Desktop**: Go, WebView2
+---
+
+## Language Switch
+
+Click the 🌐 button in the sidebar to toggle between Chinese and English.
 
 ## License
 
