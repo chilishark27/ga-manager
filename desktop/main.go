@@ -16,7 +16,10 @@ import (
 )
 
 //go:embed app.ico
-var iconData embed.FS
+var iconICO embed.FS
+
+//go:embed app.png
+var iconPNG embed.FS
 
 const (
 	backendURL   = "http://localhost:18600"
@@ -45,8 +48,14 @@ func main() {
 }
 
 func onReady() {
-	// Load icon
-	icon, err := iconData.ReadFile("app.ico")
+	// Load icon - use ICO on Windows, PNG on macOS/Linux
+	var icon []byte
+	var err error
+	if runtime.GOOS == "windows" {
+		icon, err = iconICO.ReadFile("app.ico")
+	} else {
+		icon, err = iconPNG.ReadFile("app.png")
+	}
 	if err != nil {
 		log.Printf("Warning: failed to load tray icon: %v", err)
 	} else {
@@ -110,14 +119,29 @@ func isBackendRunning() bool {
 	return true
 }
 
+func backendBinaryName() string {
+	if runtime.GOOS == "windows" {
+		return "ga_manager.exe"
+	}
+	return "ga_manager"
+}
+
 func startBackend() {
 	exePath, _ := os.Executable()
 	exeDir := filepath.Dir(exePath)
+	binName := backendBinaryName()
 
 	candidates := []string{
-		filepath.Join(exeDir, "ga_manager.exe"),
-		filepath.Join(exeDir, "..", "backend", "ga_manager.exe"),
-		filepath.Join(exeDir, "..", "ga_manager.exe"),
+		filepath.Join(exeDir, binName),
+		filepath.Join(exeDir, "..", "backend", binName),
+		filepath.Join(exeDir, "..", binName),
+	}
+
+	// On macOS inside .app bundle
+	if runtime.GOOS == "darwin" {
+		candidates = append(candidates,
+			filepath.Join(exeDir, "..", "Resources", binName),
+		)
 	}
 
 	var backendPath string
@@ -230,20 +254,27 @@ func launchAppWindow() {
 
 // --- Auto Start ---
 
+func macLaunchAgentPath() string {
+	home, _ := os.UserHomeDir()
+	return filepath.Join(home, "Library", "LaunchAgents", "com.gamanager.app.plist")
+}
+
 func isAutoStartEnabled() bool {
 	if runtime.GOOS == "windows" {
-		// Check registry for auto-start entry
 		cmd := exec.Command("reg", "query",
 			`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`,
 			"/v", "GAManager")
 		return cmd.Run() == nil
+	} else if runtime.GOOS == "darwin" {
+		_, err := os.Stat(macLaunchAgentPath())
+		return err == nil
 	}
 	return false
 }
 
 func enableAutoStart() {
+	exePath, _ := os.Executable()
 	if runtime.GOOS == "windows" {
-		exePath, _ := os.Executable()
 		cmd := exec.Command("reg", "add",
 			`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`,
 			"/v", "GAManager",
@@ -254,6 +285,28 @@ func enableAutoStart() {
 			log.Printf("Failed to enable auto-start: %v", err)
 		} else {
 			log.Println("Auto-start enabled")
+		}
+	} else if runtime.GOOS == "darwin" {
+		plist := fmt.Sprintf(`<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.gamanager.app</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>%s</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>`, exePath)
+		plistPath := macLaunchAgentPath()
+		os.MkdirAll(filepath.Dir(plistPath), 0755)
+		if err := os.WriteFile(plistPath, []byte(plist), 0644); err != nil {
+			log.Printf("Failed to enable auto-start: %v", err)
+		} else {
+			log.Println("Auto-start enabled (LaunchAgent)")
 		}
 	}
 }
@@ -268,6 +321,12 @@ func disableAutoStart() {
 			log.Printf("Failed to disable auto-start: %v", err)
 		} else {
 			log.Println("Auto-start disabled")
+		}
+	} else if runtime.GOOS == "darwin" {
+		if err := os.Remove(macLaunchAgentPath()); err != nil {
+			log.Printf("Failed to disable auto-start: %v", err)
+		} else {
+			log.Println("Auto-start disabled (LaunchAgent removed)")
 		}
 	}
 }
