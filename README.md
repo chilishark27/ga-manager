@@ -225,6 +225,12 @@ cd ..
 
 Click the 🌐 button in the sidebar to toggle between Chinese and English.
 
+## Acknowledgments
+
+This project is built on top of [GenericAgent](https://github.com/lsdefine/GenericAgent) by [@lsdefine](https://github.com/lsdefine). GA Manager serves as a multi-instance desktop management layer for GenericAgent, providing GUI orchestration, real-time monitoring, and inter-agent collaboration capabilities.
+
+Thanks to the GenericAgent community for the powerful agent framework that makes this project possible.
+
 ## License
 
 MIT

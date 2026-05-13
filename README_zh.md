@@ -225,6 +225,12 @@ cd ..
 
 点击侧边栏的 🌐 按钮即可在中文和英文之间切换。
 
+## 致谢
+
+本项目基于 [@lsdefine](https://github.com/lsdefine) 的 [GenericAgent](https://github.com/lsdefine/GenericAgent) 构建。GA Manager 作为 GenericAgent 的多实例桌面管理层，提供 GUI 编排、实时监控和跨实例协作能力。
+
+感谢 GenericAgent 社区提供的强大 Agent 框架。
+
 ## 许可证
 
 MIT
