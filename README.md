@@ -19,12 +19,29 @@
 
 ## Screenshots
 
+### Main Interface — Chat with Agent
 <p align="center">
-  <img src="screenshots/desktop_main.png" width="800" alt="GA Manager Desktop" />
+  <img src="screenshots/chat_full.png" width="800" alt="Chat with Agent" />
 </p>
 
+### Instance Sidebar
 <p align="center">
-  <img src="screenshots/demo_chat.png" width="800" alt="Chat with Agent" />
+  <img src="screenshots/sidebar.png" width="250" alt="Instance Sidebar" />
+</p>
+
+### Quick Actions
+<p align="center">
+  <img src="screenshots/quick_actions.png" width="300" alt="Quick Actions" />
+</p>
+
+### Scheduled Tasks
+<p align="center">
+  <img src="screenshots/scheduled.png" width="300" alt="Scheduled Tasks" />
+</p>
+
+### SOP Browser
+<p align="center">
+  <img src="screenshots/sop_browser.png" width="300" alt="SOP Browser" />
 </p>
 
 ---
@@ -53,11 +70,7 @@
 ## Mode Reference
 
 <p align="center">
-  <img src="screenshots/mode_toggles.png" width="350" alt="Mode Toggle Panel" />
-</p>
-
-<p align="center">
-  <img src="screenshots/feature_demo.gif" width="700" alt="Feature Toggle Demo" />
+  <img src="screenshots/feature_demo.gif" width="350" alt="Feature Toggle Demo" />
 </p>
 
 The icon buttons on the right panel are mode toggles. Click to enable/disable. Here's what each mode does:
