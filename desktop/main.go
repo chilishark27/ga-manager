@@ -31,6 +31,9 @@ const (
 // backendPID stores the PID of the backend process started by this desktop app.
 var backendPID int
 
+// browserPID stores the PID of the browser --app window launched by this desktop app.
+var browserPID int
+
 func main() {
 	// Strict single-instance enforcement via OS-level mutex/flock
 	releaseDesktop := ensureSingleDesktop()
@@ -127,7 +130,23 @@ func onExit() {
 		}
 	}
 
-	// Step 2: Force-kill backend process tree as fallback
+	// Step 2: Force-kill browser window
+	if browserPID > 0 {
+		log.Printf("Closing browser window (PID %d)...", browserPID)
+		var killBrowserCmd *exec.Cmd
+		if runtime.GOOS == "windows" {
+			killBrowserCmd = exec.Command("taskkill", "/F", "/T", "/PID", fmt.Sprintf("%d", browserPID))
+		} else {
+			killBrowserCmd = exec.Command("kill", fmt.Sprintf("%d", browserPID))
+		}
+		if out, err := killBrowserCmd.CombinedOutput(); err != nil {
+			log.Printf("Browser kill result: %v, output: %s", err, string(out))
+		} else {
+			log.Println("Browser window closed successfully")
+		}
+	}
+
+	// Step 3: Force-kill backend process tree as fallback
 	if backendPID > 0 {
 		log.Printf("Force-killing backend process tree (PID %d)...", backendPID)
 		killCmd := exec.Command("taskkill", "/F", "/T", "/PID", fmt.Sprintf("%d", backendPID))
@@ -284,7 +303,8 @@ func launchAppWindow() {
 	for _, browser := range browsers {
 		cmd := exec.Command(browser, args...)
 		if err := cmd.Start(); err == nil {
-			log.Printf("Launched browser window (PID=%d)", cmd.Process.Pid)
+			browserPID = cmd.Process.Pid
+			log.Printf("Launched browser window (PID=%d)", browserPID)
 			return
 		}
 	}
