@@ -370,12 +370,18 @@ func detectGAPath() []string {
 	var found []string
 	// Common locations to check
 	candidates := []string{
+		// Windows common locations
 		filepath.Join(os.Getenv("USERPROFILE"), "GenericAgent"),
 		filepath.Join(os.Getenv("USERPROFILE"), "Desktop", "GenericAgent"),
 		filepath.Join(os.Getenv("USERPROFILE"), "Documents", "GenericAgent"),
 		`D:\python3_project\GenericAgent`,
 		`C:\GenericAgent`,
+		// macOS / Linux common locations
 		filepath.Join(os.Getenv("HOME"), "GenericAgent"),
+		filepath.Join(os.Getenv("HOME"), "Documents", "GenericAgent"),
+		filepath.Join(os.Getenv("HOME"), "Developer", "GenericAgent"),
+		filepath.Join(os.Getenv("HOME"), "projects", "GenericAgent"),
+		filepath.Join(os.Getenv("HOME"), "Desktop", "GenericAgent"),
 	}
 	// Also check sibling directories of exe
 	exeDir := getExeDir()
