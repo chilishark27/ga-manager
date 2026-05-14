@@ -42,16 +42,6 @@
 
 ---
 
-## Mode Reference
-
-<p align="center">
-  <img src="screenshots/feature_demo.gif" width="350" alt="Feature Toggle Demo" />
-</p>
-
-The icon buttons on the right panel are mode toggles. Click to enable/disable. Here's what each mode does:
-
----
-
 ### 🤖 Autonomous Mode
 
 | | |
