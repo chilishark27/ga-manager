@@ -17,32 +17,7 @@
 
 ---
 
-## Screenshots
 
-### Main Interface — Chat with Agent
-<p align="center">
-  <img src="screenshots/chat_full.png" width="800" alt="Chat with Agent" />
-</p>
-
-### Instance Sidebar
-<p align="center">
-  <img src="screenshots/sidebar.png" width="250" alt="Instance Sidebar" />
-</p>
-
-### Quick Actions
-<p align="center">
-  <img src="screenshots/quick_actions.png" width="300" alt="Quick Actions" />
-</p>
-
-### Scheduled Tasks
-<p align="center">
-  <img src="screenshots/scheduled.png" width="300" alt="Scheduled Tasks" />
-</p>
-
-### SOP Browser
-<p align="center">
-  <img src="screenshots/sop_browser.png" width="300" alt="SOP Browser" />
-</p>
 
 ---
 
