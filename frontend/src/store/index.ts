@@ -200,7 +200,11 @@ export const useStore = create<AppState>((set, get) => ({
     // Save current instance's messages before switching
     const prevId = get().activeInstanceId;
     if (prevId && prevId !== id) {
-      saveMessages(prevId, get().messages);
+      // Finalize any streaming messages so they are not filtered out by saveMessages
+      const msgs = get().messages.map(m =>
+        m.status === 'streaming' ? { ...m, status: 'done' as const } : m
+      );
+      saveMessages(prevId, msgs);
     }
     // Load cached messages for the new instance
     const cached = loadMessages(id);
