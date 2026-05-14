@@ -47,8 +47,9 @@ function RightPanel() {
 
   const featureConfigs: Record<string, { icon: string; activeIcon: string; label: string; color: string }> = {
     autonomous: { icon: '⚡', activeIcon: '⚡', label: t.autonomous || 'Autonomous', color: '#f59e0b' },
-    goal: { icon: '🎯', activeIcon: '🎯', label: t.goalMode || 'Goal Mode', color: '#8b5cf6' },
+    peer_hint: { icon: '👁️', activeIcon: '👁️', label: t.peerHint || 'Peer Hint', color: '#6366f1' },
     reflect: { icon: '🪞', activeIcon: '🪞', label: t.reflect || 'Reflect', color: '#06b6d4' },
+    verbose: { icon: '📝', activeIcon: '📝', label: t.verbose || 'Verbose', color: '#78716c' },
     scheduler: { icon: '📅', activeIcon: '📅', label: t.scheduler || 'Scheduler', color: '#10b981' },
     team_worker: { icon: '👥', activeIcon: '👥', label: t.teamWorker || 'Team Worker', color: '#ec4899' },
   };
@@ -163,6 +164,23 @@ function RightPanel() {
         ))}
       </div>
 
+      {/* Quick Actions - Always visible */}
+      <div className="rp-card" style={{ padding: '10px 12px' }}>
+        <h5 style={{ marginBottom: '6px' }}>{t.quickActions}</h5>
+        <div className="action-grid">
+          <button className="action-btn" onClick={() => id && exportChat(id)}>📤 {t.exportChat}</button>
+          <button className="action-btn" onClick={() => setShowConfig(true)}>⚙️ {t.config}</button>
+          <button className="action-btn" onClick={() => batchAction('restart', instances.filter(i => i.status === 'running').map(i => i.id))}>🔄 {t.restartAll}</button>
+          <button className="action-btn" onClick={() => batchAction('stop', instances.filter(i => i.status === 'running').map(i => i.id))}>⏹️ {t.stopAll}</button>
+        </div>
+        <h5 style={{ marginTop: '10px', marginBottom: '6px' }}>{t.sendCommand}</h5>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <input className="rp-input" placeholder={t.commandPlaceholder} value={cmdInput} onChange={e => setCmdInput(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter' && cmdInput.trim() && id) { sendCommand(id, cmdInput); setCmdInput(''); } }} />
+          <button className="action-btn" onClick={() => { if (cmdInput.trim() && id) { sendCommand(id, cmdInput); setCmdInput(''); } }}>{t.send}</button>
+        </div>
+      </div>
+
       {/* Section Content - uses original card styles */}
       {activeSection === 'resources' && (<>
         <div className="rp-card">
@@ -222,7 +240,7 @@ function RightPanel() {
       {activeSection === 'features' && (
         <div className="rp-card">
           <h5 style={{ marginBottom: '10px' }}>⚡ {t.featureToggles}</h5>
-          {(['autonomous', 'goal', 'reflect', 'scheduler', 'team_worker'] as const).map(feat => {
+          {(['autonomous', 'peer_hint', 'reflect', 'verbose', 'scheduler', 'team_worker'] as const).map(feat => {
             const featureConfig = featureConfigs[feat];
             const isActive = !!inst[feat];
             return (
@@ -241,7 +259,7 @@ function RightPanel() {
             );
           })}
 
-          {/* Goal & Peer Hint */}
+          {/* Goal */}
           <div style={{ marginTop: '12px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
             <div style={{ marginBottom: '8px' }}>
               <label style={{ fontSize: '12px', color: 'var(--text-2)' }}>🎯 {t.goalMode || 'Goal'}</label>
@@ -249,13 +267,21 @@ function RightPanel() {
                 <input className="rp-input" value={goalInput} onChange={e => setGoalInput(e.target.value)} placeholder={t.goalPlaceholder || 'Set goal...'} />
                 <button className="action-btn" onClick={() => { if (id) setStringConfig(id, 'goal', goalInput); }}>✓</button>
               </div>
+              <p style={{ margin: '4px 0 0', fontSize: '11px', color: 'var(--text-3)' }}>
+                {t.goalDesc || '设定当前任务目标，agent会在sys_prompt中看到'}
+              </p>
             </div>
-            <div>
-              <label style={{ fontSize: '12px', color: 'var(--text-2)' }}>👥 {t.peerHint || 'Peer Hint'}</label>
-              <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
-                <input className="rp-input" value={peerHintInput} onChange={e => setPeerHintInput(e.target.value)} placeholder={t.peerHintPlaceholder || 'Set peer hint...'} />
-                <button className="action-btn" onClick={() => { if (id) setStringConfig(id, 'peer_hint', peerHintInput); }}>✓</button>
-              </div>
+          </div>
+
+          {/* GA Supported Commands Reference */}
+          <div style={{ marginTop: '12px', borderTop: '1px solid var(--border)', paddingTop: '12px' }}>
+            <label style={{ fontSize: '12px', color: 'var(--text-2)', fontWeight: 600 }}>📋 {t.gaCommands || 'GA Commands'}</label>
+            <div style={{ marginTop: '6px', fontSize: '12px', color: 'var(--text-2)', lineHeight: '1.8' }}>
+              <div><code style={{ background: 'var(--bg3)', padding: '1px 5px', borderRadius: '3px' }}>/session.key=val</code> — 设置LLM参数 (model/temperature/...)</div>
+              <div><code style={{ background: 'var(--bg3)', padding: '1px 5px', borderRadius: '3px' }}>/resume</code> — 恢复上次会话</div>
+              <div><code style={{ background: 'var(--bg3)', padding: '1px 5px', borderRadius: '3px' }}>switch_llm</code> — 切换LLM (通过面板按钮)</div>
+              <div><code style={{ background: 'var(--bg3)', padding: '1px 5px', borderRadius: '3px' }}>abort</code> — 中断当前任务</div>
+              <div><code style={{ background: 'var(--bg3)', padding: '1px 5px', borderRadius: '3px' }}>ping</code> — 心跳检测</div>
             </div>
           </div>
 
@@ -264,22 +290,6 @@ function RightPanel() {
 
       {activeSection === 'overview' && (
         <div className="rp-card rp-tab-content">
-          <h5>{t.quickActions}</h5>
-          <div className="action-grid">
-            <button className="action-btn" onClick={() => id && exportChat(id)}>📤 {t.exportChat}</button>
-            <button className="action-btn" onClick={() => setShowConfig(true)}>⚙️ {t.config}</button>
-            <button className="action-btn" onClick={() => batchAction('restart', instances.filter(i => i.status === 'running').map(i => i.id))}>🔄 {t.restartAll}</button>
-            <button className="action-btn" onClick={() => batchAction('stop', instances.filter(i => i.status === 'running').map(i => i.id))}>⏹️ {t.stopAll}</button>
-          </div>
-
-          {/* Send Command */}
-          <h5 style={{ marginTop: '16px' }}>{t.sendCommand}</h5>
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <input className="rp-input" placeholder={t.commandPlaceholder} value={cmdInput} onChange={e => setCmdInput(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter' && cmdInput.trim() && id) { sendCommand(id, cmdInput); setCmdInput(''); } }} />
-            <button className="action-btn" onClick={() => { if (cmdInput.trim() && id) { sendCommand(id, cmdInput); setCmdInput(''); } }}>{t.send}</button>
-          </div>
-
           {/* Forward Message */}
           <h5 style={{ marginTop: '16px' }}>{t.forwardMessage}</h5>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>

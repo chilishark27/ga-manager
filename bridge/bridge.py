@@ -365,6 +365,175 @@ def main():
             is_busy = False
             send({"event": "error", "msg": f"put_task (queued) failed: {e}"})
 
+    # ── Idle monitor (autonomous mode) ────────────────────
+    AUTO_IDLE_THRESHOLD = 1800  # 30 minutes before autonomous trigger
+    AUTO_COOLDOWN = 120         # seconds between triggers
+    _last_activity = [time.time()]  # mutable: updated on user msg / relay done
+    _last_auto_trigger = [0.0]
+    _idle_monitor_stop = threading.Event()
+
+    def _update_activity():
+        _last_activity[0] = time.time()
+
+    def _idle_monitor():
+        """Background thread: check idle every 5s, trigger autonomous if needed"""
+        nonlocal is_busy, total_turns, current_dq
+        while not _idle_monitor_stop.is_set():
+            _idle_monitor_stop.wait(5)
+            if _idle_monitor_stop.is_set():
+                break
+            if not getattr(agent, 'autonomous', False):
+                continue
+            if is_busy:
+                continue
+            now = time.time()
+            if now - _last_auto_trigger[0] < AUTO_COOLDOWN:
+                continue
+            idle = now - _last_activity[0]
+            if idle > AUTO_IDLE_THRESHOLD:
+                _last_auto_trigger[0] = now
+                prompt = "[AUTO]🤖 用户已经离开超过30分钟，作为自主智能体，请阅读自动化sop，执行自动任务。"
+                _dbg(f"autonomous idle trigger: idle={idle:.0f}s")
+                send({"event": "autonomous_fired", "idle": idle})
+                is_busy = True
+                total_turns += 1
+                try:
+                    dq = agent.put_task(prompt)
+                    current_dq = dq
+                    threading.Thread(target=relay, args=(dq,), daemon=True).start()
+                except Exception as e:
+                    is_busy = False
+                    _dbg(f"autonomous: put_task failed: {e}")
+                    send({"event": "error", "msg": f"autonomous put_task failed: {e}"})
+
+    threading.Thread(target=_idle_monitor, daemon=True).start()
+
+    # ── Scheduler monitor (reflect/scheduler.py) ────────────────────
+    _scheduler_stop = threading.Event()
+
+    def _scheduler_monitor():
+        """Background thread: load scheduler.py, call check() every INTERVAL"""
+        nonlocal is_busy, total_turns, current_dq
+        import importlib.util
+        sched_path = os.path.join(agent_dir, 'reflect', 'scheduler.py')
+        if not os.path.isfile(sched_path):
+            _dbg(f"scheduler: {sched_path} not found, monitor exiting")
+            return
+        try:
+            spec = importlib.util.spec_from_file_location('scheduler_script', sched_path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            _dbg(f"scheduler: loaded, INTERVAL={getattr(mod, 'INTERVAL', 120)}")
+        except Exception as e:
+            _dbg(f"scheduler: failed to load: {e}")
+            return
+
+        interval = getattr(mod, 'INTERVAL', 120)
+        while not _scheduler_stop.is_set():
+            _scheduler_stop.wait(interval)
+            if _scheduler_stop.is_set():
+                break
+            if not getattr(agent, 'scheduler', False):
+                continue
+            if is_busy:
+                continue
+            try:
+                task = mod.check()
+            except Exception as e:
+                _dbg(f"scheduler: check() error: {e}")
+                continue
+            if task is None:
+                continue
+            _dbg(f"scheduler: triggered task")
+            send({"event": "scheduler_fired", "task": str(task)[:200]})
+            is_busy = True
+            total_turns += 1
+            try:
+                dq = agent.put_task(task)
+                current_dq = dq
+                threading.Thread(target=relay, args=(dq,), daemon=True).start()
+            except Exception as e:
+                is_busy = False
+                _dbg(f"scheduler: put_task failed: {e}")
+                send({"event": "error", "msg": f"scheduler put_task failed: {e}"})
+
+    threading.Thread(target=_scheduler_monitor, daemon=True).start()
+
+    # ── Team Worker monitor (reflect/agent_team_worker.py) ────────────────────
+    _team_stop = threading.Event()
+
+    def _team_worker_monitor():
+        """Background thread: load agent_team_worker.py, call check() every INTERVAL"""
+        nonlocal is_busy, total_turns, current_dq
+        import importlib.util
+        team_path = os.path.join(agent_dir, 'reflect', 'agent_team_worker.py')
+        if not os.path.isfile(team_path):
+            _dbg(f"team_worker: {team_path} not found, monitor exiting")
+            return
+        try:
+            spec = importlib.util.spec_from_file_location('team_worker_script', team_path)
+            mod = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(mod)
+            _dbg(f"team_worker: loaded, INTERVAL={getattr(mod, 'INTERVAL', 60)}")
+        except Exception as e:
+            _dbg(f"team_worker: failed to load: {e}")
+            return
+
+        # Init with config from agent attributes (set via set_config)
+        def _do_init():
+            cfg = {}
+            for k in ('base_url', 'board_key', 'name'):
+                v = getattr(agent, f'team_{k}', '') or ''
+                if v: cfg[k] = v
+            if hasattr(mod, 'init') and cfg:
+                mod.init(cfg)
+                _dbg(f"team_worker: init({cfg})")
+
+        _do_init()
+        interval = getattr(mod, 'INTERVAL', 60)
+        while not _team_stop.is_set():
+            _team_stop.wait(interval)
+            if _team_stop.is_set():
+                break
+            if not getattr(agent, 'team_worker', False):
+                continue
+            if is_busy:
+                continue
+            # Re-init in case config changed
+            _do_init()
+            try:
+                task = mod.check()
+            except Exception as e:
+                _dbg(f"team_worker: check() error: {e}")
+                continue
+            if task is None:
+                continue
+            _dbg(f"team_worker: triggered task")
+            send({"event": "team_worker_fired", "task": str(task)[:200]})
+            is_busy = True
+            total_turns += 1
+            try:
+                dq = agent.put_task(task, source='reflect')
+                current_dq = dq
+                threading.Thread(target=relay, args=(dq,), daemon=True).start()
+            except Exception as e:
+                is_busy = False
+                _dbg(f"team_worker: put_task failed: {e}")
+                send({"event": "error", "msg": f"team_worker put_task failed: {e}"})
+            # on_done callback
+            if not _team_stop.is_set() and hasattr(mod, 'on_done'):
+                # Wait for relay to finish (is_busy becomes False)
+                for _ in range(600):
+                    if not is_busy:
+                        break
+                    time.sleep(0.5)
+                try:
+                    mod.on_done('')
+                except Exception as e:
+                    _dbg(f"team_worker: on_done error: {e}")
+
+    threading.Thread(target=_team_worker_monitor, daemon=True).start()
+
     def relay(dq):
         """Blocking relay: read from display_queue, write to stdout"""
         nonlocal is_busy, total_turns, abort_for_supplement
@@ -419,6 +588,8 @@ def main():
             is_busy = False
             # Auto-process pending messages (supplement gets priority)
             process_pending()
+            # Update activity timestamp so idle monitor resets
+            _update_activity()
 
     def _rebuild_extra_sys_prompt(agent):
         """Sync feature toggle states into agent.llmclient.backend.extra_sys_prompt
@@ -435,6 +606,10 @@ def main():
         if getattr(agent, 'reflect', False):
             parts.append(
                 "\n[反射模式] 每次行动后自我检查：结果是否符合预期？是否需要修正方向？"
+            )
+        if getattr(agent, 'peer_hint', False):
+            parts.append(
+                "\n[Peer] 用户提及其他会话/后台任务状态时: temp/model_responses/ (只找近期修改的文件尾部)\n"
             )
         try:
             agent.llmclient.backend.extra_sys_prompt = '\n'.join(parts)
@@ -494,6 +669,7 @@ def main():
                     query = f"[图片分析失败: {e}]\n\n{text}" if text else f"[图片分析失败: {e}]"
             else:
                 query = text
+            _update_activity()  # Reset idle timer on user message
             is_busy = True
             total_turns += 1
             try:
@@ -521,6 +697,19 @@ def main():
                 "llm_no": getattr(agent, "llm_no", 0),
                 "autonomous": getattr(agent, "autonomous", False),
                 "goal": getattr(agent, "goal", ""),
+                "scheduler": getattr(agent, "scheduler", False),
+                "peer_hint": getattr(agent, "peer_hint", False),
+                "reflect": getattr(agent, "reflect", False),
+                "team_worker": getattr(agent, "team_worker", False),
+                "verbose": getattr(agent, "verbose", True),
+                "supported_commands": [
+                    "chat - 发送消息/任务",
+                    "abort - 中断当前任务",
+                    "status - 查询状态",
+                    "switch_llm - 切换LLM(idx)",
+                    "set_config - 设置开关(autonomous/goal/peer_hint/reflect/verbose/scheduler/team_worker/team_base_url/team_board_key/team_name)",
+                    "ping - 心跳",
+                ],
             })
 
         elif c == "switch_llm":
@@ -534,7 +723,7 @@ def main():
         elif c == "set_config":
             key = cmd.get("key", "")
             value = cmd.get("value")
-            allowed = {"autonomous", "goal", "peer_hint", "reflect", "scheduler", "team_worker"}
+            allowed = {"autonomous", "goal", "peer_hint", "reflect", "verbose", "scheduler", "team_worker", "team_base_url", "team_board_key", "team_name"}
             if not key:
                 pass  # silently ignore empty key
             elif key in allowed:

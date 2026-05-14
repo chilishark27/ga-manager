@@ -8,6 +8,7 @@ export interface Instance {
   goal: string;
   peer_hint: string;
   reflect: boolean;
+  verbose: boolean;
   scheduler: boolean;
   team_worker: boolean;
   uptime: string;

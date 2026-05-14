@@ -59,7 +59,7 @@ interface AppState {
   moveInstance: (id: string, direction: number) => void;
 
   // Instance feature toggles
-  toggleFeature: (id: string, feature: 'autonomous' | 'reflect' | 'scheduler' | 'team_worker' | 'goal') => Promise<void>;
+  toggleFeature: (id: string, feature: 'autonomous' | 'reflect' | 'scheduler' | 'team_worker' | 'goal' | 'peer_hint' | 'verbose') => Promise<void>;
   setStringConfig: (id: string, key: 'goal' | 'peer_hint', value: string) => Promise<void>;
   switchLLM: (id: string, llmNo: number) => Promise<void>;
   setIMChannel: (id: string, channel: string) => Promise<void>;
@@ -160,7 +160,9 @@ export const useStore = create<AppState>((set, get) => ({
           llm_no: r.llm_no || 0,
           autonomous: r.autonomous || false,
           goal: r.goal || '',
+          peer_hint: r.peer_hint || '',
           reflect: r.reflect || false,
+          verbose: r.verbose !== undefined ? r.verbose : true,
           scheduler: r.scheduler || false,
           team_worker: r.team_worker || false,
           uptime: r.uptime || '0',
@@ -478,7 +480,7 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  toggleFeature: async (id: string, feature: 'autonomous' | 'reflect' | 'scheduler' | 'team_worker' | 'goal') => {
+  toggleFeature: async (id: string, feature: 'autonomous' | 'reflect' | 'scheduler' | 'team_worker' | 'goal' | 'peer_hint' | 'verbose') => {
     const inst = get().instances.find(i => i.id === id);
     if (!inst) return;
     const newVal = !inst[feature];

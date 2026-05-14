@@ -1484,6 +1484,8 @@ body {
 /* ===== Right Panel ===== */
 .right-panel {
   width: 300px;
+  height: 100%;
+  min-height: 0;
   background: var(--bg3);
   border-left: 1px solid var(--border);
   overflow-y: auto;

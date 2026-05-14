@@ -81,6 +81,8 @@ const en: Locale = {
   selectLLMTitle: 'Select LLM', selectIMTitle: 'Select IM Channel', clearIM: '❌ Clear',
   imEnableTip: '💡 Tip: Before enabling an IM channel, make sure you have configured it in the GA project (e.g. go-cqhttp for QQ, Bot Token for Telegram).',
   systemConfig: '⚙️ System Config', gaPath: 'GA Project Path', pythonPath: 'Python Path', configSaved: 'Config saved',
-  goalMode: 'Goal Mode', peerHint: 'Peer Hint',
+  goalMode: 'Goal Mode', peerHint: 'Peer Hint', verbose: 'Verbose',
+  goalDesc: 'Set a long-term goal for the agent to reference during autonomous actions',
+  gaCommands: 'GA Commands Reference',
 };
 export default en;

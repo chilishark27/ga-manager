@@ -79,7 +79,9 @@ const zh = {
   selectLLMTitle: '选择 LLM', selectIMTitle: '选择 IM 渠道', clearIM: '❌ 清除',
   imEnableTip: '💡 提示：启用IM渠道前，请确保已在GA项目的对应配置文件中完成渠道配置（如QQ需配置go-cqhttp，Telegram需配置Bot Token等）',
   systemConfig: '⚙️ 系统配置', gaPath: 'GA 项目路径', pythonPath: 'Python 路径', configSaved: '配置已保存',
-  goalMode: '目标模式', peerHint: '同伴提示',
+  goalMode: '目标模式', peerHint: '同伴提示', verbose: '详细输出',
+  goalDesc: '设定长期目标，Agent会在自主行动时参考',
+  gaCommands: 'GA 指令参考',
 };
 export default zh;
 export type Locale = typeof zh;
