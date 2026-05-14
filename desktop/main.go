@@ -28,6 +28,9 @@ const (
 	windowHeight = 900
 )
 
+// backendPID stores the PID of the backend process started by this desktop app.
+var backendPID int
+
 func main() {
 	// Strict single-instance enforcement via OS-level mutex/flock
 	releaseDesktop := ensureSingleDesktop()
@@ -107,9 +110,38 @@ func onReady() {
 }
 
 func onExit() {
-	log.Println("GA Manager tray exiting...")
-	// Optionally stop backend on exit
-	stopAllInstances()
+	log.Println("GA Manager tray exiting, cleaning up all processes...")
+
+	// Step 1: Call backend /api/shutdown to gracefully stop all GA instances
+	client := &http.Client{Timeout: 5 * time.Second}
+	req, _ := http.NewRequest("POST", backendURL+"/api/shutdown", nil)
+	if req != nil {
+		resp, err := client.Do(req)
+		if err != nil {
+			log.Printf("Shutdown API call failed: %v", err)
+		} else {
+			resp.Body.Close()
+			log.Println("Shutdown API called successfully, waiting for backend to stop...")
+			// Give backend time to stop all instances
+			time.Sleep(3 * time.Second)
+		}
+	}
+
+	// Step 2: Force-kill backend process tree as fallback
+	if backendPID > 0 {
+		log.Printf("Force-killing backend process tree (PID %d)...", backendPID)
+		killCmd := exec.Command("taskkill", "/F", "/T", "/PID", fmt.Sprintf("%d", backendPID))
+		if runtime.GOOS != "windows" {
+			killCmd = exec.Command("kill", "-9", fmt.Sprintf("%d", backendPID))
+		}
+		if out, err := killCmd.CombinedOutput(); err != nil {
+			log.Printf("Force-kill result: %v, output: %s", err, string(out))
+		} else {
+			log.Println("Backend process tree killed successfully")
+		}
+	}
+
+	log.Println("GA Manager exit complete.")
 }
 
 // --- Backend Management ---
@@ -167,7 +199,10 @@ func startBackend() {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Start(); err != nil {
 		log.Printf("Warning: failed to start backend: %v\n", err)
+		return
 	}
+	backendPID = cmd.Process.Pid
+	log.Printf("Backend started with PID %d", backendPID)
 }
 
 func waitForBackend(timeout time.Duration) bool {

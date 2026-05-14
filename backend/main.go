@@ -136,6 +136,18 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	})
 
+	// Shutdown endpoint - stops all instances then exits
+	mux.HandleFunc("POST /api/shutdown", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "shutting_down"})
+		go func() {
+			log.Println("[GA Manager] Shutdown requested via API, stopping all instances...")
+			instanceMgr.StopAll()
+			log.Println("[GA Manager] All instances stopped, exiting.")
+			os.Exit(0)
+		}()
+	})
+
 	// Local SOPs - list memory directory files
 	mux.HandleFunc("GET /api/sops/local", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
