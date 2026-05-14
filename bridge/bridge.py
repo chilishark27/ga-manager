@@ -18,6 +18,18 @@ import tempfile
 import uuid
 import urllib.request
 
+# --- Fix stdin pipe inheritance ---
+# When bridge.py is spawned by Go backend, its stdin is a pipe.
+# GA's code_run (subprocess.Popen) doesn't specify stdin, so child processes
+# inherit this pipe, causing blocking/contention. Fix: default stdin to DEVNULL.
+import subprocess as _subprocess
+_OrigPopenInit = _subprocess.Popen.__init__
+def _popen_init_no_stdin(self, *args, **kwargs):
+    if 'stdin' not in kwargs:
+        kwargs['stdin'] = _subprocess.DEVNULL
+    _OrigPopenInit(self, *args, **kwargs)
+_subprocess.Popen.__init__ = _popen_init_no_stdin
+
 # --- stdout lock for thread-safe JSON line output ---
 _stdout_lock = threading.Lock()
 
