@@ -41,7 +41,8 @@
 | 🤖 **Autonomous Mode** | Agent continues working independently in a loop without user input |
 | 📨 **Message Forward** | Route messages between instances for multi-agent collaboration |
 | ⏰ **Scheduled Tasks** | Set up cron-based recurring tasks for any instance |
-| 📋 **SOP Browser** | Browse and view all available Standard Operating Procedures |
+| 📋 **SOP Browser** | Browse and view all available Standard Operating Procedures with directory expansion |
+| 🧹 **Clean Exit** | Properly closes browser window and all child processes on exit — no orphan windows |
 | 💻 **System Resources** | Monitor CPU, memory, disk usage in real-time |
 | ⬆️ **Input History** | Press ↑/↓ to browse previously sent messages (persisted in localStorage) |
 | ⚡ **Long Chat Optimization** | Auto-virtualizes messages beyond 150 for smooth scrolling in long conversations |
