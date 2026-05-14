@@ -29,6 +29,8 @@ function RightPanel() {
   const [activeSection, setActiveSection] = useState<Section>('resources');
   const [sopViewer, setSopViewer] = useState<{name:string,content:string,type:string}|null>(null);
   const [sopLoading, setSopLoading] = useState(false);
+  const [expandedDirs, setExpandedDirs] = useState<Record<string, boolean>>({});
+  const [dirContents, setDirContents] = useState<Record<string, {name:string,type:string,size:number}[]>>({});
 
   const inst = activeInstance();
   const id = activeInstanceId;
@@ -79,11 +81,31 @@ function RightPanel() {
   const viewSop = async (name: string) => {
     setSopLoading(true);
     try {
-      const r = await fetch(`/api/sops/local/${encodeURIComponent(name)}`);
+      const r = await fetch(`/api/sops/local/${name}`);
       const d = await r.json();
       setSopViewer({ name: d.name, content: d.content || JSON.stringify(d.files, null, 2), type: d.type });
     } catch { setSopViewer({ name, content: 'Failed to load', type: 'error' }); }
     setSopLoading(false);
+  };
+
+  const toggleDir = async (dirName: string) => {
+    if (expandedDirs[dirName]) {
+      setExpandedDirs(prev => ({ ...prev, [dirName]: false }));
+      return;
+    }
+    try {
+      const r = await fetch(`/api/sops/local/${dirName}`);
+      const d = await r.json();
+      if (d.files) {
+        const items = (d.files as string[]).map(f => ({
+          name: f,
+          type: f.endsWith('/') ? 'dir' : f.split('.').pop() || 'file',
+          size: 0
+        }));
+        setDirContents(prev => ({ ...prev, [dirName]: items }));
+      }
+    } catch { /* ignore */ }
+    setExpandedDirs(prev => ({ ...prev, [dirName]: true }));
   };
 
   const [goalInput, setGoalInput] = useState('');
@@ -173,10 +195,23 @@ function RightPanel() {
               <h5 style={{ marginBottom: '8px' }}>📂 SOP ({localSops.length})</h5>
               <div className="sop-list">
                 {localSops.map(sop => (
-                  <div key={sop.name} className="sop-item" onClick={() => sop.type !== 'dir' && viewSop(sop.name)}>
-                    <span className="sop-item-icon">{sop.type === 'dir' ? '📁' : sop.name.endsWith('.py') ? '🐍' : '📄'}</span>
-                    <span className="sop-item-name">{sop.name}</span>
-                    {sop.size > 0 && <span className="sop-item-size">{(sop.size / 1024).toFixed(1)}K</span>}
+                  <div key={sop.name}>
+                    <div className="sop-item" onClick={() => sop.type === 'dir' ? toggleDir(sop.name) : viewSop(sop.name)}>
+                      <span className="sop-item-icon">{sop.type === 'dir' ? (expandedDirs[sop.name] ? '📂' : '📁') : sop.name.endsWith('.py') ? '🐍' : '📄'}</span>
+                      <span className="sop-item-name">{sop.name}</span>
+                      {sop.type === 'dir' && <span className="sop-item-size" style={{fontSize:'10px'}}>{expandedDirs[sop.name] ? '▼' : '▶'}</span>}
+                      {sop.size > 0 && <span className="sop-item-size">{(sop.size / 1024).toFixed(1)}K</span>}
+                    </div>
+                    {sop.type === 'dir' && expandedDirs[sop.name] && dirContents[sop.name] && (
+                      <div style={{ paddingLeft: '16px' }}>
+                        {dirContents[sop.name].map(child => (
+                          <div key={child.name} className="sop-item" onClick={() => viewSop(`${sop.name}/${child.name}`)}>
+                            <span className="sop-item-icon">{child.name.endsWith('.py') ? '🐍' : '📄'}</span>
+                            <span className="sop-item-name">{child.name}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

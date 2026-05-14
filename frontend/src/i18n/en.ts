@@ -48,6 +48,7 @@ const en: Locale = {
   featReflect: 'Reflect', featScheduler: 'Scheduler', featTeamWorker: 'Team Worker',
   featPeerHint: 'Peer Hint', goalPlaceholder: 'Enter goal (e.g. monitor emails and report)',
   peerHintPlaceholder: 'Enter peer hint (e.g. ask R2 for help)',
+  reflect: 'Reflect', teamWorker: 'Team Worker',
 
   // RightPanel - Tabs
   tabOverview: 'Overview', tabSchedules: 'Schedules', tabSophub: 'SOP',
@@ -80,5 +81,6 @@ const en: Locale = {
   selectLLMTitle: 'Select LLM', selectIMTitle: 'Select IM Channel', clearIM: '❌ Clear',
   imEnableTip: '💡 Tip: Before enabling an IM channel, make sure you have configured it in the GA project (e.g. go-cqhttp for QQ, Bot Token for Telegram).',
   systemConfig: '⚙️ System Config', gaPath: 'GA Project Path', pythonPath: 'Python Path', configSaved: 'Config saved',
+  goalMode: 'Goal Mode', peerHint: 'Peer Hint',
 };
 export default en;

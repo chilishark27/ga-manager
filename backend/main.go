@@ -189,21 +189,26 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]interface{}{"sops": sops, "count": len(sops)})
 	})
 
-	// Local SOP content - read a specific file
-	mux.HandleFunc("GET /api/sops/local/{name}", func(w http.ResponseWriter, r *http.Request) {
+	// Local SOP content - read a specific file or list directory
+	mux.HandleFunc("GET /api/sops/local/{name...}", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		name := r.PathValue("name")
 		if name == "" {
 			http.Error(w, `{"error":"name required"}`, 400)
 			return
 		}
-		// Security: prevent path traversal
-		if strings.Contains(name, "..") || strings.Contains(name, "/") || strings.Contains(name, "\\") {
+		// Security: prevent path traversal via ".."
+		if strings.Contains(name, "..") {
 			http.Error(w, `{"error":"invalid name"}`, 400)
 			return
 		}
 		memDir := filepath.Join(cfg.GARoot, "memory")
-		fullPath := filepath.Join(memDir, name)
+		fullPath := filepath.Clean(filepath.Join(memDir, name))
+		// Ensure resolved path is still within memDir
+		if !strings.HasPrefix(fullPath, filepath.Clean(memDir)+string(filepath.Separator)) && fullPath != filepath.Clean(memDir) {
+			http.Error(w, `{"error":"invalid path"}`, 400)
+			return
+		}
 		info, err := os.Stat(fullPath)
 		if err != nil {
 			http.Error(w, `{"error":"not found"}`, 404)

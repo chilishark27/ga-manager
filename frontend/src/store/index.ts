@@ -56,9 +56,10 @@ interface AppState {
   toggleInstance: (id: string) => void;
   restartInstance: (id: string) => Promise<void>;
   createInstance: (data: Partial<Instance>) => Promise<void>;
+  moveInstance: (id: string, direction: number) => void;
 
   // Instance feature toggles
-  toggleFeature: (id: string, feature: 'autonomous' | 'reflect' | 'scheduler' | 'team_worker') => Promise<void>;
+  toggleFeature: (id: string, feature: 'autonomous' | 'reflect' | 'scheduler' | 'team_worker' | 'goal') => Promise<void>;
   setStringConfig: (id: string, key: 'goal' | 'peer_hint', value: string) => Promise<void>;
   switchLLM: (id: string, llmNo: number) => Promise<void>;
   setIMChannel: (id: string, channel: string) => Promise<void>;
@@ -477,7 +478,7 @@ export const useStore = create<AppState>((set, get) => ({
     }
   },
 
-  toggleFeature: async (id: string, feature: 'autonomous' | 'reflect' | 'scheduler' | 'team_worker') => {
+  toggleFeature: async (id: string, feature: 'autonomous' | 'reflect' | 'scheduler' | 'team_worker' | 'goal') => {
     const inst = get().instances.find(i => i.id === id);
     if (!inst) return;
     const newVal = !inst[feature];

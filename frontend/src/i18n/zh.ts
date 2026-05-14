@@ -46,6 +46,7 @@ const zh = {
   featReflect: '反思模式', featScheduler: '定时任务', featTeamWorker: '团队协作',
   featPeerHint: '同伴提示', goalPlaceholder: '输入目标 (如: 监控邮件并汇报)',
   peerHintPlaceholder: '输入同伴提示 (如: 有问题找R2)',
+  reflect: '反思', teamWorker: '团队协作',
 
   // RightPanel - Tabs
   tabOverview: '概览', tabSchedules: '定时', tabSophub: 'SOP',
@@ -78,6 +79,7 @@ const zh = {
   selectLLMTitle: '选择 LLM', selectIMTitle: '选择 IM 渠道', clearIM: '❌ 清除',
   imEnableTip: '💡 提示：启用IM渠道前，请确保已在GA项目的对应配置文件中完成渠道配置（如QQ需配置go-cqhttp，Telegram需配置Bot Token等）',
   systemConfig: '⚙️ 系统配置', gaPath: 'GA 项目路径', pythonPath: 'Python 路径', configSaved: '配置已保存',
+  goalMode: '目标模式', peerHint: '同伴提示',
 };
 export default zh;
 export type Locale = typeof zh;

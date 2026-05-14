@@ -15,6 +15,7 @@ export interface Instance {
   health: string;        // "healthy" | "warning" | "error"
   mode: string;          // "Web" | "IM" | "Goal" | "Sche"
   im_channel: string;    // "qq" | "telegram" | "discord" | etc
+  ga_root?: string;
 }
 
 export interface ChatMessage {
