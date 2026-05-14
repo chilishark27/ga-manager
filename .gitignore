@@ -1,6 +1,7 @@
 # Build output
 build/
 *.exe
+ga-manager-backend-darwin
 
 # Dependencies
 node_modules/
@@ -16,3 +17,10 @@ Thumbs.db
 
 *_debug.log
 frontend/dist/
+
+# Python
+__pycache__/
+*.pyc
+
+# Temp files
+*.exe~
