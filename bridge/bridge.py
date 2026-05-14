@@ -266,6 +266,15 @@ def main():
         agent.inc_out = False
         agent.peer_hint = False
 
+        # Apply instance isolation (temp dir separation + memory file locking)
+        try:
+            bridge_dir = os.path.dirname(os.path.abspath(__file__))
+            sys.path.insert(0, bridge_dir)
+            from instance_isolation import apply_isolation
+            apply_isolation(args.name, agent_dir, send_fn=send)
+        except Exception as e:
+            send({"event": "log", "msg": f"[Isolation] Warning: {e} (continuing without isolation)"})
+
         # Image support: build multimodal content_blocks in chat handler below
 
         # Recover history from model_responses if --recover flag
