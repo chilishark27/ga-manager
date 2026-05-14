@@ -56,6 +56,10 @@
   <img src="screenshots/mode_toggles.png" width="350" alt="Mode Toggle Panel" />
 </p>
 
+<p align="center">
+  <img src="screenshots/feature_demo.gif" width="700" alt="Feature Toggle Demo" />
+</p>
+
 The icon buttons on the right panel are mode toggles. Click to enable/disable. Here's what each mode does:
 
 ---

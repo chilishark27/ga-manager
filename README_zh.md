@@ -55,6 +55,10 @@
   <img src="screenshots/mode_toggles.png" width="350" alt="模式开关面板" />
 </p>
 
+<p align="center">
+  <img src="screenshots/feature_demo.gif" width="700" alt="功能开关演示" />
+</p>
+
 右侧面板的图标按钮即为模式开关，点击切换开/关状态。以下是每个模式的详细说明：
 
 ---
