@@ -825,81 +825,8 @@ func (m *InstanceManager) GetSystemInfo() SystemInfo {
 }
 
 // ============================================================
-// Persistence: Save/Load instance state to disk
+// Persistence: Save/Load instance state to disk (moved to persistence.go)
 // ============================================================
-
-type persistedState struct {
-	Instances []persistedInstance `json:"instances"`
-}
-
-type persistedInstance struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	LLMNo      int    `json:"llm_no"`
-	Autonomous bool   `json:"autonomous"`
-	Goal       string `json:"goal"`
-	Reflect    bool   `json:"reflect"`
-}
-
-// SaveState persists current instance configs to disk.
-func (m *InstanceManager) SaveState() error {
-	m.mu.RLock()
-	state := persistedState{Instances: make([]persistedInstance, 0)}
-	for _, inst := range m.instances {
-		inst.mu.RLock()
-		state.Instances = append(state.Instances, persistedInstance{
-			ID:         inst.id,
-			Name:       inst.name,
-			LLMNo:      inst.llmNo,
-			Autonomous: inst.autonomous,
-			Goal:       inst.goal,
-			Reflect:    inst.reflect,
-		})
-		inst.mu.RUnlock()
-	}
-	m.mu.RUnlock()
-
-	data, err := json.MarshalIndent(state, "", "  ")
-	if err != nil {
-		return err
-	}
-	return os.WriteFile("ga_instances_state.json", data, 0644)
-}
-
-// LoadState restores instance configs from disk (does not start them).
-func (m *InstanceManager) LoadState() {
-	data, err := os.ReadFile("ga_instances_state.json")
-	if err != nil {
-		return // No saved state, that's fine
-	}
-
-	var state persistedState
-	if err := json.Unmarshal(data, &state); err != nil {
-		log.Printf("[InstanceManager] Failed to parse saved state: %v", err)
-		return
-	}
-
-	for _, pi := range state.Instances {
-		m.mu.Lock()
-		if _, exists := m.instances[pi.ID]; !exists {
-			m.instances[pi.ID] = &managedInstance{
-				id:          pi.ID,
-				name:        pi.Name,
-				state:       "stopped",
-				llmNo:       pi.LLMNo,
-				autonomous:  pi.Autonomous,
-				goal:        pi.Goal,
-				reflect:     pi.Reflect,
-				createdAt:   time.Now(),
-				subscribers: make(map[string]chan []byte),
-				logs:        newLogBuffer(),
-				chat:        newChatHistory(),
-			}
-		}
-		m.mu.Unlock()
-	}
-	log.Printf("[InstanceManager] Restored %d instances from saved state", len(state.Instances))
-}
 
 // ============================================================
 // Helper: Add log buffer + chat history to instance creation

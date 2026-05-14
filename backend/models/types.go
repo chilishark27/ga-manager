@@ -44,6 +44,7 @@ type CreateInstanceRequest struct {
 	Autonomous bool   `json:"autonomous"`
 	Goal       string `json:"goal"`
 	GARoot     string `json:"ga_root"`
+	Reflect    bool   `json:"reflect"`
 }
 
 // AppConfig holds the manager-level configuration

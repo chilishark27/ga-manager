@@ -357,6 +357,18 @@ def main():
         """Blocking relay: read from display_queue, write to stdout"""
         nonlocal is_busy, total_turns, abort_for_supplement
         _dbg("relay() entered, waiting for dq items...")
+
+        # Heartbeat thread: send periodic heartbeat while relay is active
+        heartbeat_stop = threading.Event()
+        def _heartbeat():
+            while not heartbeat_stop.is_set():
+                if heartbeat_stop.wait(30):
+                    break
+                send({"event": "heartbeat", "ts": int(time.time())})
+                _dbg("heartbeat sent")
+        hb_thread = threading.Thread(target=_heartbeat, daemon=True)
+        hb_thread.start()
+
         try:
             while True:
                 item = dq.get(timeout=600)  # 10min timeout per chunk
@@ -389,6 +401,7 @@ def main():
             if not abort_for_supplement:
                 send({"event": "error", "msg": f"relay error: {e}"})
         finally:
+            heartbeat_stop.set()
             was_supplement = abort_for_supplement
             abort_for_supplement = False
             is_busy = False

@@ -31,6 +31,7 @@ func main() {
 
 	// Initialize services
 	instanceMgr := services.NewInstanceManager(cfg)
+	instanceMgr.RestoreInstances()
 	configSvc := services.NewConfigService(cfg.GARoot)
 
 	// Initialize handlers

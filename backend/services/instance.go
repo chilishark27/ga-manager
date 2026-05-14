@@ -44,6 +44,7 @@ type InstanceManager struct {
 	mu        sync.RWMutex
 	instances map[string]*managedInstance
 	config    *models.AppConfig
+	persist   *persistenceStore
 }
 
 // managedInstance is internal state for a running bridge subprocess.
@@ -60,6 +61,7 @@ type managedInstance struct {
 	autonomous bool
 	goal       string
 	reflect    bool
+	gaRoot     string
 
 	totalTurns int
 	tokensUsed int
@@ -104,7 +106,54 @@ func NewInstanceManager(cfg *models.AppConfig) *InstanceManager {
 	return &InstanceManager{
 		instances: make(map[string]*managedInstance),
 		config:    cfg,
+		persist:   newPersistenceStore(),
 	}
+}
+
+// persistAll saves all instance configs to disk.
+func (m *InstanceManager) persistAll() {
+	m.mu.RLock()
+	list := make([]*managedInstance, 0, len(m.instances))
+	for _, inst := range m.instances {
+		list = append(list, inst)
+	}
+	m.mu.RUnlock()
+	m.persist.Save(list)
+}
+
+// RestoreInstances loads persisted instance configs and adds them as stopped instances.
+// Call this on startup to show previously-created instances in the UI.
+func (m *InstanceManager) RestoreInstances() {
+	records := m.persist.Load()
+	if len(records) == 0 {
+		return
+	}
+
+	m.mu.Lock()
+	defer m.mu.Unlock()
+
+	for _, rec := range records {
+		// Skip if already exists (e.g. from auto-discovery)
+		if _, exists := m.instances[rec.ID]; exists {
+			continue
+		}
+		inst := &managedInstance{
+			id:          rec.ID,
+			name:        rec.Name,
+			state:       models.StateStopped,
+			llmNo:       rec.LLMNo,
+			autonomous:  rec.Autonomous,
+			goal:        rec.Goal,
+			reflect:     rec.Reflect,
+			gaRoot:      rec.GARoot,
+			createdAt:   time.Now(),
+			subscribers: make(map[string]chan []byte),
+			logs:        newLogBuffer(),
+			chat:        newChatHistory(),
+		}
+		m.instances[rec.ID] = inst
+	}
+	log.Printf("[Persistence] Restored %d instance(s) from disk", len(records))
 }
 
 // UpdateConfig updates the manager's config reference (e.g. after GA root change).
@@ -255,6 +304,8 @@ func (m *InstanceManager) Create(req models.CreateInstanceRequest) (*models.Inst
 		createdAt:   time.Now(),
 		autonomous:  req.Autonomous,
 		goal:        req.Goal,
+		reflect:     req.Reflect,
+		gaRoot:      gaRoot,
 		cmd:         cmd,
 		cancel:      cancel,
 		stdin:       stdinPipe,
@@ -286,6 +337,9 @@ func (m *InstanceManager) Create(req models.CreateInstanceRequest) (*models.Inst
 
 	// Wait for process exit in background to update state
 	go m.waitForExit(inst)
+
+	// Persist instance config to disk
+	m.persistAll()
 
 	inst.mu.RLock()
 	dto := inst.toDTO()
@@ -485,6 +539,10 @@ func (m *InstanceManager) readBridgeOutput(inst *managedInstance, stdout io.Read
 			m.broadcast(inst, line)
 
 		case "status":
+			m.broadcast(inst, line)
+
+		case "heartbeat":
+			// Heartbeat from bridge during long tasks - keeps WS alive
 			m.broadcast(inst, line)
 
 		case "pong", "ack":
@@ -785,6 +843,8 @@ func (m *InstanceManager) Remove(id string) error {
 	m.mu.Lock()
 	delete(m.instances, id)
 	m.mu.Unlock()
+
+	m.persistAll()
 	return nil
 }
 
