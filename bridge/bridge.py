@@ -386,6 +386,28 @@ def main():
             # Auto-process pending messages (supplement gets priority)
             process_pending()
 
+    def _rebuild_extra_sys_prompt(agent):
+        """Sync feature toggle states into agent.llmclient.backend.extra_sys_prompt
+        so GA's run() picks them up via: sys_prompt = get_system_prompt() + extra_sys_prompt"""
+        parts = []
+        if getattr(agent, 'autonomous', False):
+            parts.append(
+                "\n### 行动规范（持续有效）\n"
+                "每次回复（含工具调用轮）都先在回复文字中包含一个<summary></summary> 中输出极简单行（<30字）物理快照：上次结果新信息+本次意图。此内容进入长期工作记忆。\n\n"
+                "**若用户需求未完成，必须进行工具调用！**"
+            )
+        if getattr(agent, 'goal', ''):
+            parts.append(f"\n[当前目标] {agent.goal}")
+        if getattr(agent, 'reflect', False):
+            parts.append(
+                "\n[反射模式] 每次行动后自我检查：结果是否符合预期？是否需要修正方向？"
+            )
+        try:
+            agent.llmclient.backend.extra_sys_prompt = '\n'.join(parts)
+            _dbg(f"extra_sys_prompt updated, len={len(agent.llmclient.backend.extra_sys_prompt)}")
+        except Exception as e:
+            _dbg(f"Failed to set extra_sys_prompt: {e}")
+
     # --- Main stdin command loop ---
     # NOTE: Must use readline() instead of `for line in sys.stdin`
     # because the iterator uses an internal 8KB buffer in pipe mode
@@ -483,6 +505,8 @@ def main():
                 pass  # silently ignore empty key
             elif key in allowed:
                 setattr(agent, key, value)
+                # Rebuild extra_sys_prompt so feature toggles actually take effect
+                _rebuild_extra_sys_prompt(agent)
                 send({"event": "ack", "cmd": "set_config", "key": key, "value": value})
             else:
                 send({"event": "error", "msg": f"Unknown config key: {key}"})

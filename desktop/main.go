@@ -29,6 +29,10 @@ const (
 )
 
 func main() {
+	// Strict single-instance enforcement via OS-level mutex/flock
+	releaseDesktop := ensureSingleDesktop()
+	defer releaseDesktop()
+
 	// Hide console window on Windows
 	hideConsoleWindow()
 
@@ -121,9 +125,9 @@ func isBackendRunning() bool {
 
 func backendBinaryName() string {
 	if runtime.GOOS == "windows" {
-		return "ga_manager.exe"
+		return "ga-manager-backend.exe"
 	}
-	return "ga_manager"
+	return "ga-manager-backend"
 }
 
 func startBackend() {

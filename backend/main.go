@@ -20,6 +20,10 @@ import (
 const defaultConfigFile = "ga_manager_config.json"
 
 func main() {
+	// Strict single-instance enforcement via OS-level mutex
+	releaseMutex := ensureSingleInstance()
+	defer releaseMutex()
+
 	cfg := loadConfig()
 
 	log.Printf("[GA Manager] Starting on port %d", cfg.Port)
