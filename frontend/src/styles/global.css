@@ -62,12 +62,12 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .nav-resize-handle:hover, .nav-resize-handle.dragging { background: var(--accent); opacity: 0.4; }
 .nav-logo { display: flex; align-items: center; justify-content: center; height: 56px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .nav-logo-img { width: 28px; height: 28px; border-radius: 6px; }
-.nav-items { display: flex; flex-direction: column; gap: 8px; padding: 16px 8px; flex-shrink: 0; }
-.nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; height: auto; padding: 10px 8px; border-radius: 8px; cursor: pointer; transition: all 0.2s; position: relative; }
+.nav-items { display: flex; flex-direction: column; gap: 16px; padding: 24px 8px; flex-shrink: 0; }
+.nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; height: auto; padding: 12px 8px; border-radius: 8px; cursor: pointer; transition: all 0.2s; position: relative; }
 .nav-item:hover { background: var(--sidebar-hover); }
 .nav-item.active { background: rgba(102, 126, 234, 0.12); }
 .nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 20px; background: var(--gradient); border-radius: 0 3px 3px 0; }
-.nav-item-text { font-size: 11px; font-weight: 600; color: var(--text-2); text-align: center; transition: color 0.2s; }
+.nav-item-text { font-size: 12px; font-weight: 600; color: var(--text-2); text-align: center; transition: color 0.2s; }
 .nav-item.active .nav-item-text { color: var(--accent); }
 
 /* NavBar Instance List */
