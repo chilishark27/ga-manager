@@ -2,43 +2,44 @@ import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { useI18n } from '../i18n';
 
+interface SysResources {
+  cpu_percent: number;
+  mem_total_mb: number;
+  mem_used_mb: number;
+  mem_percent: number;
+}
+
 function MonitorPage() {
   const {
     activeInstanceId, activeInstance: getActiveInstance,
-    fetchResources, resources, fetchTokenStats, tokenStats,
-    fetchSchedules, schedules, addSchedule, deleteSchedule,
+    fetchTokenStats, tokenStats,
     fetchADBDevices, adbDevices, fetchScreenshots, screenshots,
-    showToast,
   } = useStore();
-  const { t } = useI18n();
+  const { t, lang } = useI18n();
   const inst = getActiveInstance();
   const id = activeInstanceId;
-  const resourceTimer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const [sysRes, setSysRes] = useState<SysResources | null>(null);
 
-  const [schedCron, setSchedCron] = useState('');
-  const [schedTask, setSchedTask] = useState('');
-
-  const CRON_PRESETS = [
-    { label: '5m', value: '*/5 * * * *' },
-    { label: '30m', value: '*/30 * * * *' },
-    { label: '1h', value: '0 * * * *' },
-    { label: '9am', value: '0 9 * * *' },
-    { label: '6pm', value: '0 18 * * *' },
-    { label: 'Weekday 9', value: '0 9 * * 1-5' },
-  ];
+  const fetchSysResources = async () => {
+    try {
+      const res = await fetch('/api/system/resources');
+      if (res.ok) setSysRes(await res.json());
+    } catch { /* ignore */ }
+  };
 
   useEffect(() => {
-    if (!id) return;
-    fetchResources(id);
-    fetchTokenStats(id);
-    fetchScreenshots(id);
-    fetchADBDevices();
-    fetchSchedules(id);
-    resourceTimer.current = setInterval(() => {
-      fetchResources(id);
+    fetchSysResources();
+    if (id) {
       fetchTokenStats(id);
-    }, 10000);
-    return () => { if (resourceTimer.current) clearInterval(resourceTimer.current); };
+      fetchScreenshots(id);
+      fetchADBDevices();
+    }
+    timer.current = setInterval(() => {
+      fetchSysResources();
+      if (id) fetchTokenStats(id);
+    }, 5000);
+    return () => { if (timer.current) clearInterval(timer.current); };
   }, [id]);
 
   if (!inst) {
@@ -46,19 +47,24 @@ function MonitorPage() {
       <div className="monitor-page">
         <div className="page-container">
           <p style={{ color: 'var(--text-3)', textAlign: 'center', padding: '40px' }}>
-            Select an instance to view monitoring data.
+            {lang === 'zh' ? '请选择一个实例查看监控数据' : 'Select an instance to view monitoring data.'}
           </p>
         </div>
       </div>
     );
   }
 
+  const cpuPct = sysRes ? Math.round(sysRes.cpu_percent) : 0;
+  const memPct = sysRes ? Math.round(sysRes.mem_percent) : 0;
+  const memUsed = sysRes ? (sysRes.mem_used_mb / 1024).toFixed(1) : '0';
+  const memTotal = sysRes ? (sysRes.mem_total_mb / 1024).toFixed(1) : '0';
+
   return (
     <div className="monitor-page">
       <div className="page-container">
-        <h2 className="page-header">Monitor</h2>
+        <h2 className="page-header">{lang === 'zh' ? '监控' : 'Monitor'}</h2>
 
-        {/* Top row: 4 token stat cards */}
+        {/* Token stats */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
           <div className="token-stat-item">
             <span className="token-stat-label">Input</span>
@@ -78,103 +84,48 @@ function MonitorPage() {
           </div>
         </div>
 
-        {/* Resource bars in a single card */}
+        {/* System Resources */}
         <div className="page-card" style={{ marginBottom: '16px' }}>
-          <div className="page-card-title">Resource Usage</div>
-          {resources.length === 0 ? (
-            <p style={{ color: 'var(--text-3)', fontSize: '13px' }}>{t.loading}</p>
-          ) : (
-            resources.map((r, i) => (
-              <div key={i} className="resource-row">
-                <span className="resource-label">
-                  {r.type === 'cpu' ? 'CPU' : r.type === 'memory' ? 'MEM' : 'DISK'}
-                </span>
-                <div className="resource-bar">
-                  <div
-                    className={`resource-fill ${r.usage > 80 ? 'danger' : r.usage > 60 ? 'warn' : ''}`}
-                    style={{ width: `${r.usage}%` }}
-                  />
-                </div>
-                <span className="resource-pct" style={{ color: r.usage > 80 ? 'var(--red)' : 'var(--text-2)' }}>
-                  {r.detail}
-                </span>
-              </div>
-            ))
-          )}
+          <div className="page-card-title">{lang === 'zh' ? '系统资源' : 'System Resources'}</div>
+          <div className="resource-row">
+            <span className="resource-label">CPU</span>
+            <div className="resource-bar">
+              <div className={`resource-fill ${cpuPct > 80 ? 'danger' : cpuPct > 60 ? 'warn' : ''}`} style={{ width: `${cpuPct}%` }} />
+            </div>
+            <span className="resource-pct" style={{ color: cpuPct > 80 ? 'var(--red)' : 'var(--text-2)' }}>{cpuPct}%</span>
+          </div>
+          <div className="resource-row">
+            <span className="resource-label">{lang === 'zh' ? '内存' : 'Memory'}</span>
+            <div className="resource-bar">
+              <div className={`resource-fill ${memPct > 80 ? 'danger' : memPct > 60 ? 'warn' : ''}`} style={{ width: `${memPct}%` }} />
+            </div>
+            <span className="resource-pct" style={{ color: memPct > 80 ? 'var(--red)' : 'var(--text-2)' }}>{memUsed} / {memTotal} GB</span>
+          </div>
         </div>
 
-        {/* Two columns: Scheduled Tasks + Health Status */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-          {/* Scheduled Tasks */}
-          <div className="page-card">
-            <div className="page-card-title">Scheduled Tasks</div>
-            <div className="schedule-add-form">
-              <div className="cron-presets-row">
-                {CRON_PRESETS.map(p => (
-                  <button
-                    key={p.value}
-                    className={`cron-preset ${schedCron === p.value ? 'active' : ''}`}
-                    onClick={() => setSchedCron(p.value)}
-                  >
-                    {p.label}
-                  </button>
-                ))}
-              </div>
-              <div className="schedule-input-row">
-                <input className="rp-input" placeholder="Cron" value={schedCron} onChange={e => setSchedCron(e.target.value)} style={{ fontFamily: 'monospace', flex: 1 }} />
-                <input className="rp-input" placeholder="Task" value={schedTask} onChange={e => setSchedTask(e.target.value)} style={{ flex: 1 }} />
-                <button className="btn-primary btn-sm" onClick={() => {
-                  if (schedCron && schedTask && id) {
-                    addSchedule(id, schedCron, schedTask);
-                    setSchedCron('');
-                    setSchedTask('');
-                  } else {
-                    showToast('Fill cron and task');
-                  }
-                }}>+</button>
-              </div>
+        {/* Health Status */}
+        <div className="page-card" style={{ marginBottom: '16px' }}>
+          <div className="page-card-title">{lang === 'zh' ? '实例状态' : 'Instance Status'}</div>
+          <div className="health-info">
+            <div className="health-row">
+              <span>{lang === 'zh' ? '状态' : 'Status'}</span>
+              <span className={`health-badge ${inst.status === 'running' ? 'ok' : 'off'}`}>{inst.status}</span>
             </div>
-            {schedules.length === 0 ? (
-              <p style={{ color: 'var(--text-3)', fontSize: '13px', padding: '8px 0' }}>No scheduled tasks</p>
-            ) : (
-              <div className="schedule-list">
-                {schedules.map(s => (
-                  <div key={s.id} className="schedule-item">
-                    <div className="schedule-info">
-                      <span className="schedule-cron">{s.cron}</span>
-                      <span className="schedule-action">{s.task}</span>
-                    </div>
-                    <button className="schedule-del" onClick={() => id && deleteSchedule(id, s.id)}>x</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* Health Status */}
-          <div className="page-card">
-            <div className="page-card-title">Health Status</div>
-            <div className="health-info">
-              <div className="health-row">
-                <span>Status</span>
-                <span className={`health-badge ${inst.status === 'running' ? 'ok' : 'off'}`}>{inst.status}</span>
-              </div>
-              <div className="health-row">
-                <span>Health</span>
-                <span className={`health-badge ${inst.health === 'healthy' ? 'ok' : 'warn'}`}>{inst.health}</span>
-              </div>
-              <div className="health-row">
-                <span>PID</span>
-                <span>{inst.pid || '-'}</span>
-              </div>
-              <div className="health-row">
-                <span>Uptime</span>
-                <span>{inst.uptime || '0'}s</span>
-              </div>
-              <div className="health-row">
-                <span>Mode</span>
-                <span>{inst.mode}</span>
-              </div>
+            <div className="health-row">
+              <span>{lang === 'zh' ? '健康' : 'Health'}</span>
+              <span className={`health-badge ${inst.health === 'healthy' ? 'ok' : 'warn'}`}>{inst.health}</span>
+            </div>
+            <div className="health-row">
+              <span>PID</span>
+              <span>{inst.pid || '-'}</span>
+            </div>
+            <div className="health-row">
+              <span>{lang === 'zh' ? '运行时间' : 'Uptime'}</span>
+              <span>{inst.uptime || '0'}s</span>
+            </div>
+            <div className="health-row">
+              <span>{lang === 'zh' ? '模式' : 'Mode'}</span>
+              <span>{inst.mode}</span>
             </div>
           </div>
         </div>
@@ -198,7 +149,7 @@ function MonitorPage() {
 
             {adbDevices.length > 0 && (
               <div className="page-card">
-                <div className="page-card-title">ADB Devices ({adbDevices.length})</div>
+                <div className="page-card-title">ADB ({adbDevices.length})</div>
                 {adbDevices.map((dev: any) => (
                   <div key={dev.serial} className="adb-device-item">
                     <span className={`adb-status ${dev.state === 'device' ? 'online' : ''}`} />

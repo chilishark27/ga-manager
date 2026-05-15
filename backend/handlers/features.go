@@ -89,6 +89,12 @@ func (h *FeaturesHandler) GetResources(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, resources)
 }
 
+// GetSystemResources returns system-wide CPU and memory usage.
+func (h *FeaturesHandler) GetSystemResources(w http.ResponseWriter, r *http.Request) {
+	sr := h.manager.GetSystemResources()
+	writeJSON(w, http.StatusOK, sr)
+}
+
 // StartAll starts all stopped instances.
 func (h *FeaturesHandler) StartAll(w http.ResponseWriter, r *http.Request) {
 	results := h.manager.BatchStart()

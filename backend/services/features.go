@@ -346,7 +346,7 @@ func (m *InstanceManager) RecordChat(id, role, content string) {
 }
 
 // ============================================================
-// Feature 5: Resource Monitoring (CPU/Memory per instance)
+// Feature 5: Resource Monitoring (System CPU/Memory)
 // ============================================================
 
 type ResourceInfo struct {
@@ -357,6 +357,18 @@ type ResourceInfo struct {
 	Threads    int     `json:"threads"`
 	TokensUsed int    `json:"tokens_used"`
 	TotalTurns int    `json:"total_turns"`
+}
+
+type SystemResources struct {
+	CPUPercent float64 `json:"cpu_percent"`
+	MemTotalMB float64 `json:"mem_total_mb"`
+	MemUsedMB  float64 `json:"mem_used_mb"`
+	MemPercent float64 `json:"mem_percent"`
+}
+
+// GetSystemResources returns system-wide CPU and memory usage.
+func (m *InstanceManager) GetSystemResources() SystemResources {
+	return getSystemStats()
 }
 
 // GetResources returns resource usage for all running instances.

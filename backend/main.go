@@ -85,6 +85,7 @@ func main() {
 	mux.HandleFunc("GET /api/instances/{id}/chat/export", featHandler.ExportChat)
 	mux.HandleFunc("GET /api/instances/{id}/health", featHandler.GetHealth)
 	mux.HandleFunc("GET /api/instances/{id}/resources", featHandler.GetResources)
+	mux.HandleFunc("GET /api/system/resources", featHandler.GetSystemResources)
 	mux.HandleFunc("POST /api/instances/{id}/restart", featHandler.RestartInstance)
 	mux.HandleFunc("POST /api/instances/{id}/forward", featHandler.ForwardMessage)
 	mux.HandleFunc("GET /api/instances/{id}/tasks", featHandler.GetScheduledTasks)

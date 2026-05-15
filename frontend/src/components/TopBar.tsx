@@ -4,7 +4,7 @@ import { useI18n } from '../i18n';
 
 function TopBar() {
   const {
-    activeInstance: getActiveInstance, toggleFeature, llmConfigs, fetchLLMs, switchLLM,
+    activeInstance: getActiveInstance, llmConfigs, fetchLLMs, switchLLM,
     toggleInstance, restartInstance,
   } = useStore();
   const { t } = useI18n();
@@ -25,13 +25,6 @@ function TopBar() {
   const statusColor = (inst.status === 'running' || inst.status === 'busy') ? 'var(--green)' : 'var(--text-3)';
   const currentLLM = llmConfigs.find(c => c.index === inst.llm_no);
 
-  const featurePills: { key: 'autonomous' | 'reflect' | 'scheduler' | 'goal'; label: string }[] = [
-    { key: 'autonomous', label: 'Auto' },
-    { key: 'reflect', label: 'Reflect' },
-    { key: 'scheduler', label: 'Sched' },
-    { key: 'goal', label: 'Goal' },
-  ];
-
   return (
     <div className="top-bar">
       <div className="top-bar-left">
@@ -39,25 +32,6 @@ function TopBar() {
         <span className="top-bar-name">{inst.name}</span>
         <span className="top-bar-status">{inst.status}</span>
         <span className="top-bar-pid">PID {inst.pid}</span>
-      </div>
-
-      <div className="top-bar-center">
-        {featurePills.map(pill => {
-          const isActive = pill.key === 'goal' ? !!inst.goal : !!inst[pill.key];
-          return (
-            <button
-              key={pill.key}
-              className={`pill-btn ${isActive ? 'active' : ''}`}
-              onClick={() => {
-                if (pill.key !== 'goal') {
-                  toggleFeature(inst.id, pill.key);
-                }
-              }}
-            >
-              {pill.label}
-            </button>
-          );
-        })}
       </div>
 
       <div className="top-bar-right">
@@ -91,14 +65,14 @@ function TopBar() {
           onClick={() => toggleInstance(inst.id)}
           title={inst.status === 'running' ? 'Stop' : 'Start'}
         >
-          {(inst.status === 'running' || inst.status === 'busy') ? '||' : '|>'}
+          {(inst.status === 'running' || inst.status === 'busy') ? 'Stop' : 'Start'}
         </button>
         <button
           className="top-bar-ctrl-btn"
           onClick={() => restartInstance(inst.id)}
           title="Restart"
         >
-          R
+          Restart
         </button>
       </div>
     </div>

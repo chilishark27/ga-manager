@@ -5,6 +5,23 @@ import { useStore } from '../store';
 import { useI18n } from '../i18n';
 import { cleanReply, foldTurns, SessionFile, parseSessionLog } from '../utils/chatUtils';
 
+const GA_TOOLS = [
+  { name: 'web_search', desc: 'Search the web' },
+  { name: 'browse', desc: 'Browse URL' },
+  { name: 'code_exec', desc: 'Run code' },
+  { name: 'file_ops', desc: 'Read/Write files' },
+  { name: 'vision', desc: 'Screenshot & OCR' },
+  { name: 'adb', desc: 'Android control' },
+];
+
+const GA_COMMANDS = [
+  { cmd: '/goal <text>', desc: 'Set a goal' },
+  { cmd: '/clear', desc: 'Clear context' },
+  { cmd: '/reset', desc: 'Reset agent' },
+  { cmd: '/status', desc: 'Show status' },
+  { cmd: '/save', desc: 'Save session' },
+];
+
 function ChatPage() {
   const {
     messages, sendMessage, activeInstance: getActiveInstance, clearChat, interruptChat,
@@ -31,6 +48,7 @@ function ChatPage() {
 
   const MAX_VISIBLE = 150;
   const [showAll, setShowAll] = useState(false);
+  const [showInfoPanel, setShowInfoPanel] = useState(false);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2000); };
 
@@ -192,7 +210,32 @@ function ChatPage() {
           if (!replayMode && activeInstance) { fetchReplaySessions(activeInstance.id); }
           setReplayMode(!replayMode);
         }}>Replay</button>
+        <button className={`ch-btn ${showInfoPanel ? 'active' : ''}`} onClick={() => setShowInfoPanel(!showInfoPanel)}>
+          Tools
+        </button>
       </div>
+
+      {/* Tools & Commands Info Panel */}
+      {showInfoPanel && (
+        <div className="chat-info-panel">
+          <div className="chat-info-section">
+            <span className="chat-info-label">Tools:</span>
+            <div className="chat-info-tags">
+              {GA_TOOLS.map(tool => (
+                <span key={tool.name} className="chat-info-tag tool" title={tool.desc}>{tool.name}</span>
+              ))}
+            </div>
+          </div>
+          <div className="chat-info-section">
+            <span className="chat-info-label">Commands:</span>
+            <div className="chat-info-tags">
+              {GA_COMMANDS.map(c => (
+                <span key={c.cmd} className="chat-info-tag cmd" title={c.desc}>{c.cmd}</span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Replay Mode */}
       {replayMode && (
