@@ -304,18 +304,27 @@ Instance B receives: "[来自实例 a1b2c3d4] Please review this code"
 
 ## Build from Source
 
+### Prerequisites
+- Go 1.21+
+- Node.js 18+ & npm
+- Python 3.10+ (with `fastapi`, `uvicorn` for Conductor feature)
+
+### Quick Build (all platforms)
+
 ```bash
 git clone https://github.com/chilishark27/ga-manager.git
 cd ga-manager
 
-# Frontend
+# 1. Build frontend
 cd frontend && npm install && npm run build && cd ..
+
+# 2. Copy static files into backend
 cp -r frontend/dist backend/static
 
-# Build (pick your platform)
+# 3. Build Go backend (pick your platform)
 cd backend
 
-# Windows (includes system tray)
+# Windows
 GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -H windowsgui" -o ../build/ga-manager.exe .
 
 # macOS Apple Silicon
@@ -326,9 +335,86 @@ GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ../build/ga-
 
 # Linux x64
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ../build/ga-manager .
+
+# Linux ARM64 (Raspberry Pi, etc.)
+GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ../build/ga-manager .
 ```
 
-**Requirements:** Go 1.21+, Node.js 18+
+### Electron Desktop App (optional)
+
+For a native desktop experience with window management and system tray:
+
+```bash
+# After building the Go backend (step 3 above):
+cd electron
+npm install
+
+# Windows
+npx electron-builder --win portable
+
+# macOS (must run ON a Mac)
+npx electron-builder --mac
+
+# Linux (must run ON Linux, or use CI)
+npx electron-builder --linux
+```
+
+Output:
+- Windows: `build/electron/GA Manager 2.0.0.exe` (portable, ~90MB)
+- macOS: `build/electron/GA Manager-2.0.0.dmg`
+- Linux: `build/electron/GA Manager-2.0.0.AppImage`
+
+### macOS Notes
+
+```bash
+# Install Go (if not installed)
+brew install go node
+
+# Clone and build
+git clone https://github.com/chilishark27/ga-manager.git
+cd ga-manager
+cd frontend && npm install && npm run build && cd ..
+cp -r frontend/dist backend/static
+cd backend && go build -ldflags="-s -w" -o ../ga-manager . && cd ..
+
+# Run
+./ga-manager              # Opens browser automatically
+./ga-manager --no-gui     # Headless mode (server only)
+
+# Electron (native app)
+cd electron && npm install && npx electron-builder --mac
+```
+
+### Linux Notes
+
+```bash
+# Install dependencies (Ubuntu/Debian)
+sudo apt install golang-go nodejs npm
+
+# Clone and build
+git clone https://github.com/chilishark27/ga-manager.git
+cd ga-manager
+cd frontend && npm install && npm run build && cd ..
+cp -r frontend/dist backend/static
+cd backend && go build -ldflags="-s -w" -o ../ga-manager . && cd ..
+
+# Run
+./ga-manager              # Opens browser via xdg-open
+./ga-manager --no-gui     # Headless/server mode
+
+# Electron (native app)
+cd electron && npm install && npx electron-builder --linux
+# Output: build/electron/GA Manager-2.0.0.AppImage
+chmod +x "build/electron/GA Manager-2.0.0.AppImage"
+```
+
+### Python Dependencies (for Conductor)
+
+The Conductor feature requires FastAPI and Uvicorn:
+
+```bash
+pip install fastapi uvicorn
+```
 
 ---
 
