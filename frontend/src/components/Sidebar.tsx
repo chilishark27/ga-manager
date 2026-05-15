@@ -58,16 +58,38 @@ function Sidebar() {
     return 'dot green';
   };
 
+  // Sidebar resize
+  const [sidebarWidth, setSidebarWidth] = useState(260);
+  const [isResizing, setIsResizing] = useState(false);
+  const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+    const onMouseMove = (ev: MouseEvent) => {
+      const newWidth = Math.max(180, Math.min(400, startWidth + ev.clientX - startX));
+      setSidebarWidth(newWidth);
+    };
+    const onMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
   return (
-    <div className="sidebar">
+    <div className="sidebar" style={{ width: sidebarWidth, minWidth: sidebarWidth }}>
+      <div className={`sidebar-resize-handle ${isResizing ? 'dragging' : ''}`} onMouseDown={handleMouseDown} />
       <div className="logo">
         <div className="logo-icon"><img src="/app.png?v=2" alt="GA" style={{width:'28px',height:'28px',borderRadius:'6px'}} /></div>
         <div className="logo-text">GA Manager</div>
         <div className="lang-btn" onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')} title={t.language}>
-          {lang === 'zh' ? '🌐EN' : '🌐中'}
+          {lang === 'zh' ? 'EN' : '中'}
         </div>
         <div className="theme-btn" onClick={toggleTheme}>
-          {theme === 'dark' ? '🌙' : '☀️'}
+          {theme === 'dark' ? '◐' : '○'}
         </div>
       </div>
 
@@ -141,7 +163,7 @@ function Sidebar() {
       </div>
 
       <div className="add-btn discover-btn" onClick={() => discoverInstances()}>
-        {discoverLoading ? '🔍 扫描中...' : '🔍 发现已运行GA'}
+        {discoverLoading ? 'Scan...' : 'Scan'}
       </div>
 
       {discoveredInstances.length > 0 && (
@@ -160,7 +182,7 @@ function Sidebar() {
               <button
                 className="adopt-btn"
                 onClick={() => { setAdoptPort(d.port); setShowAdopt(true); }}
-              >📥 纳管</button>
+              >Adopt</button>
             </div>
           ))}
         </div>
@@ -219,7 +241,7 @@ function Sidebar() {
       {showAdopt && (
         <div className="modal-overlay" onClick={() => setShowAdopt(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <h3>📥 纳管实例 (端口 {adoptPort})</h3>
+            <h3>Adopt (端口 {adoptPort})</h3>
             <div className="form-group">
               <label>GA 项目路径 (ga_root)</label>
               <input

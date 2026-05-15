@@ -84,3 +84,68 @@ type LLMConfig struct {
 	Type  string `json:"type"`
 	Key   string `json:"key"`
 }
+
+// TokenRecord represents a single token usage entry.
+type TokenRecord struct {
+	Timestamp    time.Time `json:"timestamp"`
+	InputTokens  int64     `json:"input_tokens"`
+	OutputTokens int64     `json:"output_tokens"`
+	CacheCreated int64     `json:"cache_created"`
+	CacheRead    int64     `json:"cache_read"`
+}
+
+// TokenStats holds cumulative token usage for an instance.
+type TokenStats struct {
+	InputTokens  int64         `json:"input_tokens"`
+	OutputTokens int64         `json:"output_tokens"`
+	CacheCreated int64         `json:"cache_created"`
+	CacheRead    int64         `json:"cache_read"`
+	TotalTurns   int           `json:"total_turns"`
+	CacheHitRate float64       `json:"cache_hit_rate"`
+	History      []TokenRecord `json:"history"`
+}
+
+// SkillNode represents a node in the skill tree graph.
+type SkillNode struct {
+	ID          string `json:"id"`
+	Label       string `json:"label"`
+	Type        string `json:"type"` // sop, script, index, data
+	AccessCount int    `json:"accessCount"`
+	LastAccess  string `json:"lastAccess"`
+	Size        int64  `json:"size"`
+}
+
+// SkillEdge represents a dependency edge in the skill tree.
+type SkillEdge struct {
+	From string `json:"from"`
+	To   string `json:"to"`
+	Type string `json:"type"` // reference, import
+}
+
+// SkillTree is the full skill tree response.
+type SkillTree struct {
+	Nodes []SkillNode `json:"nodes"`
+	Edges []SkillEdge `json:"edges"`
+}
+
+// ReplayStep represents one step in a task replay.
+type ReplayStep struct {
+	Type      string `json:"type"` // prompt, thinking, tool_use, tool_result, response
+	Timestamp string `json:"timestamp,omitempty"`
+	Content   string `json:"content"`
+	ToolName  string `json:"tool_name,omitempty"`
+}
+
+// ReplaySession represents a parsed session for replay.
+type ReplaySession struct {
+	Filename string       `json:"filename"`
+	Steps    []ReplayStep `json:"steps"`
+}
+
+// ADBDevice represents a connected Android device.
+type ADBDevice struct {
+	Serial  string `json:"serial"`
+	State   string `json:"state"`
+	Model   string `json:"model"`
+	Product string `json:"product"`
+}

@@ -198,3 +198,14 @@ func (h *FeaturesHandler) QuickCommand(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]string{"status": "executed"})
 }
+
+// GetTokenStats returns token usage statistics for an instance.
+func (h *FeaturesHandler) GetTokenStats(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	stats, err := h.manager.GetTokenStats(id)
+	if err != nil {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, stats)
+}

@@ -125,6 +125,33 @@ interface AppState {
   runningCount: () => number;
   totalTokens: () => string;
   healthPercent: () => string;
+
+  // Token stats
+  tokenStats: any;
+  fetchTokenStats: (id: string) => Promise<void>;
+
+  // Replay
+  replayMode: boolean;
+  replaySessions: any[];
+  replaySteps: any[];
+  replayIndex: number;
+  setReplayMode: (v: boolean) => void;
+  fetchReplaySessions: (id: string) => Promise<void>;
+  loadReplaySession: (id: string, filename: string) => Promise<void>;
+  setReplayIndex: (idx: number) => void;
+
+  // ADB
+  adbDevices: any[];
+  fetchADBDevices: () => Promise<void>;
+
+  // Screenshots
+  screenshots: any[];
+  fetchScreenshots: (id: string) => Promise<void>;
+
+  // SOP Edit
+  saveSop: (name: string, content: string) => Promise<boolean>;
+  createSop: (name: string, content: string) => Promise<boolean>;
+  deleteSop: (name: string) => Promise<boolean>;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -848,6 +875,121 @@ export const useStore = create<AppState>((set, get) => ({
       }
     } catch {
       get().showToast('转发失败');
+    }
+  },
+
+  // === Token Stats ===
+  tokenStats: null as any,
+  fetchTokenStats: async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/instances/${id}/tokens`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ tokenStats: data });
+      }
+    } catch { /* ignore */ }
+  },
+
+  // === Replay ===
+  replayMode: false,
+  replaySessions: [] as any[],
+  replaySteps: [] as any[],
+  replayIndex: 0,
+  setReplayMode: (v: boolean) => set({ replayMode: v, replaySteps: [], replayIndex: 0 }),
+  fetchReplaySessions: async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/instances/${id}/replay/sessions`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ replaySessions: data.sessions || [] });
+      }
+    } catch { set({ replaySessions: [] }); }
+  },
+  loadReplaySession: async (id: string, filename: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/instances/${id}/replay/${filename}`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ replaySteps: data.steps || [], replayIndex: 0 });
+      }
+    } catch { set({ replaySteps: [] }); }
+  },
+  setReplayIndex: (idx: number) => set({ replayIndex: idx }),
+
+  // === ADB ===
+  adbDevices: [] as any[],
+  fetchADBDevices: async () => {
+    try {
+      const res = await fetch(`${API_BASE}/adb/devices`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ adbDevices: data.devices || [] });
+      }
+    } catch { set({ adbDevices: [] }); }
+  },
+
+  // === Screenshots ===
+  screenshots: [] as any[],
+  fetchScreenshots: async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/instances/${id}/screenshots`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ screenshots: data.screenshots || [] });
+      }
+    } catch { set({ screenshots: [] }); }
+  },
+
+  // === SOP Edit ===
+  saveSop: async (name: string, content: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/sops/local/${name}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content }),
+      });
+      if (res.ok) {
+        get().showToast('SOP 已保存');
+        return true;
+      }
+      get().showToast('保存失败');
+      return false;
+    } catch {
+      get().showToast('保存失败');
+      return false;
+    }
+  },
+  createSop: async (name: string, content: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/sops/local`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, content }),
+      });
+      if (res.ok) {
+        get().showToast('SOP 已创建');
+        return true;
+      }
+      const err = await res.json().catch(() => ({}));
+      get().showToast(`创建失败: ${(err as any).error || ''}`);
+      return false;
+    } catch {
+      get().showToast('创建失败');
+      return false;
+    }
+  },
+  deleteSop: async (name: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/sops/local/${name}`, { method: 'DELETE' });
+      if (res.ok) {
+        get().showToast('SOP 已删除');
+        return true;
+      }
+      get().showToast('删除失败');
+      return false;
+    } catch {
+      get().showToast('删除失败');
+      return false;
     }
   },
 }));

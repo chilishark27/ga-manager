@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"strings"
 	"syscall"
+	"time"
 
 	"ga_manager/handlers"
 	"ga_manager/models"
@@ -32,6 +33,8 @@ func main() {
 	// Initialize services
 	instanceMgr := services.NewInstanceManager(cfg)
 	instanceMgr.RestoreInstances()
+	instanceMgr.StartHealthMonitor(30*time.Second, true)
+	instanceMgr.StartMemoryWatcher(cfg.GARoot)
 	configSvc := services.NewConfigService(cfg.GARoot)
 
 	// Initialize handlers
@@ -39,6 +42,10 @@ func main() {
 	wsHandler := handlers.NewWSHandler(instanceMgr)
 	cfgHandler := handlers.NewConfigHandler(configSvc)
 	featHandler := handlers.NewFeaturesHandler(instanceMgr)
+	skillTreeHandler := handlers.NewSkillTreeHandler(cfg.GARoot)
+	visionHandler := handlers.NewVisionHandler(instanceMgr, cfg.GARoot)
+	adbHandler := handlers.NewADBHandler()
+	replayHandler := handlers.NewReplayHandler(cfg.GARoot)
 
 	// Setup routes
 	mux := http.NewServeMux()
@@ -89,6 +96,27 @@ func main() {
 	// Discover existing GA instances (port scan)
 	discoverHandler := handlers.NewDiscoverHandler()
 	mux.HandleFunc("GET /api/discover", discoverHandler.Discover)
+
+	// Token statistics
+	mux.HandleFunc("GET /api/instances/{id}/tokens", featHandler.GetTokenStats)
+
+	// Skill tree
+	mux.HandleFunc("GET /api/skilltree", skillTreeHandler.GetSkillTree)
+
+	// Vision / Screenshots
+	mux.HandleFunc("GET /api/instances/{id}/screenshots", visionHandler.ListScreenshots)
+	mux.HandleFunc("GET /api/instances/{id}/screenshots/{filename}", visionHandler.GetScreenshot)
+	mux.HandleFunc("POST /api/instances/{id}/screenshot", visionHandler.TakeScreenshot)
+
+	// ADB device management
+	mux.HandleFunc("GET /api/adb/devices", adbHandler.ListDevices)
+	mux.HandleFunc("GET /api/adb/screenshot/{serial}", adbHandler.Screenshot)
+	mux.HandleFunc("POST /api/adb/tap/{serial}", adbHandler.Tap)
+	mux.HandleFunc("POST /api/adb/swipe/{serial}", adbHandler.Swipe)
+
+	// Task replay
+	mux.HandleFunc("GET /api/instances/{id}/replay/sessions", replayHandler.ListSessions)
+	mux.HandleFunc("GET /api/instances/{id}/replay/{filename}", replayHandler.GetSession)
 
 	// Configuration
 	mux.HandleFunc("GET /api/config/mykey", cfgHandler.GetMasked)
@@ -238,6 +266,95 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]interface{}{"name": name, "type": "file", "content": string(content), "size": info.Size()})
 	})
 
+	// SOP write (create/update)
+	mux.HandleFunc("PUT /api/sops/local/{name...}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		name := r.PathValue("name")
+		if name == "" || strings.Contains(name, "..") {
+			http.Error(w, `{"error":"invalid name"}`, 400)
+			return
+		}
+		memDir := filepath.Join(cfg.GARoot, "memory")
+		fullPath := filepath.Clean(filepath.Join(memDir, name))
+		if !strings.HasPrefix(fullPath, filepath.Clean(memDir)+string(filepath.Separator)) {
+			http.Error(w, `{"error":"invalid path"}`, 400)
+			return
+		}
+		var body struct {
+			Content string `json:"content"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json"}`, 400)
+			return
+		}
+		if len(body.Content) > 500*1024 {
+			http.Error(w, `{"error":"content too large (max 500KB)"}`, 400)
+			return
+		}
+		// Backup existing file
+		if _, err := os.Stat(fullPath); err == nil {
+			os.Rename(fullPath, fullPath+".bak")
+		}
+		// Ensure parent directory exists
+		os.MkdirAll(filepath.Dir(fullPath), 0755)
+		if err := os.WriteFile(fullPath, []byte(body.Content), 0644); err != nil {
+			http.Error(w, `{"error":"write failed: `+err.Error()+`"}`, 500)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "name": name})
+	})
+
+	// SOP create new
+	mux.HandleFunc("POST /api/sops/local", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		var body struct {
+			Name    string `json:"name"`
+			Content string `json:"content"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+			http.Error(w, `{"error":"invalid json"}`, 400)
+			return
+		}
+		if body.Name == "" || strings.Contains(body.Name, "..") || strings.Contains(body.Name, "/") || strings.Contains(body.Name, "\\") {
+			http.Error(w, `{"error":"invalid name"}`, 400)
+			return
+		}
+		memDir := filepath.Join(cfg.GARoot, "memory")
+		fullPath := filepath.Join(memDir, body.Name)
+		if _, err := os.Stat(fullPath); err == nil {
+			http.Error(w, `{"error":"file already exists"}`, 409)
+			return
+		}
+		if err := os.WriteFile(fullPath, []byte(body.Content), 0644); err != nil {
+			http.Error(w, `{"error":"write failed"}`, 500)
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "name": body.Name})
+	})
+
+	// SOP delete
+	mux.HandleFunc("DELETE /api/sops/local/{name...}", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		name := r.PathValue("name")
+		if name == "" || strings.Contains(name, "..") {
+			http.Error(w, `{"error":"invalid name"}`, 400)
+			return
+		}
+		memDir := filepath.Join(cfg.GARoot, "memory")
+		fullPath := filepath.Clean(filepath.Join(memDir, name))
+		if !strings.HasPrefix(fullPath, filepath.Clean(memDir)+string(filepath.Separator)) {
+			http.Error(w, `{"error":"invalid path"}`, 400)
+			return
+		}
+		if _, err := os.Stat(fullPath); err != nil {
+			http.Error(w, `{"error":"not found"}`, 404)
+			return
+		}
+		// Move to .deleted instead of hard delete
+		os.Rename(fullPath, fullPath+".deleted")
+		json.NewEncoder(w).Encode(map[string]interface{}{"ok": true, "name": name})
+	})
+
 	// SopHub proxy - forward requests to fudankw.cn
 	mux.HandleFunc("GET /api/sophub/search", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query().Get("q")
@@ -331,8 +448,30 @@ func main() {
 
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	log.Printf("[GA Manager] Listening on http://localhost%s", addr)
-	if err := http.ListenAndServe(addr, handler); err != nil {
-		log.Fatalf("Server failed: %v", err)
+
+	// Check if running in GUI mode (default) or headless mode (--no-gui)
+	headless := false
+	for _, arg := range os.Args[1:] {
+		if arg == "--no-gui" || arg == "-headless" {
+			headless = true
+			break
+		}
+	}
+
+	if headless {
+		// Headless mode: just run the HTTP server
+		if err := http.ListenAndServe(addr, handler); err != nil {
+			log.Fatalf("Server failed: %v", err)
+		}
+	} else {
+		// GUI mode: start HTTP server in background, run systray in main thread
+		hideConsoleWindowIfNeeded()
+		go func() {
+			if err := http.ListenAndServe(addr, handler); err != nil {
+				log.Fatalf("Server failed: %v", err)
+			}
+		}()
+		runDesktop(cfg.Port)
 	}
 }
 

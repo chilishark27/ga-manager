@@ -2,14 +2,12 @@
 
 package services
 
-import (
-	"os/exec"
-	"syscall"
-)
+import "os/exec"
 
-// hideWindow sets CREATE_NO_WINDOW flag to prevent console window flash on Windows.
+// hideWindow is a no-op to avoid antivirus false positives.
+// The -H windowsgui linker flag prevents the main window;
+// subprocess console windows will flash briefly but this is
+// preferable to being flagged as malware.
 func hideWindow(cmd *exec.Cmd) {
-	cmd.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: 0x08000000, // CREATE_NO_WINDOW
-	}
+	// Intentionally empty — CREATE_NO_WINDOW triggers AV detection
 }

@@ -8,11 +8,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"sync"
 	"time"
 
@@ -66,6 +66,9 @@ type managedInstance struct {
 	totalTurns int
 	tokensUsed int
 	lastError  string
+
+	// Token statistics
+	tokenStats *tokenStats
 
 	// Subprocess management
 	cmd       *exec.Cmd
@@ -306,6 +309,7 @@ func (m *InstanceManager) Create(req models.CreateInstanceRequest) (*models.Inst
 		goal:        req.Goal,
 		reflect:     req.Reflect,
 		gaRoot:      gaRoot,
+		tokenStats:  newTokenStats(),
 		cmd:         cmd,
 		cancel:      cancel,
 		stdin:       stdinPipe,
@@ -535,7 +539,13 @@ func (m *InstanceManager) readBridgeOutput(inst *managedInstance, stdout io.Read
 			m.broadcast(inst, line)
 
 		case "log":
-			// Internal log from bridge, broadcast for log panel
+			// Internal log from bridge, check for token info
+			if msg, ok := event["msg"].(string); ok {
+				input, output, cacheCreated, cacheRead, found := ParseTokenLog(msg)
+				if found && inst.tokenStats != nil {
+					inst.tokenStats.Record(input, output, cacheCreated, cacheRead)
+				}
+			}
 			m.broadcast(inst, line)
 
 		case "status":
@@ -952,36 +962,25 @@ func (m *InstanceManager) GetLogs(id string) ([]string, error) {
 	return []string{"[log collection via event stream]"}, nil
 }
 
-// findPIDByPort uses netstat to find the PID listening on a given port (Windows).
+// findPIDByPort attempts to find a process on a port.
+// Returns a placeholder PID (1) if port is active, since we can't get PID without external tools.
 func findPIDByPort(port int) (int, error) {
-	cmd := exec.Command("netstat", "-ano")
-	out, err := cmd.Output()
+	addr := fmt.Sprintf("127.0.0.1:%d", port)
+	conn, err := net.DialTimeout("tcp", addr, 2*time.Second)
 	if err != nil {
-		return 0, fmt.Errorf("netstat failed: %w", err)
+		return 0, fmt.Errorf("no process found listening on port %d", port)
 	}
-
-	target := fmt.Sprintf(":%d", port)
-	lines := strings.Split(string(out), "\n")
-	for _, line := range lines {
-		if strings.Contains(line, target) && strings.Contains(line, "LISTENING") {
-			fields := strings.Fields(line)
-			if len(fields) >= 5 {
-				pid, err := strconv.Atoi(fields[len(fields)-1])
-				if err == nil && pid > 0 {
-					return pid, nil
-				}
-			}
-		}
-	}
-	return 0, fmt.Errorf("no process found listening on port %d", port)
+	conn.Close()
+	// We know something is listening but can't get PID without netstat/tasklist.
+	// Return -1 to indicate "port is active but PID unknown"
+	return -1, nil
 }
 
-// killProcessTree kills a process and its children on Windows using taskkill /T /F.
+// killProcessTree terminates a process by PID.
 func killProcessTree(pid int) error {
-	cmd := exec.Command("taskkill", "/F", "/T", "/PID", strconv.Itoa(pid))
-	out, err := cmd.CombinedOutput()
+	proc, err := os.FindProcess(pid)
 	if err != nil {
-		return fmt.Errorf("taskkill failed: %w, output: %s", err, string(out))
+		return fmt.Errorf("process %d not found: %w", pid, err)
 	}
-	return nil
+	return proc.Kill()
 }

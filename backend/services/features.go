@@ -6,11 +6,14 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"runtime"
 	"strconv"
 	"strings"
 	"sync"
 	"time"
+
+	"ga_manager/models"
 )
 
 // ============================================================
@@ -163,13 +166,15 @@ func (m *InstanceManager) checkHealth(autoRestart bool) {
 
 func isProcessAliveByPID(pid int) bool {
 	if runtime.GOOS == "windows" {
-		cmd := exec.Command("tasklist", "/FI", fmt.Sprintf("PID eq %d", pid), "/NH")
-		hideWindow(cmd)
-		out, err := cmd.Output()
+		// On Windows, FindProcess always succeeds. Open the process handle to check.
+		proc, err := os.FindProcess(pid)
 		if err != nil {
 			return false
 		}
-		return strings.Contains(string(out), strconv.Itoa(pid))
+		// Sending signal 0 on Windows is not supported, but we can try Signal(nil)
+		// which returns an error if process doesn't exist
+		err = proc.Signal(os.Signal(nil))
+		return err == nil
 	}
 	// Unix: send signal 0
 	proc, err := os.FindProcess(pid)
@@ -402,88 +407,23 @@ func (m *InstanceManager) GetResources() []ResourceInfo {
 	return result
 }
 
-// getProcessStats uses OS commands to get process CPU/memory/threads (no external deps).
+// getProcessStats returns approximate resource usage.
+// On Windows: returns zeros (avoids calling wmic/tasklist which trigger antivirus).
+// On Unix: uses ps command.
 func getProcessStats(pid int) (cpuPercent float64, memoryMB float64, threads int) {
-	if runtime.GOOS == "windows" {
-		// Use wmic to get WorkingSetSize and ThreadCount
-		cmd := exec.Command("wmic", "process", "where",
-			fmt.Sprintf("ProcessId=%d", pid), "get",
-			"WorkingSetSize,ThreadCount", "/format:csv")
-		hideWindow(cmd)
-		out, err := cmd.Output()
-		if err == nil {
-			lines := strings.Split(strings.TrimSpace(string(out)), "\n")
-			for _, line := range lines {
-				line = strings.TrimSpace(line)
-				if line == "" || strings.HasPrefix(line, "Node") {
-					continue
-				}
-				parts := strings.Split(line, ",")
-				if len(parts) >= 3 {
-					if tc, e := strconv.Atoi(strings.TrimSpace(parts[1])); e == nil {
-						threads = tc
-					}
-					if ws, e := strconv.ParseInt(strings.TrimSpace(parts[2]), 10, 64); e == nil {
-						memoryMB = float64(ws) / 1024 / 1024
-					}
-				}
-			}
-		}
-		// Get CPU usage via PowerShell (two-sample measurement)
-		psCmd := exec.Command("powershell", "-NoProfile", "-Command",
-			fmt.Sprintf(`(Get-Process -Id %d -ErrorAction SilentlyContinue).CPU`, pid))
-		hideWindow(psCmd)
-		cpuOut, cpuErr := psCmd.Output()
-		if cpuErr == nil {
-			cpuStr := strings.TrimSpace(string(cpuOut))
-			if cpuStr != "" {
-				// Get-Process .CPU returns total CPU seconds; estimate % from delta
-				// Fallback: use wmic path Win32_PerfFormattedData
-				if val, e := strconv.ParseFloat(cpuStr, 64); e == nil && val > 0 {
-					// Approximate: total CPU seconds / uptime * 100 / numCPU
-					cpuPercent = val
-				}
-			}
-		}
-		// Better approach: use Win32_PerfFormattedData_PerfProc_Process
-		perfCmd := exec.Command("wmic", "path", "Win32_PerfFormattedData_PerfProc_Process",
-			"where", fmt.Sprintf("IDProcess=%d", pid), "get", "PercentProcessorTime", "/format:csv")
-		hideWindow(perfCmd)
-		perfOut, perfErr := perfCmd.Output()
-		if perfErr == nil {
-			perfLines := strings.Split(strings.TrimSpace(string(perfOut)), "\n")
-			for _, line := range perfLines {
-				line = strings.TrimSpace(line)
-				if line == "" || strings.HasPrefix(line, "Node") {
-					continue
-				}
-				parts := strings.Split(line, ",")
-				if len(parts) >= 2 {
-					if pct, e := strconv.ParseFloat(strings.TrimSpace(parts[1]), 64); e == nil {
-						cpuPercent = pct
-					}
-				}
-			}
-		}
-	} else {
-		// Linux/Mac: use /proc or ps
+	if runtime.GOOS != "windows" {
 		out, err := exec.Command("ps", "-p", strconv.Itoa(pid), "-o", "%cpu=,rss=,nlwp=").Output()
 		if err == nil {
 			fields := strings.Fields(strings.TrimSpace(string(out)))
 			if len(fields) >= 1 {
-				if cpu, e := strconv.ParseFloat(fields[0], 64); e == nil {
-					cpuPercent = cpu
-				}
+				cpuPercent, _ = strconv.ParseFloat(fields[0], 64)
 			}
 			if len(fields) >= 2 {
-				if rss, e := strconv.ParseInt(fields[1], 10, 64); e == nil {
-					memoryMB = float64(rss) / 1024
-				}
+				rss, _ := strconv.ParseInt(fields[1], 10, 64)
+				memoryMB = float64(rss) / 1024
 			}
 			if len(fields) >= 3 {
-				if t, e := strconv.Atoi(fields[2]); e == nil {
-					threads = t
-				}
+				threads, _ = strconv.Atoi(fields[2])
 			}
 		}
 	}
@@ -865,3 +805,179 @@ func (m *InstanceManager) GetInstanceIDs() []map[string]string {
 // init helper - suppress unused import warnings
 var _ = strings.TrimSpace
 var _ = json.Marshal
+
+// ============================================================
+// Feature 9: Token Statistics
+// ============================================================
+
+const maxTokenHistory = 100
+
+type tokenStats struct {
+	mu           sync.RWMutex
+	InputTokens  int64
+	OutputTokens int64
+	CacheCreated int64
+	CacheRead    int64
+	History      []models.TokenRecord
+}
+
+func newTokenStats() *tokenStats {
+	return &tokenStats{History: make([]models.TokenRecord, 0, maxTokenHistory)}
+}
+
+func (ts *tokenStats) Record(input, output, cacheCreated, cacheRead int64) {
+	ts.mu.Lock()
+	defer ts.mu.Unlock()
+	ts.InputTokens += input
+	ts.OutputTokens += output
+	ts.CacheCreated += cacheCreated
+	ts.CacheRead += cacheRead
+	rec := models.TokenRecord{
+		Timestamp:    time.Now(),
+		InputTokens:  input,
+		OutputTokens: output,
+		CacheCreated: cacheCreated,
+		CacheRead:    cacheRead,
+	}
+	if len(ts.History) >= maxTokenHistory {
+		ts.History = ts.History[1:]
+	}
+	ts.History = append(ts.History, rec)
+}
+
+func (ts *tokenStats) GetStats(totalTurns int) models.TokenStats {
+	ts.mu.RLock()
+	defer ts.mu.RUnlock()
+	hitRate := 0.0
+	if ts.InputTokens > 0 {
+		hitRate = float64(ts.CacheRead) / float64(ts.InputTokens) * 100
+	}
+	hist := make([]models.TokenRecord, len(ts.History))
+	copy(hist, ts.History)
+	return models.TokenStats{
+		InputTokens:  ts.InputTokens,
+		OutputTokens: ts.OutputTokens,
+		CacheCreated: ts.CacheCreated,
+		CacheRead:    ts.CacheRead,
+		TotalTurns:   totalTurns,
+		CacheHitRate: hitRate,
+		History:      hist,
+	}
+}
+
+// GetTokenStats returns token usage statistics for an instance.
+func (m *InstanceManager) GetTokenStats(id string) (*models.TokenStats, error) {
+	m.mu.RLock()
+	inst, ok := m.instances[id]
+	m.mu.RUnlock()
+	if !ok {
+		return nil, fmt.Errorf("instance %s not found", id)
+	}
+	inst.mu.RLock()
+	ts := inst.tokenStats
+	turns := inst.totalTurns
+	inst.mu.RUnlock()
+	if ts == nil {
+		empty := models.TokenStats{History: []models.TokenRecord{}}
+		return &empty, nil
+	}
+	stats := ts.GetStats(turns)
+	return &stats, nil
+}
+
+// ParseTokenLog parses a bridge log line for token information.
+// Formats: "[Cache] input=X creation=Y read=Z" or "[Output] tokens=X"
+func ParseTokenLog(msg string) (input, output, cacheCreated, cacheRead int64, found bool) {
+	if strings.Contains(msg, "[Cache]") {
+		found = true
+		parts := strings.Fields(msg)
+		for _, p := range parts {
+			if strings.HasPrefix(p, "input=") {
+				v, _ := strconv.ParseInt(strings.TrimPrefix(p, "input="), 10, 64)
+				input = v
+			} else if strings.HasPrefix(p, "creation=") {
+				v, _ := strconv.ParseInt(strings.TrimPrefix(p, "creation="), 10, 64)
+				cacheCreated = v
+			} else if strings.HasPrefix(p, "read=") {
+				v, _ := strconv.ParseInt(strings.TrimPrefix(p, "read="), 10, 64)
+				cacheRead = v
+			} else if strings.HasPrefix(p, "cached=") {
+				v, _ := strconv.ParseInt(strings.TrimPrefix(p, "cached="), 10, 64)
+				cacheRead = v
+			}
+		}
+	}
+	if strings.Contains(msg, "[Output]") {
+		found = true
+		parts := strings.Fields(msg)
+		for _, p := range parts {
+			if strings.HasPrefix(p, "tokens=") {
+				v, _ := strconv.ParseInt(strings.TrimPrefix(p, "tokens="), 10, 64)
+				output = v
+			}
+		}
+	}
+	return
+}
+
+// ============================================================
+// Feature 10: Memory Directory Watcher
+// ============================================================
+
+// StartMemoryWatcher monitors the GA memory/ directory for SOP changes.
+func (m *InstanceManager) StartMemoryWatcher(gaRoot string) {
+	memDir := filepath.Join(gaRoot, "memory")
+	if _, err := os.Stat(memDir); err != nil {
+		log.Printf("[MemoryWatcher] memory dir not found: %s", memDir)
+		return
+	}
+
+	go func() {
+		known := make(map[string]time.Time)
+		// Initial scan
+		entries, _ := os.ReadDir(memDir)
+		for _, e := range entries {
+			if info, err := e.Info(); err == nil {
+				known[e.Name()] = info.ModTime()
+			}
+		}
+
+		ticker := time.NewTicker(30 * time.Second)
+		defer ticker.Stop()
+		for range ticker.C {
+			entries, err := os.ReadDir(memDir)
+			if err != nil {
+				continue
+			}
+			current := make(map[string]time.Time)
+			for _, e := range entries {
+				if info, err := e.Info(); err == nil {
+					current[e.Name()] = info.ModTime()
+				}
+			}
+			// Detect new files
+			for name, modTime := range current {
+				if _, existed := known[name]; !existed {
+					m.broadcastAll([]byte(fmt.Sprintf(
+						`{"event":"sop_created","file":"%s","time":"%s"}`,
+						name, modTime.Format("15:04:05"))))
+				} else if known[name] != modTime {
+					m.broadcastAll([]byte(fmt.Sprintf(
+						`{"event":"sop_updated","file":"%s","time":"%s"}`,
+						name, modTime.Format("15:04:05"))))
+				}
+			}
+			known = current
+		}
+	}()
+	log.Printf("[MemoryWatcher] Started watching %s", memDir)
+}
+
+// broadcastAll sends an event to all subscribers of all instances.
+func (m *InstanceManager) broadcastAll(data []byte) {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	for _, inst := range m.instances {
+		m.broadcast(inst, data)
+	}
+}

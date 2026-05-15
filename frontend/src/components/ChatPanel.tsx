@@ -6,7 +6,7 @@ import { useI18n } from '../i18n';
 import { cleanReply, foldTurns, FoldedTurn, SessionFile, parseSessionLog } from '../utils/chatUtils';
 
 function ChatPanel() {
-  const { messages, sendMessage, activeInstance: getActiveInstance, clearChat, interruptChat, toggleInstance, switchLLM: storeSetLLM, setIMChannel, llmConfigs, fetchLLMs, attachedPort, detachInstance } = useStore();
+  const { messages, sendMessage, activeInstance: getActiveInstance, clearChat, interruptChat, toggleInstance, toggleFeature, switchLLM: storeSetLLM, setIMChannel, llmConfigs, fetchLLMs, attachedPort, detachInstance, replayMode, setReplayMode, replaySessions, replaySteps, replayIndex, fetchReplaySessions, loadReplaySession, setReplayIndex } = useStore();
   const { t, tf } = useI18n();
   const activeInstance = getActiveInstance();
   const [input, setInput] = useState('');
@@ -132,12 +132,12 @@ function ChatPanel() {
           useStore.setState({
             messages: msgs.map(m => ({ role: m.role, content: m.content, status: 'done' as const }))
           });
-          showToast(`✅ 已恢复 ${msgs.length} 条消息`);
+          showToast(`Restored ${msgs.length} messages`);
         } else {
-          showToast('⚠️ 未解析到消息');
+          showToast('No messages parsed');
         }
       }
-    } catch { showToast('❌ 恢复失败'); }
+    } catch { showToast('Restore failed'); }
     setShowSessionRestore(false);
   };
 
@@ -169,7 +169,7 @@ function ChatPanel() {
     return (
       <div className="chat-panel">
         <div className="attached-ga-header">
-          <span>🔗 已连接外部 GA (端口 {attachedPort})</span>
+          <span>External 已连接外部 GA (端口 {attachedPort})</span>
           <button className="detach-btn" onClick={detachInstance}>断开</button>
         </div>
         <iframe
@@ -220,19 +220,59 @@ function ChatPanel() {
             <button className="ch-btn danger" onClick={() => interruptChat(activeInstance!.id)}>{t.interrupt}</button>
           )}
           <button className="ch-btn" onClick={() => { fetchLLMs(); setShowLLMSelect(true); }}>
-            🤖 {currentLLM ? currentLLM.name : 'LLM'}
+            LLM {currentLLM ? currentLLM.name : 'LLM'}
           </button>
           <button className="ch-btn" onClick={() => setShowIMSelect(true)}>
-            📡 {activeInstance.im_channel || t.noIM}
+            IM {activeInstance.im_channel || t.noIM}
           </button>
           <button className="ch-btn" onClick={() => { fetchSessions(); setShowSessionRestore(true); }}>
-            📂 恢复会话
+            Sessions
+          </button>
+          <button className={`ch-btn ${replayMode ? 'active' : ''}`} onClick={() => {
+            if (!replayMode && activeInstance) { fetchReplaySessions(activeInstance.id); }
+            setReplayMode(!replayMode);
+          }}>
+            Replay
           </button>
         </div>
       </div>
 
+      {/* Replay Mode */}
+      {replayMode && (
+        <div className="replay-panel">
+          <div className="replay-header">
+            <select className="replay-session-select" onChange={e => { if (e.target.value && activeInstance) loadReplaySession(activeInstance.id, e.target.value); }}>
+              <option value="">Select session...</option>
+              {replaySessions.map((s: any) => (
+                <option key={s.filename} value={s.filename}>{s.filename.replace('model_responses_', '').replace('.txt', '')} ({(s.size / 1024).toFixed(0)}K)</option>
+              ))}
+            </select>
+            <div className="replay-controls">
+              <button onClick={() => setReplayIndex(Math.max(0, replayIndex - 1))} disabled={replayIndex <= 0}>‹</button>
+              <span>{replayIndex + 1} / {replaySteps.length || 1}</span>
+              <button onClick={() => setReplayIndex(Math.min(replaySteps.length - 1, replayIndex + 1))} disabled={replayIndex >= replaySteps.length - 1}>›</button>
+            </div>
+          </div>
+          <div className="replay-timeline">
+            {replaySteps.map((step: any, i: number) => (
+              <div key={i} className={`replay-step ${step.type} ${i === replayIndex ? 'active' : ''} ${i <= replayIndex ? 'visible' : ''}`} onClick={() => setReplayIndex(i)}>
+                <div className="replay-step-marker">
+                  <span className={`replay-dot ${step.type}`} />
+                  <span className="replay-step-type">{step.type}{step.tool_name ? `: ${step.tool_name}` : ''}</span>
+                  {step.timestamp && <span className="replay-step-time">{step.timestamp.split(' ')[1] || step.timestamp}</span>}
+                </div>
+                {i === replayIndex && (
+                  <pre className="replay-step-content">{step.content?.slice(0, 2000)}{step.content?.length > 2000 ? '...' : ''}</pre>
+                )}
+              </div>
+            ))}
+            {replaySteps.length === 0 && <p style={{ color: 'var(--text-3)', padding: '20px', textAlign: 'center' }}>Select a session to replay</p>}
+          </div>
+        </div>
+      )}
+
       {/* Messages */}
-      <div className="messages-area">
+      {!replayMode && <div className="messages-area">
         {(() => {
           const totalCount = messages.length;
           const visibleMessages = (!showAll && totalCount > MAX_VISIBLE)
@@ -244,7 +284,7 @@ function ChatPanel() {
               {!showAll && totalCount > MAX_VISIBLE && (
                 <div className="load-more-bar">
                   <button className="load-more-btn" onClick={() => setShowAll(true)}>
-                    ⬆️ 显示全部 {totalCount} 条消息（当前显示最近 {MAX_VISIBLE} 条）
+                    ↑ Show all {totalCount} 条消息（当前显示最近 {MAX_VISIBLE} 条）
                   </button>
                 </div>
               )}
@@ -313,7 +353,37 @@ function ChatPanel() {
           );
         })()}
         <div ref={messagesEndRef} />
-      </div>
+      </div>}
+
+      {/* Autonomous Action Panel */}
+      {activeInstance && activeInstance.status !== 'stopped' && (
+        <div className="autonomous-panel">
+          <div
+            className="autonomous-idle-btn"
+            onClick={() => {
+              if (!activeInstance.autonomous) {
+                toggleFeature(activeInstance.id, 'autonomous');
+              }
+              sendMessage('[AUTO] 用户已经离开超过30分钟，作为自主智能体，请阅读自动化sop，执行自动任务。');
+            }}
+          >
+            开始空闲自主行动
+          </div>
+          <div
+            className={`autonomous-toggle-btn ${activeInstance.autonomous ? 'active' : ''}`}
+            onClick={() => toggleFeature(activeInstance.id, 'autonomous')}
+          >
+            <span className="autonomous-icon">{activeInstance.autonomous ? '⏸' : '▶'}</span>
+            <span>{activeInstance.autonomous ? '停止自主行动' : '允许自主行动'}</span>
+          </div>
+          <div className="autonomous-status">
+            <span className={`autonomous-status-dot ${activeInstance.autonomous ? 'active' : 'stopped'}`} />
+            <span className="autonomous-status-text">
+              {activeInstance.autonomous ? '自主行动已启用' : '自主行动已停止'}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Input Area */}
       <div className="input-area">
@@ -321,7 +391,7 @@ function ChatPanel() {
         <div className="ga-status-bar">
           <span className={`ga-status-dot ${activeInstance.status === 'busy' ? 'busy' : activeInstance.status === 'running' ? 'idle' : 'off'}`} />
           <span className="ga-status-text">
-            {activeInstance.status === 'busy' ? '⏳ GA 正在处理中...' : activeInstance.status === 'running' ? '✅ GA 空闲，等待输入' : '⏹ GA 未运行'}
+            {activeInstance.status === 'busy' ? '● GA 正在处理中...' : activeInstance.status === 'running' ? '● GA 空闲，等待输入' : '● GA 未运行'}
           </span>
           <span style={{marginLeft:'auto', color:'var(--accent2)', fontSize:'12px'}}>{currentLLM ? `${currentLLM.name} (#${currentLLM.index})` : t.llmNotConfigured}</span>
         </div>
@@ -348,7 +418,7 @@ function ChatPanel() {
           />
           <button className="send-btn" onClick={handleSend} disabled={!input.trim() && pastedImages.length === 0}>{t.send}</button>
           {activeInstance.status === 'busy' && (
-            <button className="interrupt-btn" onClick={() => interruptChat(activeInstance.id)}>⏹ {t.interrupt || '打断'}</button>
+            <button className="interrupt-btn" onClick={() => interruptChat(activeInstance.id)}>Stop {t.interrupt || '打断'}</button>
           )}
         </div>
         <div className="input-hints">
@@ -409,7 +479,7 @@ function ChatPanel() {
       {showSessionRestore && (
         <div className="modal-overlay" onClick={() => setShowSessionRestore(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
-            <h3>📂 恢复会话</h3>
+            <h3>Sessions</h3>
             {sessionsLoading ? (
               <p style={{textAlign:'center'}}>加载中...</p>
             ) : sessions.length === 0 ? (
