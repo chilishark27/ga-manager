@@ -46,6 +46,12 @@ function NavBar() {
     return 'nav-dot green';
   };
 
+  const getStatusText = (status: string) => {
+    if (status === 'running' || status === 'busy') return 'run';
+    if (status === 'starting') return 'init';
+    return 'off';
+  };
+
   return (
     <div className="nav-bar">
       {/* Logo */}
@@ -71,7 +77,7 @@ function NavBar() {
       {/* Instance List (bottom) */}
       <div className="nav-instances">
         <div className="nav-instances-header">
-          <span className="nav-instances-title">{t.running}: {instances.filter(i => i.status === 'running' || i.status === 'busy').length}</span>
+          <span className="nav-instances-title">Instances ({instances.length})</span>
         </div>
         <div className="nav-instances-list">
           {instances.map(inst => (
@@ -83,6 +89,7 @@ function NavBar() {
             >
               <span className={getDotClass(inst)} />
               <span className="nav-inst-name">{inst.name}</span>
+              <span className="nav-inst-status">{getStatusText(inst.status)}</span>
             </div>
           ))}
         </div>
