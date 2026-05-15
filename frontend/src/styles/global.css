@@ -229,10 +229,9 @@ body { background: var(--bg); color: var(--text-1); display: flex; height: 100vh
 
 /* Autonomous Panel */
 .autonomous-panel { display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid var(--border); }
-.autonomous-idle-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(102, 126, 234, 0.2); background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.06)); color: var(--text-1); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
-.autonomous-idle-btn:hover { border-color: var(--accent); color: #fff; background: var(--gradient); transform: translateY(-1px); box-shadow: 0 3px 12px rgba(102, 126, 234, 0.25); }
-.autonomous-toggle-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(102, 126, 234, 0.2); background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.06)); color: var(--text-2); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; }
-.autonomous-toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
+.autonomous-idle-btn, .autonomous-toggle-btn { padding: 6px 14px; border-radius: 8px; border: 1px solid rgba(102, 126, 234, 0.2); background: linear-gradient(135deg, rgba(102, 126, 234, 0.08), rgba(118, 75, 162, 0.06)); color: var(--text-2); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 6px; white-space: nowrap; }
+.autonomous-idle-btn:hover, .autonomous-toggle-btn:hover { border-color: var(--accent); color: var(--accent); transform: translateY(-1px); }
+.autonomous-idle-btn:hover { color: #fff; background: var(--gradient); box-shadow: 0 3px 12px rgba(102, 126, 234, 0.25); }
 .autonomous-toggle-btn.active { background: var(--gradient); border-color: transparent; color: #fff; box-shadow: 0 3px 12px rgba(102, 126, 234, 0.25); }
 .autonomous-icon { font-size: 16px; }
 .autonomous-status { display: flex; align-items: center; gap: 6px; margin-left: auto; font-size: 11px; }
