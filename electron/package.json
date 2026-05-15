@@ -1,0 +1,70 @@
+{
+  "name": "ga-manager",
+  "version": "2.0.0",
+  "description": "GA Manager - Multi-instance GenericAgent Desktop Manager",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac",
+    "build:linux": "electron-builder --linux",
+    "build:all": "electron-builder --win --mac --linux"
+  },
+  "author": "chilishark27",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^42.1.0",
+    "electron-builder": "^26.8.1"
+  },
+  "build": {
+    "appId": "com.gamanager.app",
+    "productName": "GA Manager",
+    "directories": {
+      "output": "../build/electron"
+    },
+    "files": [
+      "main.js",
+      "preload.js"
+    ],
+    "extraResources": [
+      {
+        "from": "../bridge",
+        "to": "bridge",
+        "filter": ["**/*", "!__pycache__", "!*.log"]
+      }
+    ],
+    "win": {
+      "target": ["portable"],
+      "icon": "icon.ico",
+      "extraResources": [
+        {
+          "from": "../build/windows-amd64/ga-manager.exe",
+          "to": "backend/ga-manager.exe"
+        }
+      ]
+    },
+    "mac": {
+      "target": ["dmg"],
+      "icon": "icon.png",
+      "category": "public.app-category.developer-tools",
+      "extraResources": [
+        {
+          "from": "../build/darwin-arm64/ga-manager",
+          "to": "backend/ga-manager"
+        }
+      ]
+    },
+    "linux": {
+      "target": ["AppImage"],
+      "icon": "icon.png",
+      "category": "Development",
+      "extraResources": [
+        {
+          "from": "../build/linux-amd64/ga-manager",
+          "to": "backend/ga-manager"
+        }
+      ]
+    }
+  }
+}
