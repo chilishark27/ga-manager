@@ -48,9 +48,11 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	cmd := exec.Command(h.python, "-u", scriptPath)
-	cmd.Dir = h.gaRoot
-	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1")
+	// conductor.py uses uvicorn.run("conductor:app"), so cwd must be frontends/
+	frontendsDir := filepath.Join(h.gaRoot, "frontends")
+	cmd := exec.Command(h.python, "-u", "conductor.py")
+	cmd.Dir = frontendsDir
+	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "PYTHONPATH="+h.gaRoot)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
