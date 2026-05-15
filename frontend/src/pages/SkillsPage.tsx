@@ -57,9 +57,9 @@ function SkillsPage() {
   };
 
   return (
-    <div className="skills-page">
+    <div className="skills-page page-split">
       {/* Left: SOP File Tree */}
-      <div className="skills-sidebar">
+      <div className="skills-sidebar page-split-left">
         <div className="skills-sidebar-header">
           <h5>SOP Files</h5>
           <button className="action-btn" style={{ fontSize: '11px', padding: '3px 10px' }} onClick={() => setShowNewSop(true)}>+ New</button>
@@ -91,7 +91,7 @@ function SkillsPage() {
       </div>
 
       {/* Right: SkillTree or SOP Editor */}
-      <div className="skills-content">
+      <div className="skills-content page-split-right">
         <div className="skills-content-header">
           <button className={`ch-btn ${viewMode === 'tree' ? 'active' : ''}`} onClick={() => setViewMode('tree')}>Skill Tree</button>
           <button className={`ch-btn ${viewMode === 'editor' ? 'active' : ''}`} onClick={() => setViewMode('editor')}>SOP Editor</button>

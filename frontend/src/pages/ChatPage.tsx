@@ -229,7 +229,7 @@ function ChatPage() {
       )}
 
       {/* Messages */}
-      {!replayMode && <div className="messages-area">
+      {!replayMode && <div className="messages-area chat-messages">
         {(() => {
           const totalCount = messages.length;
           const visibleMessages = (!showAll && totalCount > MAX_VISIBLE)
@@ -339,7 +339,7 @@ function ChatPage() {
       )}
 
       {/* Input Area */}
-      <div className="input-area">
+      <div className="input-area chat-input-area">
         <div className="ga-status-bar">
           <span className={`ga-status-dot ${activeInstance.status === 'busy' ? 'busy' : activeInstance.status === 'running' ? 'idle' : 'off'}`} />
           <span className="ga-status-text">

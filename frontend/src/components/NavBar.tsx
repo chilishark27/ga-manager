@@ -8,7 +8,7 @@ const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings'
   { key: 'conductor', icon: 'O', label: 'Orch' },
   { key: 'monitor', icon: 'M', label: 'Monitor' },
   { key: 'skills', icon: 'S', label: 'Skills' },
-  { key: 'settings', icon: 'G', label: 'Settings' },
+  { key: 'settings', icon: '⚙', label: 'Settings' },
 ];
 
 function NavBar() {

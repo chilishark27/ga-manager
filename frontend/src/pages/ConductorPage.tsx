@@ -2,7 +2,7 @@ import ConductorPanel from '../components/ConductorPanel';
 
 function ConductorPage() {
   return (
-    <div className="conductor-page">
+    <div className="conductor-page page-split">
       <ConductorPanel />
     </div>
   );
