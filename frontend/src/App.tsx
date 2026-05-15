@@ -1,13 +1,17 @@
 import { useEffect } from 'react';
 import './styles/global.css';
-import Sidebar from './components/Sidebar';
-import ChatPanel from './components/ChatPanel';
-import RightPanel from './components/RightPanel';
+import NavBar from './components/NavBar';
+import TopBar from './components/TopBar';
+import ChatPage from './pages/ChatPage';
+import ConductorPage from './pages/ConductorPage';
+import MonitorPage from './pages/MonitorPage';
+import SkillsPage from './pages/SkillsPage';
+import SettingsPage from './pages/SettingsPage';
 import { useStore } from './store';
 import { I18nProvider } from './i18n';
 
 function AppInner() {
-  const { theme, fetchInstances } = useStore();
+  const { theme, fetchInstances, currentPage } = useStore();
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -19,21 +23,30 @@ function AppInner() {
     return () => clearInterval(interval);
   }, [fetchInstances]);
 
+  const renderPage = () => {
+    switch (currentPage) {
+      case 'chat': return <ChatPage />;
+      case 'conductor': return <ConductorPage />;
+      case 'monitor': return <MonitorPage />;
+      case 'skills': return <SkillsPage />;
+      case 'settings': return <SettingsPage />;
+      default: return <ChatPage />;
+    }
+  };
+
   return (
-    <>
-      <Sidebar />
-      <ChatPanel />
-      <RightPanel />
-    </>
+    <div className="app-layout">
+      <NavBar />
+      <div className="app-main">
+        <TopBar />
+        <div className="app-content">
+          {renderPage()}
+        </div>
+      </div>
+    </div>
   );
 }
 
-function App() {
-  return (
-    <I18nProvider>
-      <AppInner />
-    </I18nProvider>
-  );
+export default function App() {
+  return <I18nProvider><AppInner /></I18nProvider>;
 }
-
-export default App;

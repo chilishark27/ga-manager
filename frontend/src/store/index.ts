@@ -39,6 +39,10 @@ function getWsUrl(instanceId: string): string {
 }
 
 interface AppState {
+  // Page navigation
+  currentPage: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings';
+  setPage: (page: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings') => void;
+
   // Setup / Configuration
   configured: boolean;
   checkConfigured: () => Promise<void>;
@@ -155,6 +159,9 @@ interface AppState {
 }
 
 export const useStore = create<AppState>((set, get) => ({
+  currentPage: 'chat',
+  setPage: (page) => set({ currentPage: page }),
+
   configured: false,
   checkConfigured: async () => {
     try {
