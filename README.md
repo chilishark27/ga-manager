@@ -22,15 +22,37 @@
 
 ## Quick Start
 
-1. Download the binary for your platform from [Releases](https://github.com/chilishark27/ga-manager/releases)
-2. Place it alongside the `bridge/` folder
-3. Run `ga-manager` (or `ga-manager.exe` on Windows)
-4. System tray icon appears — right-click to open the management panel
+1. Download the zip for your platform from [Releases](https://github.com/chilishark27/ga-manager/releases)
+2. Extract the zip (contains `ga-manager` binary + `static/` + `bridge/`)
+3. Run the binary
+
+**Windows:**
+```
+ga-manager.exe
+```
+
+**macOS:**
+```bash
+chmod +x ga-manager
+xattr -d com.apple.quarantine ga-manager   # bypass Gatekeeper for unsigned binary
+./ga-manager
+```
+
+**Linux:**
+```bash
+chmod +x ga-manager
+./ga-manager
+```
+
+The browser opens automatically. Or use `--no-gui` for headless mode and visit `http://localhost:18600`.
+
+**Electron version (Windows):** Download `ga-manager-electron-win.exe` — double-click to run, no extraction needed.
 
 **Prerequisites:**
 - [GenericAgent](https://github.com/lsdefine/GenericAgent) installed
 - Python 3.10+ with GenericAgent dependencies
 - A configured `mykey.py` in your GenericAgent directory
+- For Conductor: `pip install fastapi uvicorn`
 
 ---
 
