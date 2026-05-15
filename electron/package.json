@@ -47,6 +47,10 @@
         {
           "from": "../build/windows-amd64/ga-manager.exe",
           "to": "backend/ga-manager.exe"
+        },
+        {
+          "from": "../backend/static",
+          "to": "backend/static"
         }
       ]
     },
@@ -58,6 +62,10 @@
         {
           "from": "../build/darwin-arm64/ga-manager",
           "to": "backend/ga-manager"
+        },
+        {
+          "from": "../backend/static",
+          "to": "backend/static"
         }
       ]
     },
@@ -69,6 +77,10 @@
         {
           "from": "../build/linux-amd64/ga-manager",
           "to": "backend/ga-manager"
+        },
+        {
+          "from": "../backend/static",
+          "to": "backend/static"
         }
       ]
     }
