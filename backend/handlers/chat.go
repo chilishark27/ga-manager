@@ -142,7 +142,7 @@ func (h *ChatHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 }
 
 // ListSessions handles GET /api/instances/{id}/sessions
-// Returns list of session log files from model_responses directory
+// Returns list of session log files from model_responses directory and L4 archive
 func (h *ChatHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
@@ -156,36 +156,60 @@ func (h *ChatHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 	gaRoot := h.manager.GetGARoot()
 	sessDir := filepath.Join(gaRoot, "temp", "model_responses")
 
-	entries, err := os.ReadDir(sessDir)
-	if err != nil {
-		writeJSON(w, http.StatusOK, []interface{}{})
-		return
-	}
-
 	type SessionInfo struct {
 		Name     string `json:"name"`
 		Modified string `json:"modified"`
 		Size     int64  `json:"size"`
+		Source   string `json:"source"`
 	}
 
 	var sessions []SessionInfo
-	for _, e := range entries {
-		if e.IsDir() || (!strings.HasSuffix(e.Name(), ".txt") && !strings.HasSuffix(e.Name(), ".log")) {
-			continue
+
+	// Scan current model_responses
+	entries, err := os.ReadDir(sessDir)
+	if err == nil {
+		for _, e := range entries {
+			if e.IsDir() || (!strings.HasSuffix(e.Name(), ".txt") && !strings.HasSuffix(e.Name(), ".log")) {
+				continue
+			}
+			info, err := e.Info()
+			if err != nil {
+				continue
+			}
+			sessions = append(sessions, SessionInfo{
+				Name:     e.Name(),
+				Modified: info.ModTime().Format("2006-01-02 15:04"),
+				Size:     info.Size(),
+				Source:   "current",
+			})
 		}
-		info, err := e.Info()
-		if err != nil {
-			continue
-		}
-		sessions = append(sessions, SessionInfo{
-			Name:     e.Name(),
-			Modified: info.ModTime().Format("2006-01-02 15:04"),
-			Size:     info.Size(),
-		})
 	}
 
-	// Sort by modified desc (newest first) - entries are already sorted by name,
-	// but we want by time
+	// Also scan L4 archive directory for uncompressed session files
+	l4Dir := filepath.Join(gaRoot, "memory", "L4_raw_sessions")
+	l4Entries, err := os.ReadDir(l4Dir)
+	if err == nil {
+		for _, e := range l4Entries {
+			if e.IsDir() || !strings.HasSuffix(e.Name(), ".txt") {
+				continue
+			}
+			if e.Name() == "all_histories.txt" || e.Name() == "compress_session.py" {
+				continue
+			}
+			info, err := e.Info()
+			if err != nil {
+				continue
+			}
+			sessions = append(sessions, SessionInfo{
+				Name:     "L4/" + e.Name(),
+				Modified: info.ModTime().Format("2006-01-02 15:04"),
+				Size:     info.Size(),
+				Source:   "archive",
+			})
+		}
+	}
+
+	// Sort by modified desc (newest first)
 	for i := 0; i < len(sessions); i++ {
 		for j := i + 1; j < len(sessions); j++ {
 			if sessions[j].Modified > sessions[i].Modified {
@@ -200,16 +224,32 @@ func (h *ChatHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 // GetSessionContent handles GET /api/instances/{id}/sessions/{file}
 // Returns raw content of a session file
 func (h *ChatHandler) GetSessionContent(w http.ResponseWriter, r *http.Request) {
-	_ = r.PathValue("id") // validate instance exists if needed
+	_ = r.PathValue("id")
 	fileName := r.PathValue("file")
 
 	gaRoot := h.manager.GetGARoot()
-	filePath := filepath.Join(gaRoot, "temp", "model_responses", fileName)
 
-	// Security: prevent path traversal
-	if strings.Contains(fileName, "..") || strings.Contains(fileName, "/") || strings.Contains(fileName, "\\") {
+	// Security: prevent path traversal (but allow "L4/" prefix)
+	if strings.Contains(fileName, "..") || strings.Contains(fileName, "\\") {
 		writeError(w, http.StatusBadRequest, "invalid file name")
 		return
+	}
+
+	var filePath string
+	if strings.HasPrefix(fileName, "L4/") {
+		// Archive file
+		actualName := strings.TrimPrefix(fileName, "L4/")
+		if strings.Contains(actualName, "/") {
+			writeError(w, http.StatusBadRequest, "invalid file name")
+			return
+		}
+		filePath = filepath.Join(gaRoot, "memory", "L4_raw_sessions", actualName)
+	} else {
+		if strings.Contains(fileName, "/") {
+			writeError(w, http.StatusBadRequest, "invalid file name")
+			return
+		}
+		filePath = filepath.Join(gaRoot, "temp", "model_responses", fileName)
 	}
 
 	data, err := os.ReadFile(filePath)
