@@ -147,7 +147,7 @@ body { background: var(--bg); color: var(--text-1); display: flex; height: 100vh
 .welcome-create-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4); }
 
 /* Chat Header */
-.chat-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; gap: 12px; backdrop-filter: blur(8px); background: rgba(10, 14, 26, 0.4); }
+.chat-header { display: flex; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; gap: 12px; backdrop-filter: blur(8px); background: var(--card); }
 .ch-left { display: flex; align-items: center; gap: 8px; min-width: 0; }
 .ch-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .ch-dot.green { background: var(--green); box-shadow: 0 0 6px var(--green); animation: pulse 2s infinite; }

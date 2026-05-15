@@ -136,8 +136,15 @@ export default function SkillTree({ onNodeClick, highlightNode }: Props) {
     if (!canvas || nodes.length === 0) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    const w = canvas.width;
-    const h = canvas.height;
+    // Get actual canvas size from CSS
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = rect.width * window.devicePixelRatio;
+    canvas.height = rect.height * window.devicePixelRatio;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    const w = rect.width;
+    const h = rect.height;
+    // Read theme color
+    const textColor = getComputedStyle(canvas).getPropertyValue('color') || '#e0e0e0';
     ctx.clearRect(0, 0, w, h);
     ctx.save();
     ctx.translate(offset.x, offset.y);
@@ -179,10 +186,10 @@ export default function SkillTree({ onNodeClick, highlightNode }: Props) {
       }
 
       // Label
-      ctx.fillStyle = 'var(--text-1, #e0e0e0)';
-      ctx.font = `${isHovered ? 11 : 9}px sans-serif`;
+      ctx.fillStyle = textColor;
+      ctx.font = `${isHovered ? 11 : 9}px Inter, sans-serif`;
       ctx.textAlign = 'center';
-      ctx.fillText(n.label.slice(0, 16), n.x, n.y + n.radius + 12);
+      ctx.fillText(n.label.slice(0, 20), n.x, n.y + n.radius + 12);
     }
     ctx.restore();
   }, [nodes, edges, hoveredNode, highlightNode, offset, scale]);
@@ -246,15 +253,13 @@ export default function SkillTree({ onNodeClick, highlightNode }: Props) {
     <div className="skill-tree-container">
       <canvas
         ref={canvasRef}
-        width={600}
-        height={400}
         className="skill-tree-canvas"
+        style={{ color: 'var(--text-1)', cursor: dragNode ? 'grabbing' : hoveredNode ? 'pointer' : 'default' }}
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
         onMouseLeave={() => { setDragNode(null); setHoveredNode(null); }}
         onWheel={handleWheel}
-        style={{ cursor: dragNode ? 'grabbing' : hoveredNode ? 'pointer' : 'default' }}
       />
       <div className="skill-tree-legend">
         <span><i style={{ background: NODE_COLORS.sop }} /> SOP</span>

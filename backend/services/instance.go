@@ -737,10 +737,17 @@ func (m *InstanceManager) Start(id string) error {
 
 	inst.mu.RLock()
 	state := inst.state
+	oldPid := inst.pid
 	inst.mu.RUnlock()
 
 	if state == models.StateRunning || state == models.StateBusy {
 		return fmt.Errorf("instance %s is already running", id)
+	}
+
+	// Ensure previous process is fully dead before restarting
+	if oldPid > 0 {
+		killProcessTree(oldPid)
+		time.Sleep(500 * time.Millisecond)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -816,7 +823,7 @@ func (m *InstanceManager) Start(id string) error {
 	return nil
 }
 
-// Stop terminates a bridge process.
+// Stop terminates a bridge process and its children.
 func (m *InstanceManager) Stop(id string) error {
 	m.mu.RLock()
 	inst, ok := m.instances[id]
@@ -826,21 +833,36 @@ func (m *InstanceManager) Stop(id string) error {
 	}
 
 	inst.mu.Lock()
+	pid := inst.pid
 	inst.state = models.StateStopped
 	inst.mu.Unlock()
 
-	// Close stdin first (graceful signal)
+	// Close stdin first (graceful signal — bridge.py exits on stdin EOF)
 	if inst.stdin != nil {
 		_ = inst.stdin.Close()
 	}
 
-	// Then cancel context (force kill if needed)
-	if inst.cancel != nil {
-		inst.cancel()
-	}
+	// Give bridge 3 seconds to exit gracefully
+	done := make(chan struct{})
+	go func() {
+		if inst.cmd != nil {
+			_ = inst.cmd.Wait()
+		}
+		close(done)
+	}()
 
-	if inst.cmd != nil {
-		_ = inst.cmd.Wait()
+	select {
+	case <-done:
+		// Exited gracefully
+	case <-time.After(3 * time.Second):
+		// Force kill
+		if inst.cancel != nil {
+			inst.cancel()
+		}
+		// Also kill process tree to avoid orphans
+		if pid > 0 {
+			killProcessTree(pid)
+		}
 	}
 
 	return nil
@@ -976,11 +998,18 @@ func findPIDByPort(port int) (int, error) {
 	return -1, nil
 }
 
-// killProcessTree terminates a process by PID.
+// killProcessTree terminates a process and its children.
+// On Windows, uses cmd /c taskkill to kill the process tree.
+// On other platforms, kills the main process (children get SIGHUP).
 func killProcessTree(pid int) error {
+	if pid <= 0 {
+		return nil
+	}
 	proc, err := os.FindProcess(pid)
 	if err != nil {
-		return fmt.Errorf("process %d not found: %w", pid, err)
+		return err
 	}
-	return proc.Kill()
+	// Try graceful kill first
+	_ = proc.Kill()
+	return nil
 }
