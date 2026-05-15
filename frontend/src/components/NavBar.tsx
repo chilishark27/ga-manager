@@ -37,8 +37,8 @@ function NavBar() {
   const [isResizing, setIsResizing] = useState(false);
 
   // Session history
-  const [sessions, setSessions] = useState<{ name: string; modified: string; size: number }[]>([]);
-  const [showSessions, setShowSessions] = useState(false);
+  const [sessions, setSessions] = useState<{ name: string; modified: string; size: number; preview?: string }[]>([]);
+  const [showSessions, setShowSessions] = useState(true);
 
   useEffect(() => {
     if (inst && showSessions) {
@@ -172,8 +172,8 @@ function NavBar() {
                 <div className="nav-session-empty">{lang === 'zh' ? '暂无记录' : 'No sessions'}</div>
               ) : (
                 sessions.slice(0, 10).map(s => (
-                  <div key={s.name} className="nav-session-item" onClick={() => restoreSession(s.name)} title={s.name}>
-                    <span className="nav-session-name">{s.name.replace('model_responses_', '').replace('.txt', '')}</span>
+                  <div key={s.name} className="nav-session-item" onClick={() => restoreSession(s.name)} title={s.preview || s.name}>
+                    <span className="nav-session-preview">{s.preview || s.name.replace('model_responses_', '').replace('.txt', '')}</span>
                     <span className="nav-session-meta">{s.modified}</span>
                   </div>
                 ))

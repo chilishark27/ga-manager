@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bufio"
 	"encoding/json"
 	"net/http"
 	"os"
@@ -141,6 +142,91 @@ func (h *ChatHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})
 }
 
+// extractSessionPreview reads the first user prompt from a session file (max 80 chars).
+func extractSessionPreview(path string) string {
+	f, err := os.Open(path)
+	if err != nil {
+		return ""
+	}
+	defer f.Close()
+
+	scanner := bufio.NewScanner(f)
+	scanner.Buffer(make([]byte, 256*1024), 256*1024)
+	inPrompt := false
+	var jsonBuf strings.Builder
+	braceCount := 0
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.HasPrefix(line, "=== Prompt ===") {
+			inPrompt = true
+			jsonBuf.Reset()
+			braceCount = 0
+			continue
+		}
+		if strings.HasPrefix(line, "=== Response ===") || (strings.HasPrefix(line, "=== ") && inPrompt && jsonBuf.Len() > 0) {
+			break
+		}
+		if inPrompt {
+			jsonBuf.WriteString(line)
+			jsonBuf.WriteByte('\n')
+			braceCount += strings.Count(line, "{") - strings.Count(line, "}")
+			if braceCount <= 0 && jsonBuf.Len() > 2 {
+				break
+			}
+		}
+	}
+
+	raw := strings.TrimSpace(jsonBuf.String())
+	if raw == "" {
+		return ""
+	}
+
+	// Try to parse as JSON message
+	var msg struct {
+		Content interface{} `json:"content"`
+	}
+	if err := json.Unmarshal([]byte(raw), &msg); err == nil {
+		switch c := msg.Content.(type) {
+		case string:
+			return truncatePreview(c)
+		case []interface{}:
+			for _, item := range c {
+				if m, ok := item.(map[string]interface{}); ok {
+					if m["type"] == "text" {
+						if text, ok := m["text"].(string); ok {
+							return truncatePreview(text)
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// Fallback: treat as plain text
+	lines := strings.Split(raw, "\n")
+	for _, l := range lines {
+		l = strings.TrimSpace(l)
+		if l != "" && l != "{" && l != "}" && !strings.HasPrefix(l, "\"role\"") && !strings.HasPrefix(l, "\"content\"") {
+			return truncatePreview(l)
+		}
+	}
+	return ""
+}
+
+func truncatePreview(s string) string {
+	s = strings.TrimSpace(s)
+	// Remove common prefixes like [定时任务] etc
+	if idx := strings.Index(s, "\n"); idx > 0 && idx < 100 {
+		s = s[:idx]
+	}
+	runes := []rune(s)
+	if len(runes) > 60 {
+		return string(runes[:60]) + "..."
+	}
+	return s
+}
+
 // ListSessions handles GET /api/instances/{id}/sessions
 // Returns list of session log files from model_responses directory and L4 archive
 func (h *ChatHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
@@ -161,6 +247,7 @@ func (h *ChatHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 		Modified string `json:"modified"`
 		Size     int64  `json:"size"`
 		Source   string `json:"source"`
+		Preview  string `json:"preview"`
 	}
 
 	var sessions []SessionInfo
@@ -176,11 +263,13 @@ func (h *ChatHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				continue
 			}
+			preview := extractSessionPreview(filepath.Join(sessDir, e.Name()))
 			sessions = append(sessions, SessionInfo{
 				Name:     e.Name(),
 				Modified: info.ModTime().Format("2006-01-02 15:04"),
 				Size:     info.Size(),
 				Source:   "current",
+				Preview:  preview,
 			})
 		}
 	}
@@ -200,11 +289,13 @@ func (h *ChatHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 			if err != nil {
 				continue
 			}
+			preview := extractSessionPreview(filepath.Join(l4Dir, e.Name()))
 			sessions = append(sessions, SessionInfo{
 				Name:     "L4/" + e.Name(),
 				Modified: info.ModTime().Format("2006-01-02 15:04"),
 				Size:     info.Size(),
 				Source:   "archive",
+				Preview:  preview,
 			})
 		}
 	}
