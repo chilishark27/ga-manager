@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useStore } from '../store';
 import { useI18n } from '../i18n';
 
@@ -188,8 +189,8 @@ function Sidebar() {
         </div>
       )}
 
-      {/* Create Instance Modal */}
-      {showCreate && (
+      {/* Create Instance Modal - Portal to body for proper centering */}
+      {showCreate && createPortal(
         <div className="modal-overlay" onClick={() => setShowCreate(false)}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
             <h3>{t.createInstance}</h3>
@@ -235,10 +236,11 @@ function Sidebar() {
               <button className="modal-btn confirm" onClick={handleCreate}>{t.create}</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {showAdopt && (
+      {showAdopt && createPortal(
         <div className="modal-overlay" onClick={() => setShowAdopt(false)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h3>Adopt (端口 {adoptPort})</h3>
@@ -259,7 +261,8 @@ function Sidebar() {
               }}>确认纳管</button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );
