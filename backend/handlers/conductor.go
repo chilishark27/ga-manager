@@ -51,8 +51,8 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 	// conductor.py uses uvicorn.run("conductor:app"), so cwd must be frontends/
 	frontendsDir := filepath.Join(h.gaRoot, "frontends")
 	// Monkey-patch webbrowser.open to prevent conductor.py from opening a browser window.
-	// On Windows, BROWSER=echo does not work because Python uses os.startfile() directly.
-	script := "import webbrowser; webbrowser.open = lambda *a, **k: None\nexec(compile(open('conductor.py').read(), 'conductor.py', 'exec'))\n"
+	// Use encoding='utf-8' to avoid GBK decode errors on Windows.
+	script := "import webbrowser; webbrowser.open = lambda *a, **k: None\nexec(compile(open('conductor.py', encoding='utf-8').read(), 'conductor.py', 'exec'))\n"
 	cmd := exec.Command(h.python, "-u", "-c", script)
 	cmd.Dir = frontendsDir
 	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "PYTHONPATH="+h.gaRoot)
