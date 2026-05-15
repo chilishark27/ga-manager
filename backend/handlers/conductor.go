@@ -52,7 +52,8 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 	frontendsDir := filepath.Join(h.gaRoot, "frontends")
 	cmd := exec.Command(h.python, "-u", "conductor.py")
 	cmd.Dir = frontendsDir
-	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "PYTHONPATH="+h.gaRoot)
+	// BROWSER=echo prevents conductor.py from opening a browser window
+	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "PYTHONPATH="+h.gaRoot, "BROWSER=echo")
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 
