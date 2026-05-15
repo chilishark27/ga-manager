@@ -145,6 +145,35 @@ Or set via environment variables: `GA_ROOT`, `GA_MANAGER_PORT`.
 
 ---
 
+## Antivirus False Positive
+
+Some antivirus software (Windows Defender, 360, etc.) may flag `ga-manager.exe` as suspicious. **This is a false positive.** Here's why it happens and how to resolve it:
+
+**Why it triggers:**
+- The binary is an HTTP server that listens on a local port (18600)
+- It spawns Python child processes (bridge.py → GenericAgent)
+- It uses system tray APIs (Windows only)
+- It's not code-signed (no purchased certificate)
+
+These are all legitimate behaviors for a local development tool, but the combination matches heuristic patterns that antivirus engines associate with malware.
+
+**What we've done to minimize detections:**
+- No registry writes (auto-start uses Startup folder .bat file)
+- No `CreateMutex` (uses port-based singleton detection)
+- No `GetConsoleWindow`/`ShowWindow` calls (uses `-H windowsgui` linker flag)
+- No `taskkill` or `powershell` invocations
+- No `CREATE_NO_WINDOW` process creation flags
+- All source code is open and auditable
+
+**How to resolve:**
+1. Add `ga-manager.exe` to your antivirus exclusion list
+2. Or whitelist the folder where you placed it
+3. Or build from source yourself — the binary you compile locally is less likely to be flagged
+
+> The project is fully open source. You can audit every line of code in this repository.
+
+---
+
 ## Acknowledgments
 
 Built on [GenericAgent](https://github.com/lsdefine/GenericAgent) by [@lsdefine](https://github.com/lsdefine).
