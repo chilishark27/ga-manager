@@ -70,6 +70,14 @@ function waitForBackend(timeout = 15000) {
   });
 }
 
+function getIconPath() {
+  const iconName = process.platform === 'win32' ? 'icon.ico' : 'icon.png';
+  if (app.isPackaged) {
+    return path.join(process.resourcesPath, 'app.asar.unpacked', iconName);
+  }
+  return path.join(__dirname, iconName);
+}
+
 function createWindow() {
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -77,7 +85,7 @@ function createWindow() {
     minWidth: 900,
     minHeight: 600,
     title: 'GA Manager',
-    icon: path.join(__dirname, process.platform === 'win32' ? 'icon.ico' : 'icon.png'),
+    icon: getIconPath(),
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -104,7 +112,7 @@ function createWindow() {
 }
 
 function createTray() {
-  const iconPath = path.join(__dirname, process.platform === 'win32' ? 'icon.ico' : 'icon.png');
+  const iconPath = getIconPath();
   const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
   tray = new Tray(icon);
 

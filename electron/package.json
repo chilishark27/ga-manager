@@ -25,7 +25,13 @@
     },
     "files": [
       "main.js",
-      "preload.js"
+      "preload.js",
+      "icon.ico",
+      "icon.png"
+    ],
+    "asarUnpack": [
+      "icon.ico",
+      "icon.png"
     ],
     "extraResources": [
       {
