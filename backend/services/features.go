@@ -129,60 +129,41 @@ func (m *InstanceManager) checkHealth(autoRestart bool) {
 
 		inst.mu.RLock()
 		state := inst.state
-		pid := inst.pid
+		lastErr := inst.lastError
 		inst.mu.RUnlock()
 
-		if state == "running" || state == "busy" {
-			// Check if process is still alive
-			if pid > 0 {
-				alive := isProcessAliveByPID(pid)
-				if !alive {
-					log.Printf("[HealthMonitor] Instance %s (PID %d) crashed!", id, pid)
-					inst.mu.Lock()
-					inst.state = "error"
-					inst.lastError = "process crashed (detected by health monitor)"
-					inst.mu.Unlock()
-
-					if inst.logs != nil {
-						inst.logs.Add("error", "Process crashed, detected by health monitor")
-					}
-
-					if autoRestart {
-						log.Printf("[HealthMonitor] Auto-restarting instance %s", id)
-						if inst.logs != nil {
-							inst.logs.Add("info", "Auto-restarting...")
-						}
-						go func(instanceID string) {
-							_ = m.Stop(instanceID)
-							time.Sleep(1 * time.Second)
-							_ = m.Start(instanceID)
-						}(id)
-					}
-				}
+		// Only auto-restart instances that are in error state
+		// (set by waitForExit when process actually exits unexpectedly)
+		if state == models.StateError && autoRestart && lastErr != "" {
+			log.Printf("[HealthMonitor] Instance %s in error state: %s", id, lastErr)
+			if inst.logs != nil {
+				inst.logs.Add("info", "Auto-restarting...")
 			}
+			go func(instanceID string) {
+				_ = m.Stop(instanceID)
+				time.Sleep(1 * time.Second)
+				_ = m.Start(instanceID)
+			}(id)
 		}
 	}
 }
 
+// isProcessAliveByPID checks if a process is still running (Unix only, used as fallback).
 func isProcessAliveByPID(pid int) bool {
-	if runtime.GOOS == "windows" {
-		// On Windows, FindProcess always succeeds. Open the process handle to check.
-		proc, err := os.FindProcess(pid)
-		if err != nil {
-			return false
-		}
-		// Sending signal 0 on Windows is not supported, but we can try Signal(nil)
-		// which returns an error if process doesn't exist
-		err = proc.Signal(os.Signal(nil))
-		return err == nil
+	if pid <= 0 {
+		return false
 	}
-	// Unix: send signal 0
 	proc, err := os.FindProcess(pid)
 	if err != nil {
 		return false
 	}
-	err = proc.Signal(os.Signal(nil))
-	return err == nil
+	// Only works reliably on Unix
+	if runtime.GOOS != "windows" {
+		err = proc.Signal(os.Signal(nil))
+		return err == nil
+	}
+	_ = proc
+	return true
 }
 
 // GetHealthStatus returns health info for all instances.

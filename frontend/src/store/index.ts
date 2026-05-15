@@ -227,7 +227,6 @@ export const useStore = create<AppState>((set, get) => ({
     // Save current instance's messages before switching
     const prevId = get().activeInstanceId;
     if (prevId && prevId !== id) {
-      // Finalize any streaming messages so they are not filtered out by saveMessages
       const msgs = get().messages.map(m =>
         m.status === 'streaming' ? { ...m, status: 'done' as const } : m
       );
@@ -238,6 +237,51 @@ export const useStore = create<AppState>((set, get) => ({
     set({ activeInstanceId: id, messages: cached });
     // Always connect WebSocket when selecting an instance
     get().connectWs(id);
+    // If no cached messages, try to recover from latest session file
+    if (cached.length === 0) {
+      fetch(`${API_BASE}/instances/${id}/sessions`)
+        .then(r => r.ok ? r.json() : [])
+        .then(sessions => {
+          if (sessions && sessions.length > 0) {
+            const latest = sessions[0];
+            fetch(`${API_BASE}/instances/${id}/sessions/${encodeURIComponent(latest.filename || latest.name)}`)
+              .then(r => r.ok ? r.text() : '')
+              .then(text => {
+                if (text && get().activeInstanceId === id && get().messages.length === 0) {
+                  // Parse session log into messages
+                  const lines = text.split('\n');
+                  const msgs: ChatMessage[] = [];
+                  let currentRole: 'user' | 'agent' | null = null;
+                  let content = '';
+                  for (const line of lines) {
+                    if (line.startsWith('=== Prompt ===')) {
+                      if (currentRole && content.trim()) {
+                        msgs.push({ role: currentRole, content: content.trim(), status: 'done' });
+                      }
+                      currentRole = 'user';
+                      content = '';
+                    } else if (line.startsWith('=== Response ===')) {
+                      if (currentRole && content.trim()) {
+                        msgs.push({ role: currentRole, content: content.trim(), status: 'done' });
+                      }
+                      currentRole = 'agent';
+                      content = '';
+                    } else if (currentRole) {
+                      content += line + '\n';
+                    }
+                  }
+                  if (currentRole && content.trim()) {
+                    msgs.push({ role: currentRole, content: content.trim(), status: 'done' });
+                  }
+                  if (msgs.length > 0) {
+                    set({ messages: msgs.slice(-200) });
+                    saveMessages(id, msgs.slice(-200));
+                  }
+                }
+              }).catch(() => {});
+          }
+        }).catch(() => {});
+    }
   },
 
   toggleInstance: async (id: string) => {
