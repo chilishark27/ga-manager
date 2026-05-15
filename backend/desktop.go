@@ -45,6 +45,8 @@ func onSystrayReady(port int) {
 	systray.AddSeparator()
 	mQuit := systray.AddMenuItem("退出", "退出 GA Manager")
 
+	go launchAppWindow(port)
+
 	go func() {
 		for {
 			select {
