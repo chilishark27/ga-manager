@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 const API = '/api/conductor';
 
@@ -27,6 +29,7 @@ function ConductorPage() {
   const [newPrompt, setNewPrompt] = useState('');
   const [chatInput, setChatInput] = useState('');
   const [actionInput, setActionInput] = useState<Record<string, string>>({});
+  const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
   const wsRef = useRef<WebSocket | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -234,15 +237,35 @@ function ConductorPage() {
               No subagents yet. Create one above.
             </p>
           )}
-          {subagents.map(sa => (
-            <div key={sa.id} className={`conductor-agent-card ${sa.status}`}>
+          {subagents.map(sa => {
+            const isExpanded = expandedAgents.has(sa.id);
+            const timeSince = sa.updated_at ? Math.round((Date.now() / 1000 - sa.updated_at)) : 0;
+            const timeLabel = timeSince < 60 ? `${timeSince}s ago` : timeSince < 3600 ? `${Math.floor(timeSince / 60)}m ago` : `${Math.floor(timeSince / 3600)}h ago`;
+            const isRecent = timeSince < 30;
+            // Use prompt as name — short prompts are role names, long ones get truncated
+            const name = sa.prompt.length <= 20 ? sa.prompt : sa.prompt.slice(0, 20) + '...';
+            return (
+            <div key={sa.id} className={`conductor-agent-card ${sa.status} ${isRecent ? 'recent' : ''}`}>
               <div className="conductor-agent-header">
                 <span className={`conductor-agent-dot ${sa.status}`} />
-                <span className="conductor-agent-id">{sa.id.slice(0, 6)}</span>
+                <span className="conductor-agent-name">{name}</span>
+                <span className="conductor-agent-time">{timeLabel}</span>
                 <span className={`conductor-agent-status ${sa.status}`}>{sa.status}</span>
               </div>
-              <div className="conductor-agent-prompt">{sa.prompt.slice(0, 80)}{sa.prompt.length > 80 ? '...' : ''}</div>
-              {sa.reply && <div className="conductor-agent-reply">{sa.reply.slice(0, 120)}{sa.reply.length > 120 ? '...' : ''}</div>}
+              {sa.prompt.length > 20 && (
+                <div className="conductor-agent-prompt-full">{sa.prompt}</div>
+              )}
+              {sa.reply && (
+                <div className="conductor-agent-reply" onClick={() => {
+                  setExpandedAgents(prev => {
+                    const next = new Set(prev);
+                    if (next.has(sa.id)) next.delete(sa.id); else next.add(sa.id);
+                    return next;
+                  });
+                }}>
+                  {isExpanded ? sa.reply : (sa.reply.slice(0, 150) + (sa.reply.length > 150 ? ' ▸' : ''))}
+                </div>
+              )}
               <div className="conductor-agent-actions">
                 <input
                   className="conductor-action-input"
@@ -254,7 +277,8 @@ function ConductorPage() {
                 <button className="conductor-action-btn" onClick={() => doAction(sa.id, 'abort')}>Abort</button>
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -273,7 +297,13 @@ function ConductorPage() {
           {chat.map(m => (
             <div key={m.id} className={`conductor-chat-msg ${m.role}`}>
               <span className="conductor-chat-role">{m.role}</span>
-              <span className="conductor-chat-text">{m.msg}</span>
+              {m.role === 'user' ? (
+                <span className="conductor-chat-text">{m.msg}</span>
+              ) : (
+                <div className="conductor-chat-text markdown">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.msg}</ReactMarkdown>
+                </div>
+              )}
             </div>
           ))}
           <div ref={chatEndRef} />
