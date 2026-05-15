@@ -3,12 +3,12 @@ import { createPortal } from 'react-dom';
 import { useStore } from '../store';
 import { useI18n } from '../i18n';
 
-const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings'; icon: string; label: string }[] = [
-  { key: 'chat', icon: 'C', label: 'Chat' },
-  { key: 'conductor', icon: 'O', label: 'Orch' },
-  { key: 'monitor', icon: 'M', label: 'Monitor' },
-  { key: 'skills', icon: 'S', label: 'Skills' },
-  { key: 'settings', icon: '⚙', label: 'Settings' },
+const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings'; label: string }[] = [
+  { key: 'chat', label: 'Chat' },
+  { key: 'conductor', label: 'Orch' },
+  { key: 'monitor', label: 'Monitor' },
+  { key: 'skills', label: 'Skills' },
+  { key: 'settings', label: 'Settings' },
 ];
 
 function NavBar() {
@@ -30,6 +30,28 @@ function NavBar() {
   const [adoptPort, setAdoptPort] = useState(0);
   const [adoptGaRoot, setAdoptGaRoot] = useState('D:\\python3_project\\GenericAgent');
 
+  // Resizable nav
+  const [navWidth, setNavWidth] = useState(72);
+  const [isResizing, setIsResizing] = useState(false);
+
+  const handleResizeMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    const startX = e.clientX;
+    const startWidth = navWidth;
+    const onMouseMove = (ev: MouseEvent) => {
+      const newWidth = Math.max(60, Math.min(200, startWidth + ev.clientX - startX));
+      setNavWidth(newWidth);
+    };
+    const onMouseUp = () => {
+      setIsResizing(false);
+      document.removeEventListener('mousemove', onMouseMove);
+      document.removeEventListener('mouseup', onMouseUp);
+    };
+    document.addEventListener('mousemove', onMouseMove);
+    document.addEventListener('mouseup', onMouseUp);
+  };
+
   const handleCreate = async () => {
     const name = newName.trim() || `GA-${instances.length + 1}`;
     localStorage.setItem('ga_root', gaRoot);
@@ -39,27 +61,34 @@ function NavBar() {
     setShowCreate(false);
   };
 
-  const getDotClass = (inst: { status: string; health: string }) => {
-    if (inst.status !== 'running' && inst.status !== 'busy' && inst.status !== 'starting') return 'nav-dot gray';
-    if (inst.health === 'warning') return 'nav-dot yellow';
-    if (inst.health === 'error') return 'nav-dot red';
-    return 'nav-dot green';
+  const getInstClass = (inst: { status: string; health: string }) => {
+    if (inst.status === 'running' || inst.status === 'busy' || inst.status === 'starting') {
+      if (inst.health === 'error') return 'error';
+      return 'running';
+    }
+    return 'stopped';
   };
 
   const getStatusText = (status: string) => {
-    if (status === 'running' || status === 'busy') return 'run';
-    if (status === 'starting') return 'init';
-    return 'off';
+    if (status === 'running' || status === 'busy') return 'running';
+    if (status === 'starting') return 'starting';
+    return 'stopped';
   };
 
   return (
-    <div className="nav-bar">
+    <div className="nav-bar" style={{ width: navWidth, minWidth: navWidth, position: 'relative' }}>
+      {/* Resize handle */}
+      <div
+        className={`nav-resize-handle ${isResizing ? 'dragging' : ''}`}
+        onMouseDown={handleResizeMouseDown}
+      />
+
       {/* Logo */}
       <div className="nav-logo">
         <img src="/app.png?v=2" alt="GA" className="nav-logo-img" />
       </div>
 
-      {/* Navigation Items */}
+      {/* Navigation Items - text buttons */}
       <div className="nav-items">
         {NAV_ITEMS.map(item => (
           <div
@@ -68,8 +97,7 @@ function NavBar() {
             onClick={() => setPage(item.key)}
             title={item.label}
           >
-            <span className="nav-item-icon">{item.icon}</span>
-            <span className="nav-item-label">{item.label}</span>
+            <span className="nav-item-text">{item.label}</span>
           </div>
         ))}
       </div>
@@ -83,11 +111,10 @@ function NavBar() {
           {instances.map(inst => (
             <div
               key={inst.id}
-              className={`nav-inst-item ${inst.id === activeInstanceId ? 'active' : ''}`}
+              className={`nav-inst-item ${getInstClass(inst)} ${inst.id === activeInstanceId ? 'active' : ''}`}
               onClick={() => selectInstance(inst.id)}
               title={`${inst.name} (${inst.status})`}
             >
-              <span className={getDotClass(inst)} />
               <span className="nav-inst-name">{inst.name}</span>
               <span className="nav-inst-status">{getStatusText(inst.status)}</span>
             </div>
@@ -98,8 +125,7 @@ function NavBar() {
         {discoveredInstances.length > 0 && (
           <div className="nav-discovered">
             {discoveredInstances.map(d => (
-              <div key={d.port} className="nav-inst-item discovered" onClick={() => { setAdoptPort(d.port); setShowAdopt(true); }}>
-                <span className="nav-dot green" />
+              <div key={d.port} className="nav-inst-item discovered running" onClick={() => { setAdoptPort(d.port); setShowAdopt(true); }}>
                 <span className="nav-inst-name">:{d.port}</span>
               </div>
             ))}

@@ -57,70 +57,56 @@ function MonitorPage() {
     <div className="monitor-page">
       <div className="page-container">
         <h2 className="page-header">Monitor</h2>
-        <div className="page-grid">
-          {/* Token Stats Card */}
-          <div className="page-card">
-            <div className="page-card-title">Token Stats</div>
-            {tokenStats ? (
-              <>
-                <div className="token-stats-grid">
-                  <div className="token-stat-item">
-                    <span className="token-stat-label">Input</span>
-                    <span className="token-stat-value">{((tokenStats.input_tokens || 0) / 1000).toFixed(1)}K</span>
-                  </div>
-                  <div className="token-stat-item">
-                    <span className="token-stat-label">Output</span>
-                    <span className="token-stat-value">{((tokenStats.output_tokens || 0) / 1000).toFixed(1)}K</span>
-                  </div>
-                  <div className="token-stat-item">
-                    <span className="token-stat-label">Cache Hit</span>
-                    <span className="token-stat-value">{(tokenStats.cache_hit_rate || 0).toFixed(1)}%</span>
-                  </div>
-                  <div className="token-stat-item">
-                    <span className="token-stat-label">Turns</span>
-                    <span className="token-stat-value">{tokenStats.total_turns || 0}</span>
-                  </div>
-                </div>
-                {tokenStats.history && tokenStats.history.length > 0 && (
-                  <div className="token-history-bar">
-                    {tokenStats.history.slice(-20).map((h: any, i: number) => (
-                      <div key={i} className="token-bar-item" style={{ height: `${Math.min(100, Math.max(4, (h.input_tokens + h.output_tokens) / 100))}%` }} title={`${h.input_tokens + h.output_tokens} tokens`} />
-                    ))}
-                  </div>
-                )}
-              </>
-            ) : (
-              <p style={{ color: 'var(--text-3)', fontSize: '13px' }}>Loading...</p>
-            )}
-          </div>
 
-          {/* Resource Usage Card */}
-          <div className="page-card">
-            <div className="page-card-title">Resource Usage</div>
-            {resources.length === 0 ? (
-              <p style={{ color: 'var(--text-3)', fontSize: '13px' }}>{t.loading}</p>
-            ) : (
-              resources.map((r, i) => (
-                <div key={i} className="resource-row">
-                  <span className="resource-label">
-                    {r.type === 'cpu' ? 'CPU' : r.type === 'memory' ? 'MEM' : 'DISK'}
-                  </span>
-                  <div className="resource-bar">
-                    <div
-                      className={`resource-fill ${r.usage > 80 ? 'danger' : r.usage > 60 ? 'warn' : ''}`}
-                      style={{ width: `${r.usage}%` }}
-                    />
-                  </div>
-                  <span className="resource-pct" style={{ color: r.usage > 80 ? 'var(--red)' : 'var(--text-2)' }}>
-                    {r.detail}
-                  </span>
-                </div>
-              ))
-            )}
+        {/* Top row: 4 token stat cards */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
+          <div className="token-stat-item">
+            <span className="token-stat-label">Input</span>
+            <span className="token-stat-value">{tokenStats ? `${((tokenStats.input_tokens || 0) / 1000).toFixed(1)}K` : '-'}</span>
           </div>
+          <div className="token-stat-item">
+            <span className="token-stat-label">Output</span>
+            <span className="token-stat-value">{tokenStats ? `${((tokenStats.output_tokens || 0) / 1000).toFixed(1)}K` : '-'}</span>
+          </div>
+          <div className="token-stat-item">
+            <span className="token-stat-label">Cache Hit</span>
+            <span className="token-stat-value">{tokenStats ? `${(tokenStats.cache_hit_rate || 0).toFixed(1)}%` : '-'}</span>
+          </div>
+          <div className="token-stat-item">
+            <span className="token-stat-label">Turns</span>
+            <span className="token-stat-value">{tokenStats ? (tokenStats.total_turns || 0) : '-'}</span>
+          </div>
+        </div>
 
-          {/* Scheduled Tasks Card */}
-          <div className="page-card" style={{ gridColumn: 'span 2' }}>
+        {/* Resource bars in a single card */}
+        <div className="page-card" style={{ marginBottom: '16px' }}>
+          <div className="page-card-title">Resource Usage</div>
+          {resources.length === 0 ? (
+            <p style={{ color: 'var(--text-3)', fontSize: '13px' }}>{t.loading}</p>
+          ) : (
+            resources.map((r, i) => (
+              <div key={i} className="resource-row">
+                <span className="resource-label">
+                  {r.type === 'cpu' ? 'CPU' : r.type === 'memory' ? 'MEM' : 'DISK'}
+                </span>
+                <div className="resource-bar">
+                  <div
+                    className={`resource-fill ${r.usage > 80 ? 'danger' : r.usage > 60 ? 'warn' : ''}`}
+                    style={{ width: `${r.usage}%` }}
+                  />
+                </div>
+                <span className="resource-pct" style={{ color: r.usage > 80 ? 'var(--red)' : 'var(--text-2)' }}>
+                  {r.detail}
+                </span>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Two columns: Scheduled Tasks + Health Status */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+          {/* Scheduled Tasks */}
+          <div className="page-card">
             <div className="page-card-title">Scheduled Tasks</div>
             <div className="schedule-add-form">
               <div className="cron-presets-row">
@@ -135,9 +121,9 @@ function MonitorPage() {
                 ))}
               </div>
               <div className="schedule-input-row">
-                <input className="rp-input" placeholder="Cron expression" value={schedCron} onChange={e => setSchedCron(e.target.value)} style={{ fontFamily: 'monospace' }} />
-                <input className="rp-input" placeholder="Task description" value={schedTask} onChange={e => setSchedTask(e.target.value)} />
-                <button className="action-btn" onClick={() => {
+                <input className="rp-input" placeholder="Cron" value={schedCron} onChange={e => setSchedCron(e.target.value)} style={{ fontFamily: 'monospace', flex: 1 }} />
+                <input className="rp-input" placeholder="Task" value={schedTask} onChange={e => setSchedTask(e.target.value)} style={{ flex: 1 }} />
+                <button className="btn-primary btn-sm" onClick={() => {
                   if (schedCron && schedTask && id) {
                     addSchedule(id, schedCron, schedTask);
                     setSchedCron('');
@@ -145,11 +131,11 @@ function MonitorPage() {
                   } else {
                     showToast('Fill cron and task');
                   }
-                }}>+ Add</button>
+                }}>+</button>
               </div>
             </div>
             {schedules.length === 0 ? (
-              <p style={{ color: 'var(--text-3)', fontSize: '13px', padding: '12px 0' }}>No scheduled tasks</p>
+              <p style={{ color: 'var(--text-3)', fontSize: '13px', padding: '8px 0' }}>No scheduled tasks</p>
             ) : (
               <div className="schedule-list">
                 {schedules.map(s => (
@@ -157,7 +143,6 @@ function MonitorPage() {
                     <div className="schedule-info">
                       <span className="schedule-cron">{s.cron}</span>
                       <span className="schedule-action">{s.task}</span>
-                      {s.next_run && <span style={{ fontSize: '11px', color: 'var(--text-3)' }}>Next: {s.next_run}</span>}
                     </div>
                     <button className="schedule-del" onClick={() => id && deleteSchedule(id, s.id)}>x</button>
                   </div>
@@ -166,7 +151,7 @@ function MonitorPage() {
             )}
           </div>
 
-          {/* Health Status Card */}
+          {/* Health Status */}
           <div className="page-card">
             <div className="page-card-title">Health Status</div>
             <div className="health-info">
@@ -192,36 +177,39 @@ function MonitorPage() {
               </div>
             </div>
           </div>
+        </div>
 
-          {/* Vision Screenshots Card */}
-          {screenshots.length > 0 && (
-            <div className="page-card">
-              <div className="page-card-title">Vision ({screenshots.length})</div>
-              <div className="screenshot-grid">
-                {screenshots.slice(0, 6).map((s: any) => (
-                  <div key={s.name} className="screenshot-thumb" onClick={() => window.open(`/api/instances/${id}/screenshots/${s.name}`, '_blank')}>
-                    <img src={`/api/instances/${id}/screenshots/${s.name}`} alt={s.name} loading="lazy" />
-                    <span>{s.name.slice(0, 12)}</span>
+        {/* Vision screenshots + ADB devices */}
+        {(screenshots.length > 0 || adbDevices.length > 0) && (
+          <div style={{ display: 'grid', gridTemplateColumns: screenshots.length > 0 && adbDevices.length > 0 ? '1fr 1fr' : '1fr', gap: '16px' }}>
+            {screenshots.length > 0 && (
+              <div className="page-card">
+                <div className="page-card-title">Vision ({screenshots.length})</div>
+                <div className="screenshot-grid">
+                  {screenshots.slice(0, 6).map((s: any) => (
+                    <div key={s.name} className="screenshot-thumb" onClick={() => window.open(`/api/instances/${id}/screenshots/${s.name}`, '_blank')}>
+                      <img src={`/api/instances/${id}/screenshots/${s.name}`} alt={s.name} loading="lazy" />
+                      <span>{s.name.slice(0, 12)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {adbDevices.length > 0 && (
+              <div className="page-card">
+                <div className="page-card-title">ADB Devices ({adbDevices.length})</div>
+                {adbDevices.map((dev: any) => (
+                  <div key={dev.serial} className="adb-device-item">
+                    <span className={`adb-status ${dev.state === 'device' ? 'online' : ''}`} />
+                    <span className="adb-name">{dev.model || dev.serial}</span>
+                    <span className="adb-serial">{dev.serial}</span>
                   </div>
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* ADB Devices Card */}
-          {adbDevices.length > 0 && (
-            <div className="page-card">
-              <div className="page-card-title">ADB Devices ({adbDevices.length})</div>
-              {adbDevices.map((dev: any) => (
-                <div key={dev.serial} className="adb-device-item">
-                  <span className={`adb-status ${dev.state === 'device' ? 'online' : ''}`} />
-                  <span className="adb-name">{dev.model || dev.serial}</span>
-                  <span className="adb-serial">{dev.serial}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -58,102 +58,105 @@ function SettingsPage() {
     <div className="settings-page">
       <div className="page-container">
         <h2 className="page-header">Settings</h2>
-        <div className="page-grid">
-          {/* mykey.py Editor */}
-          <div className="page-card" style={{ gridColumn: 'span 2' }}>
-            <div className="page-card-title">mykey.py Editor</div>
-            <p style={{ fontSize: '12px', color: 'var(--text-3)', marginBottom: '10px' }}>
-              LLM API keys configuration file. Format: variable_name = "key_value"
-            </p>
-            {mykeyLoading ? (
-              <p style={{ color: 'var(--text-3)' }}>Loading...</p>
-            ) : (
-              <textarea
-                className="settings-textarea"
-                value={mykeyContent}
-                onChange={e => setMykeyContent(e.target.value)}
-                placeholder={'# mykey.py\nclaude47 = "sk-ant-xxx..."\nclaude47_apibase = "https://api.anthropic.com"'}
-                rows={12}
-              />
-            )}
-            <button className="action-btn" style={{ marginTop: '10px' }} onClick={saveMykey}>Save mykey.py</button>
+
+        {/* Top row: Theme + Language + App Config in one horizontal row */}
+        <div style={{ display: 'flex', gap: '12px', marginBottom: '16px', flexWrap: 'wrap' }}>
+          {/* Theme card */}
+          <div className="page-card" style={{ flex: '1', minWidth: '160px' }}>
+            <div className="page-card-title">Theme</div>
+            <div className="settings-toggle-row">
+              <button
+                className={`pill-btn ${theme === 'dark' ? 'active' : ''}`}
+                onClick={() => { if (theme !== 'dark') toggleTheme(); }}
+              >
+                Dark
+              </button>
+              <button
+                className={`pill-btn ${theme === 'light' ? 'active' : ''}`}
+                onClick={() => { if (theme !== 'light') toggleTheme(); }}
+              >
+                Light
+              </button>
+            </div>
           </div>
 
-          {/* App Config */}
-          <div className="page-card">
+          {/* Language card */}
+          <div className="page-card" style={{ flex: '1', minWidth: '160px' }}>
+            <div className="page-card-title">Language</div>
+            <div className="settings-toggle-row">
+              <button
+                className={`pill-btn ${lang === 'en' ? 'active' : ''}`}
+                onClick={() => setLang('en')}
+              >
+                English
+              </button>
+              <button
+                className={`pill-btn ${lang === 'zh' ? 'active' : ''}`}
+                onClick={() => setLang('zh')}
+              >
+                Chinese
+              </button>
+            </div>
+          </div>
+
+          {/* App Config card */}
+          <div className="page-card" style={{ flex: '2', minWidth: '280px' }}>
             <div className="page-card-title">App Configuration</div>
-            <div className="settings-field">
-              <label>GA Root Path</label>
-              <input className="rp-input" value={gaPath} onChange={e => setGaPath(e.target.value)} />
-            </div>
-            <div className="settings-field">
-              <label>Python Path</label>
-              <input className="rp-input" value={pythonPath} onChange={e => setPythonPath(e.target.value)} />
-            </div>
-            <div className="settings-field">
-              <label>Manager Port</label>
-              <input className="rp-input" value={port} onChange={e => setPort(e.target.value)} />
-            </div>
-            <button className="action-btn" style={{ marginTop: '10px' }} onClick={saveAppConfig}>Save Config</button>
-          </div>
-
-          {/* Theme Toggle */}
-          <div className="page-card">
-            <div className="page-card-title">Appearance</div>
-            <div className="settings-field">
-              <label>Theme</label>
-              <div className="settings-toggle-row">
-                <button
-                  className={`pill-btn ${theme === 'dark' ? 'active' : ''}`}
-                  onClick={() => { if (theme !== 'dark') toggleTheme(); }}
-                >
-                  Dark
-                </button>
-                <button
-                  className={`pill-btn ${theme === 'light' ? 'active' : ''}`}
-                  onClick={() => { if (theme !== 'light') toggleTheme(); }}
-                >
-                  Light
-                </button>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+              <div style={{ flex: '1', minWidth: '120px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-3)', marginBottom: '4px' }}>GA Root</label>
+                <input className="rp-input" value={gaPath} onChange={e => setGaPath(e.target.value)} style={{ width: '100%' }} />
               </div>
-            </div>
-            <div className="settings-field">
-              <label>Language</label>
-              <div className="settings-toggle-row">
-                <button
-                  className={`pill-btn ${lang === 'en' ? 'active' : ''}`}
-                  onClick={() => setLang('en')}
-                >
-                  English
-                </button>
-                <button
-                  className={`pill-btn ${lang === 'zh' ? 'active' : ''}`}
-                  onClick={() => setLang('zh')}
-                >
-                  Chinese
-                </button>
+              <div style={{ flex: '1', minWidth: '100px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-3)', marginBottom: '4px' }}>Python</label>
+                <input className="rp-input" value={pythonPath} onChange={e => setPythonPath(e.target.value)} style={{ width: '100%' }} />
               </div>
-            </div>
-          </div>
-
-          {/* LLM Configs Overview */}
-          <div className="page-card">
-            <div className="page-card-title">LLM Configurations</div>
-            {llmConfigs.length === 0 ? (
-              <p style={{ color: 'var(--text-3)', fontSize: '12px' }}>No LLM configs found. Configure mykey.py first.</p>
-            ) : (
-              <div className="settings-llm-list">
-                {llmConfigs.map(cfg => (
-                  <div key={cfg.index} className="settings-llm-item">
-                    <span className="settings-llm-idx">#{cfg.index}</span>
-                    <span className="settings-llm-name">{cfg.name}</span>
-                    <span className="settings-llm-type">{cfg.type}</span>
-                  </div>
-                ))}
+              <div style={{ minWidth: '70px' }}>
+                <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-3)', marginBottom: '4px' }}>Port</label>
+                <input className="rp-input" value={port} onChange={e => setPort(e.target.value)} style={{ width: '70px' }} />
               </div>
-            )}
+              <button className="btn-primary btn-sm" onClick={saveAppConfig}>Save</button>
+            </div>
           </div>
         </div>
+
+        {/* mykey.py Editor - full width */}
+        <div className="page-card" style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '10px' }}>
+            <div className="page-card-title" style={{ marginBottom: 0 }}>mykey.py Editor</div>
+            <button className="btn-primary btn-sm" onClick={saveMykey}>Save mykey.py</button>
+          </div>
+          <p style={{ fontSize: '12px', color: 'var(--text-3)', marginBottom: '10px' }}>
+            LLM API keys configuration file. Format: variable_name = "key_value"
+          </p>
+          {mykeyLoading ? (
+            <p style={{ color: 'var(--text-3)' }}>Loading...</p>
+          ) : (
+            <textarea
+              className="settings-textarea"
+              value={mykeyContent}
+              onChange={e => setMykeyContent(e.target.value)}
+              placeholder={'# mykey.py\nclaude47 = "sk-ant-xxx..."\nclaude47_apibase = "https://api.anthropic.com"'}
+              style={{ minHeight: '280px' }}
+            />
+          )}
+        </div>
+
+        {/* LLM Configs Overview */}
+        {llmConfigs.length > 0 && (
+          <div className="page-card">
+            <div className="page-card-title">LLM Configurations</div>
+            <div className="settings-llm-list">
+              {llmConfigs.map(cfg => (
+                <div key={cfg.index} className="settings-llm-item">
+                  <span className="settings-llm-idx">#{cfg.index}</span>
+                  <span className="settings-llm-name">{cfg.name}</span>
+                  <span className="settings-llm-type">{cfg.type}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

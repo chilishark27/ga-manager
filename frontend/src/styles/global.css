@@ -56,32 +56,33 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .app-main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; overflow: hidden; }
 .app-content { flex: 1; overflow: auto; display: flex; flex-direction: column; padding: 24px; }
 
-/* ===== NavBar (Left 72px) ===== */
-.nav-bar { width: 72px; min-width: 72px; height: 100vh; background: var(--sidebar-bg); backdrop-filter: blur(16px); display: flex; flex-direction: column; border-right: 1px solid var(--border); flex-shrink: 0; overflow: hidden; }
+/* ===== NavBar (Left, resizable) ===== */
+.nav-bar { width: 72px; min-width: 60px; height: 100vh; background: var(--sidebar-bg); backdrop-filter: blur(16px); display: flex; flex-direction: column; border-right: 1px solid var(--border); flex-shrink: 0; overflow: hidden; position: relative; }
+.nav-resize-handle { position: absolute; top: 0; right: -3px; width: 6px; height: 100%; cursor: col-resize; z-index: 10; }
+.nav-resize-handle:hover, .nav-resize-handle.dragging { background: var(--accent); opacity: 0.4; }
 .nav-logo { display: flex; align-items: center; justify-content: center; height: 56px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .nav-logo-img { width: 28px; height: 28px; border-radius: 6px; }
-.nav-items { display: flex; flex-direction: column; gap: 6px; padding: 12px 8px; flex-shrink: 0; }
-.nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 44px; border-radius: 8px; cursor: pointer; transition: all 0.2s; position: relative; gap: 2px; }
+.nav-items { display: flex; flex-direction: column; gap: 4px; padding: 12px 6px; flex-shrink: 0; }
+.nav-item { display: flex; flex-direction: column; align-items: center; justify-content: center; height: auto; padding: 10px 8px; border-radius: 8px; cursor: pointer; transition: all 0.2s; position: relative; }
 .nav-item:hover { background: var(--sidebar-hover); }
 .nav-item.active { background: rgba(102, 126, 234, 0.12); }
 .nav-item.active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 20px; background: var(--gradient); border-radius: 0 3px 3px 0; }
-.nav-item-icon { font-size: 16px; font-weight: 800; color: var(--text-2); transition: color 0.2s; }
-.nav-item.active .nav-item-icon { color: var(--accent); }
-.nav-item-label { font-size: 9px; color: var(--text-3); line-height: 1; letter-spacing: 0.5px; text-transform: uppercase; }
-.nav-item.active .nav-item-label { color: var(--accent); }
+.nav-item-text { font-size: 11px; font-weight: 600; color: var(--text-2); text-align: center; transition: color 0.2s; }
+.nav-item.active .nav-item-text { color: var(--accent); }
 
 /* NavBar Instance List */
 .nav-instances { flex: 1; display: flex; flex-direction: column; min-height: 0; border-top: 1px solid var(--border); margin-top: auto; }
 .nav-instances-header { padding: 6px 4px; text-align: center; flex-shrink: 0; }
 .nav-instances-title { font-size: 9px; color: var(--text-3); font-weight: 600; text-transform: uppercase; }
-.nav-instances-list { flex: 1; overflow-y: auto; padding: 4px 6px; display: flex; flex-direction: column; gap: 3px; }
-.nav-inst-item { display: flex; align-items: center; gap: 4px; padding: 6px 8px; border-radius: 6px; cursor: pointer; transition: all 0.15s; overflow: hidden; }
-.nav-inst-item:hover { background: var(--sidebar-hover); }
-.nav-inst-item.active { background: rgba(102, 126, 234, 0.18); border: 1px solid rgba(102, 126, 234, 0.25); }
-.nav-inst-item.active::before { content: ''; position: absolute; left: 0; width: 2px; height: 14px; background: var(--accent); border-radius: 0 2px 2px 0; }
+.nav-instances-list { flex: 1; overflow-y: auto; padding: 4px 6px; display: flex; flex-direction: column; gap: 4px; }
+.nav-inst-item { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px; border-left: 3px solid var(--text-3); margin-bottom: 0; background: var(--bg3); cursor: pointer; transition: all 0.15s; overflow: hidden; }
+.nav-inst-item:hover { background: var(--sidebar-hover); border-left-color: var(--text-2); }
+.nav-inst-item.running { border-left-color: var(--green); }
+.nav-inst-item.error { border-left-color: var(--red); }
+.nav-inst-item.active { background: rgba(102,126,234,0.12); border-left-color: var(--accent); }
 .nav-inst-name { font-size: 11px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .nav-inst-item.active .nav-inst-name { color: var(--accent); font-weight: 600; }
-.nav-inst-status { font-size: 9px; color: var(--text-3); margin-left: auto; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
+.nav-inst-status { font-size: 9px; color: var(--text-3); font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; }
 .nav-inst-item.active .nav-inst-status { color: var(--accent); }
 .nav-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .nav-dot.green { background: var(--green); box-shadow: 0 0 4px var(--green); }
@@ -139,7 +140,19 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 
 .chat-page { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; padding: 0; margin: -24px; }
 .chat-toolbar { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-.conductor-page { display: flex; height: 100%; min-height: 0; overflow: hidden; margin: -24px; padding: 16px; }
+.conductor-page { display: flex; height: 100%; min-height: 0; overflow: hidden; margin: -24px; padding: 16px; align-items: center; justify-content: center; }
+.conductor-page.conductor-running { align-items: stretch; justify-content: stretch; }
+.conductor-center { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
+.conductor-loading-spinner { width: 32px; height: 32px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.conductor-left { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 0; overflow: hidden; }
+.conductor-right { width: 340px; min-width: 280px; display: flex; flex-direction: column; border-left: 1px solid var(--border); margin-left: 16px; padding-left: 16px; }
+.conductor-chat-header { padding: 8px 0; border-bottom: 1px solid var(--border); margin-bottom: 8px; display: flex; align-items: center; }
+.conductor-chat-messages-full { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; padding: 4px 0; }
+.conductor-chat-input-full { display: flex; gap: 4px; padding-top: 8px; border-top: 1px solid var(--border); }
+.conductor-chat-input-full input { flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-1); font-size: 12px; outline: none; }
+.conductor-chat-input-full input:focus { border-color: var(--accent); }
+.conductor-chat-input-full button { padding: 7px 14px; border-radius: 8px; border: none; background: var(--gradient); color: #fff; font-size: 12px; font-weight: 600; cursor: pointer; }
 .monitor-page { height: 100%; overflow-y: auto; }
 .monitor-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px; }
 .monitor-card { background: var(--card); backdrop-filter: blur(12px); border: 1px solid var(--border); border-radius: 14px; padding: 16px; transition: all 0.3s; }
@@ -590,13 +603,15 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 
 /* ===== Responsive ===== */
 @media (max-width: 900px) {
-  .nav-bar { width: 48px; min-width: 48px; }
-  .nav-item-label { display: none; }
+  .nav-bar { width: 48px !important; min-width: 48px !important; }
+  .nav-item-text { font-size: 9px; }
   .nav-inst-name { display: none; }
   .monitor-card-wide, .settings-card-wide { grid-column: span 1; }
+  .conductor-right { width: 240px; min-width: 200px; }
 }
 @media (max-width: 768px) {
-  .nav-bar { width: 40px; min-width: 40px; }
+  .nav-bar { width: 40px !important; min-width: 40px !important; }
   .skills-sidebar { width: 180px; min-width: 180px; }
   .monitor-grid, .settings-grid { grid-template-columns: 1fr; }
+  .conductor-right { display: none; }
 }
