@@ -2,8 +2,9 @@ import { useState, useEffect, useRef } from 'react';
 import { useStore } from '../store';
 import { useI18n } from '../i18n';
 import SkillTree from './SkillTree';
+import ConductorPanel from './ConductorPanel';
 
-type Section = 'resources' | 'features' | 'overview' | 'schedules' | 'sophub' | 'skilltree';
+type Section = 'resources' | 'features' | 'overview' | 'schedules' | 'sophub' | 'skilltree' | 'conductor';
 
 function RightPanel() {
   const {
@@ -159,6 +160,7 @@ function RightPanel() {
   const sections: { key: Section; icon: string; title: string }[] = [
     { key: 'resources', icon: 'Sys', title: t.systemResources || 'Resources' },
     { key: 'features', icon: 'Feat', title: t.featureToggles || 'Features' },
+    { key: 'conductor', icon: 'Orch', title: 'Conductor' },
     { key: 'skilltree', icon: 'Tree', title: 'Skill Tree' },
     { key: 'overview', icon: 'Info', title: t.tabOverview || 'Overview' },
     { key: 'schedules', icon: 'Sche', title: t.tabSchedules || 'Schedules' },
@@ -548,6 +550,12 @@ claude47_apibase = "https://your-proxy.com"
       {activeSection === 'skilltree' && (
         <div className="rp-card rp-tab-content" style={{ padding: '8px' }}>
           <SkillTree onNodeClick={(nodeId) => viewSop(nodeId)} highlightNode={null} />
+        </div>
+      )}
+
+      {activeSection === 'conductor' && (
+        <div className="rp-tab-content">
+          <ConductorPanel />
         </div>
       )}
 

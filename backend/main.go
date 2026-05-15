@@ -46,6 +46,7 @@ func main() {
 	visionHandler := handlers.NewVisionHandler(instanceMgr, cfg.GARoot)
 	adbHandler := handlers.NewADBHandler()
 	replayHandler := handlers.NewReplayHandler(cfg.GARoot)
+	conductorHandler := handlers.NewConductorHandler(cfg.GARoot, cfg.PythonPath)
 
 	// Setup routes
 	mux := http.NewServeMux()
@@ -117,6 +118,17 @@ func main() {
 	// Task replay
 	mux.HandleFunc("GET /api/instances/{id}/replay/sessions", replayHandler.ListSessions)
 	mux.HandleFunc("GET /api/instances/{id}/replay/{filename}", replayHandler.GetSession)
+
+	// Conductor (multi-agent orchestrator)
+	mux.HandleFunc("POST /api/conductor/start", conductorHandler.Start)
+	mux.HandleFunc("POST /api/conductor/stop", conductorHandler.Stop)
+	mux.HandleFunc("GET /api/conductor/status", conductorHandler.Status)
+	mux.HandleFunc("GET /api/conductor/subagents", conductorHandler.GetSubagents)
+	mux.HandleFunc("POST /api/conductor/subagents", conductorHandler.CreateSubagent)
+	mux.HandleFunc("POST /api/conductor/subagents/{sid}", conductorHandler.SubagentAction)
+	mux.HandleFunc("GET /api/conductor/chat", conductorHandler.GetChat)
+	mux.HandleFunc("POST /api/conductor/chat", conductorHandler.PostChat)
+	mux.HandleFunc("GET /api/conductor/ws", conductorHandler.WebSocketProxy)
 
 	// Configuration
 	mux.HandleFunc("GET /api/config/mykey", cfgHandler.GetMasked)

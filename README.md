@@ -388,7 +388,9 @@ Built on [GenericAgent](https://github.com/lsdefine/GenericAgent) by [@Ironman](
 
 GenericAgent is a self-evolving AI agent framework that grows its skill tree from a minimal seed, achieving full system control with remarkable token efficiency. GA Manager exists to give this powerful framework a friendly face — making it easy to spin up multiple agents, monitor their work, and let them collaborate without touching the command line.
 
-Thanks to Ironman and the GenericAgent community for building such an elegant and extensible agent system.
+The tool timeline UI and approval system are inspired by [Galley](https://github.com/wangjc683/galley) by [@wangjc683](https://github.com/wangjc683) — a beautifully designed local agent team orchestrator that pioneered structured tool call visualization and human-in-the-loop approval workflows for GenericAgent.
+
+Thanks to Ironman, wangjc683, and the GenericAgent community for building such an elegant and extensible agent ecosystem.
 
 ## License
 
