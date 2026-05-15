@@ -18,10 +18,6 @@
   <a href="#api-reference">API</a>
 </p>
 
-<p align="center">
-  <img src="screenshots/conductor.png" width="900" alt="Conductor - Multi-Agent Orchestration" />
-</p>
-
 ---
 
 ## Quick Start
