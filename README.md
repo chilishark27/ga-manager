@@ -176,7 +176,11 @@ These are all legitimate behaviors for a local development tool, but the combina
 
 ## Acknowledgments
 
-Built on [GenericAgent](https://github.com/lsdefine/GenericAgent) by [@lsdefine](https://github.com/lsdefine).
+Built on [GenericAgent](https://github.com/lsdefine/GenericAgent) by [@Ironman](https://github.com/lsdefine).
+
+GenericAgent is a self-evolving AI agent framework that grows its skill tree from a minimal seed, achieving full system control with remarkable token efficiency. GA Manager exists to give this powerful framework a friendly face — making it easy to spin up multiple agents, monitor their work, and let them collaborate without touching the command line.
+
+Thanks to Ironman and the GenericAgent community for building such an elegant and extensible agent system.
 
 ## License
 
