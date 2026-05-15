@@ -313,8 +313,12 @@ function RightPanel() {
 
           {/* Screenshots */}
           {screenshots.length > 0 && (
-            <div className="rp-card" style={{ marginTop: '8px' }}>
-              <h5 style={{ marginBottom: '8px' }}>Vision</h5>
+            <div className="rp-card vision-card" style={{ marginTop: '8px' }}>
+              <div className="vision-header">
+                <h5>Vision</h5>
+                <span className="vision-badge">{screenshots.length}</span>
+              </div>
+              <p className="vision-desc">Agent 的屏幕视觉 — 查看它在操作时看到的画面</p>
               <div className="screenshot-grid">
                 {screenshots.slice(0, 6).map((s: any) => (
                   <div key={s.name} className="screenshot-thumb" onClick={() => window.open(`/api/instances/${id}/screenshots/${s.name}`, '_blank')}>
@@ -328,8 +332,11 @@ function RightPanel() {
 
           {/* ADB Devices */}
           {adbDevices.length > 0 && (
-            <div className="rp-card" style={{ marginTop: '8px' }}>
-              <h5 style={{ marginBottom: '8px' }}>ADB Devices</h5>
+            <div className="rp-card adb-card" style={{ marginTop: '8px' }}>
+              <div className="vision-header">
+                <h5>ADB Devices</h5>
+                <span className="vision-badge adb">{adbDevices.length}</span>
+              </div>
               {adbDevices.map((dev: any) => (
                 <div key={dev.serial} className="adb-device-item">
                   <span className={`adb-status ${dev.state === 'device' ? 'online' : ''}`} />

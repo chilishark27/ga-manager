@@ -339,7 +339,7 @@ body { background: var(--bg); color: var(--text-1); display: flex; height: 100vh
 
 /* Token Stats */
 .token-stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.token-stat-item { padding: 8px; background: var(--bg3); border-radius: 8px; text-align: center; }
+.token-stat-item { padding: 8px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.06), rgba(118, 75, 162, 0.03)); border: 1px solid rgba(102, 126, 234, 0.1); border-radius: 10px; text-align: center; }
 .token-stat-label { font-size: 10px; color: var(--text-3); margin-bottom: 2px; }
 .token-stat-value { font-size: 14px; font-weight: 700; color: var(--text-1); }
 .token-history-bar { display: flex; gap: 2px; align-items: flex-end; height: 40px; margin-top: 8px; }
@@ -555,6 +555,13 @@ body { background: var(--bg); color: var(--text-1); display: flex; height: 100vh
 .rp-resize-handle:hover, .rp-resize-handle.dragging { background: var(--accent); opacity: 0.5; }
 
 /* ===== Screenshot Auto-Scale ===== */
+.vision-card { border-image: linear-gradient(135deg, rgba(102, 126, 234, 0.3), rgba(118, 75, 162, 0.2)) 1; border-width: 1px; border-style: solid; border-radius: 14px; background: linear-gradient(135deg, rgba(102, 126, 234, 0.04), rgba(118, 75, 162, 0.02)), var(--card); }
+.adb-card { border-image: linear-gradient(135deg, rgba(82, 196, 26, 0.3), rgba(16, 185, 129, 0.2)) 1; border-width: 1px; border-style: solid; border-radius: 14px; background: linear-gradient(135deg, rgba(82, 196, 26, 0.04), rgba(16, 185, 129, 0.02)), var(--card); }
+.vision-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.vision-header h5 { margin: 0; }
+.vision-badge { font-size: 10px; font-weight: 600; padding: 1px 7px; border-radius: 10px; background: var(--gradient); color: #fff; }
+.vision-badge.adb { background: linear-gradient(135deg, #52c41a, #10b981); }
+.vision-desc { font-size: 11px; color: var(--text-3); margin-bottom: 8px; line-height: 1.4; }
 .screenshot-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); gap: 6px; }
 .screenshot-thumb img { width: 100%; height: auto; aspect-ratio: 16/9; object-fit: cover; border-radius: 6px; transition: transform 0.2s; }
 .screenshot-thumb:hover img { transform: scale(1.05); }
