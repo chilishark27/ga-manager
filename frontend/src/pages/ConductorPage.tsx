@@ -96,6 +96,8 @@ function ConductorPage() {
           setSubagents(data.items || []);
         } else if (data.type === 'chat') {
           setChat(prev => [...prev.slice(-50), data.item]);
+        } else if (data.type === 'chat_read') {
+          // Refresh chat on read event
         }
       } catch {}
     };
@@ -103,6 +105,28 @@ function ConductorPage() {
     ws.onerror = () => { wsRef.current = null; };
     wsRef.current = ws;
   };
+
+  // Poll subagents and chat as fallback (WebSocket may miss messages)
+  useEffect(() => {
+    if (status !== 'running') return;
+    const poll = setInterval(async () => {
+      try {
+        const [subRes, chatRes] = await Promise.all([
+          fetch(`${API}/subagents`),
+          fetch(`${API}/chat`),
+        ]);
+        if (subRes.ok) {
+          const data = await subRes.json();
+          if (Array.isArray(data)) setSubagents(data);
+        }
+        if (chatRes.ok) {
+          const data = await chatRes.json();
+          if (data.items) setChat(data.items);
+        }
+      } catch {}
+    }, 3000);
+    return () => clearInterval(poll);
+  }, [status]);
 
   const createSubagent = async () => {
     if (!newPrompt.trim()) return;
@@ -128,14 +152,21 @@ function ConductorPage() {
 
   const sendChat = async () => {
     if (!chatInput.trim()) return;
-    try {
-      await fetch(`${API}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ msg: chatInput, role: 'user' }),
-      });
+    // Send via WebSocket to trigger conductor agent wake
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ msg: chatInput }));
       setChatInput('');
-    } catch {}
+    } else {
+      // Fallback to REST (won't wake conductor but at least stores the message)
+      try {
+        await fetch(`${API}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ msg: chatInput, role: 'user' }),
+        });
+        setChatInput('');
+      } catch {}
+    }
   };
 
   // Loading state
