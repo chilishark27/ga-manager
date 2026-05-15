@@ -96,20 +96,22 @@ function ConductorPage() {
           setSubagents(data.subagents || []);
           setChat(data.chat || []);
         } else if (data.type === 'subagents') {
-          setSubagents(data.items || []);
+          setSubagents(data.items || data.subagents || []);
         } else if (data.type === 'chat') {
           setChat(prev => [...prev.slice(-50), data.item]);
-        } else if (data.type === 'chat_read') {
-          // Refresh chat on read event
         }
       } catch {}
     };
-    ws.onclose = () => { wsRef.current = null; };
+    ws.onclose = () => {
+      wsRef.current = null;
+      // Auto-reconnect after 2s
+      setTimeout(() => { if (status === 'running') connectWs(); }, 2000);
+    };
     ws.onerror = () => { wsRef.current = null; };
     wsRef.current = ws;
   };
 
-  // Poll subagents and chat as fallback (WebSocket may miss messages)
+  // Poll subagents and chat every 1s for real-time updates
   useEffect(() => {
     if (status !== 'running') return;
     const poll = setInterval(async () => {
@@ -120,14 +122,16 @@ function ConductorPage() {
         ]);
         if (subRes.ok) {
           const data = await subRes.json();
-          if (Array.isArray(data)) setSubagents(data);
+          if (data.items) setSubagents(data.items);
+          else if (Array.isArray(data)) setSubagents(data);
         }
         if (chatRes.ok) {
           const data = await chatRes.json();
           if (data.items) setChat(data.items);
+          else if (Array.isArray(data)) setChat(data);
         }
       } catch {}
-    }, 3000);
+    }, 1000);
     return () => clearInterval(poll);
   }, [status]);
 
@@ -240,30 +244,31 @@ function ConductorPage() {
           {subagents.map(sa => {
             const isExpanded = expandedAgents.has(sa.id);
             const timeSince = sa.updated_at ? Math.round((Date.now() / 1000 - sa.updated_at)) : 0;
-            const timeLabel = timeSince < 60 ? `${timeSince}s ago` : timeSince < 3600 ? `${Math.floor(timeSince / 60)}m ago` : `${Math.floor(timeSince / 3600)}h ago`;
+            const timeLabel = timeSince < 60 ? `${timeSince}s` : timeSince < 3600 ? `${Math.floor(timeSince / 60)}m` : `${Math.floor(timeSince / 3600)}h`;
             const isRecent = timeSince < 30;
-            // Use prompt as name — short prompts are role names, long ones get truncated
-            const name = sa.prompt.length <= 20 ? sa.prompt : sa.prompt.slice(0, 20) + '...';
+            const name = sa.prompt.length <= 30 ? sa.prompt : sa.prompt.slice(0, 30) + '...';
             return (
             <div key={sa.id} className={`conductor-agent-card ${sa.status} ${isRecent ? 'recent' : ''}`}>
               <div className="conductor-agent-header">
                 <span className={`conductor-agent-dot ${sa.status}`} />
                 <span className="conductor-agent-name">{name}</span>
                 <span className="conductor-agent-time">{timeLabel}</span>
-                <span className={`conductor-agent-status ${sa.status}`}>{sa.status}</span>
+                <span className={`conductor-agent-status ${sa.status}`}>{sa.status === 'running' ? 'working...' : sa.status}</span>
               </div>
-              {sa.prompt.length > 20 && (
-                <div className="conductor-agent-prompt-full">{sa.prompt}</div>
-              )}
               {sa.reply && (
-                <div className="conductor-agent-reply" onClick={() => {
+                <div className={`conductor-agent-reply ${sa.status === 'running' ? 'live' : ''}`} onClick={() => {
                   setExpandedAgents(prev => {
                     const next = new Set(prev);
                     if (next.has(sa.id)) next.delete(sa.id); else next.add(sa.id);
                     return next;
                   });
                 }}>
-                  {isExpanded ? sa.reply : (sa.reply.slice(0, 150) + (sa.reply.length > 150 ? ' ▸' : ''))}
+                  {isExpanded || sa.status === 'running' ? sa.reply : (sa.reply.slice(0, 200) + (sa.reply.length > 200 ? ' ▸' : ''))}
+                </div>
+              )}
+              {sa.status === 'running' && !sa.reply && (
+                <div className="conductor-agent-working">
+                  <span className="conductor-working-dots">thinking</span>
                 </div>
               )}
               <div className="conductor-agent-actions">

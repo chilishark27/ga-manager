@@ -19,18 +19,51 @@ const conductorPort = 8900
 const conductorURL = "http://127.0.0.1:8900"
 
 type ConductorHandler struct {
-	mu      sync.Mutex
-	cmd     *exec.Cmd
-	running bool
-	gaRoot  string
-	python  string
+	mu              sync.Mutex
+	cmd             *exec.Cmd
+	running         bool
+	gaRoot          string
+	python          string
+	cachedSubagents []interface{}
 }
 
 func NewConductorHandler(gaRoot, pythonPath string) *ConductorHandler {
 	if pythonPath == "" {
 		pythonPath = "python"
 	}
-	return &ConductorHandler{gaRoot: gaRoot, python: pythonPath}
+	h := &ConductorHandler{gaRoot: gaRoot, python: pythonPath}
+	h.loadCachedState()
+	return h
+}
+
+func (h *ConductorHandler) cacheFilePath() string {
+	return filepath.Join(h.gaRoot, "temp", "conductor_state.json")
+}
+
+func (h *ConductorHandler) saveCachedState() {
+	h.mu.Lock()
+	data := h.cachedSubagents
+	h.mu.Unlock()
+	if data == nil {
+		return
+	}
+	b, err := json.Marshal(data)
+	if err != nil {
+		return
+	}
+	os.MkdirAll(filepath.Dir(h.cacheFilePath()), 0755)
+	os.WriteFile(h.cacheFilePath(), b, 0644)
+}
+
+func (h *ConductorHandler) loadCachedState() {
+	b, err := os.ReadFile(h.cacheFilePath())
+	if err != nil {
+		return
+	}
+	var data []interface{}
+	if json.Unmarshal(b, &data) == nil {
+		h.cachedSubagents = data
+	}
 }
 
 func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
@@ -160,17 +193,39 @@ func (h *ConductorHandler) ProxyPost(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, resp.Body)
 }
 
-// GetSubagents proxies GET /subagent
+// GetSubagents proxies GET /subagent, caches result for persistence
 func (h *ConductorHandler) GetSubagents(w http.ResponseWriter, r *http.Request) {
 	resp, err := http.Get(conductorURL + "/subagent")
 	if err != nil {
+		// Return cached state if conductor is down
+		h.mu.Lock()
+		cached := h.cachedSubagents
+		h.mu.Unlock()
+		if cached != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]interface{}{"items": cached, "cached": true})
+			return
+		}
 		writeError(w, http.StatusBadGateway, "conductor not reachable")
 		return
 	}
 	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	// Cache the subagent state
+	var result struct {
+		Items []interface{} `json:"items"`
+	}
+	if json.Unmarshal(body, &result) == nil && len(result.Items) > 0 {
+		h.mu.Lock()
+		h.cachedSubagents = result.Items
+		h.mu.Unlock()
+		// Persist to file
+		go h.saveCachedState()
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	w.Write(body)
 }
 
 // CreateSubagent proxies POST /subagent
