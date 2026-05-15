@@ -441,6 +441,47 @@ claude47_apibase = "https://your-proxy.com"
               {t.mykeyLocation}: <code style={{ background: 'var(--bg3)', padding: '1px 4px', borderRadius: '3px' }}>{configForm.ga_path || '<GA_PATH>'}/mykey.py</code>
             </p>
           </div>
+
+          {/* GA Tools List */}
+          <h5 style={{ marginTop: '16px' }}>Agent Tools (9)</h5>
+          <div className="tools-list">
+            <div className="tool-item">
+              <span className="tool-name">code_run</span>
+              <span className="tool-desc">Execute Python/PowerShell scripts with timeout and cwd control</span>
+            </div>
+            <div className="tool-item">
+              <span className="tool-name">file_read</span>
+              <span className="tool-desc">Read files with line numbers, keyword search, range selection</span>
+            </div>
+            <div className="tool-item">
+              <span className="tool-name">file_patch</span>
+              <span className="tool-desc">Replace text blocks in files (exact match, supports file refs)</span>
+            </div>
+            <div className="tool-item">
+              <span className="tool-name">file_write</span>
+              <span className="tool-desc">Create/overwrite/append files (supports file refs)</span>
+            </div>
+            <div className="tool-item">
+              <span className="tool-name">web_scan</span>
+              <span className="tool-desc">Get simplified page HTML, tab list, switch tabs</span>
+            </div>
+            <div className="tool-item">
+              <span className="tool-name">web_execute_js</span>
+              <span className="tool-desc">Execute JavaScript in browser tabs, save results to file</span>
+            </div>
+            <div className="tool-item">
+              <span className="tool-name">update_working_checkpoint</span>
+              <span className="tool-desc">Short-term notepad for task progress and key constraints</span>
+            </div>
+            <div className="tool-item">
+              <span className="tool-name">ask_user</span>
+              <span className="tool-desc">Interrupt to ask user for decisions or extra info</span>
+            </div>
+            <div className="tool-item">
+              <span className="tool-name">start_long_term_update</span>
+              <span className="tool-desc">Distill findings into long-term memory (L1-L3)</span>
+            </div>
+          </div>
         </div>
       )}
 

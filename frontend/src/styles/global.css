@@ -574,6 +574,15 @@ body { background: var(--bg); color: var(--text-1); display: flex; height: 100vh
 .sop-list-collapsible { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
 .sop-list-collapsible.expanded { max-height: 600px; }
 
+/* ===== Tools List ===== */
+.tools-list { display: flex; flex-direction: column; gap: 4px; margin-top: 8px; }
+.tool-item { display: flex; flex-direction: column; gap: 2px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: linear-gradient(135deg, rgba(102, 126, 234, 0.04), rgba(118, 75, 162, 0.02)); transition: all 0.2s; }
+.tool-item:hover { border-color: var(--accent); transform: translateX(3px); }
+.tool-name { font-size: 12px; font-weight: 600; color: var(--accent); font-family: 'JetBrains Mono', 'Fira Code', monospace; }
+.tool-desc { font-size: 11px; color: var(--text-3); line-height: 1.4; }
+[data-theme="light"] .tool-item { background: #f8fafc; border-color: #e8ecf2; }
+[data-theme="light"] .tool-item:hover { border-color: var(--accent); background: #ede9fe; }
+
 /* ===== Skill Tree Empty State ===== */
 .skill-tree-empty::before { content: ''; display: block; width: 32px; height: 32px; margin: 0 auto 8px; border-radius: 50%; background: var(--gradient); opacity: 0.3; }
 
