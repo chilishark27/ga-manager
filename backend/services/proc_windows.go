@@ -2,12 +2,16 @@
 
 package services
 
-import "os/exec"
+import (
+	"os/exec"
+	"syscall"
+)
 
-// hideWindow is a no-op to avoid antivirus false positives.
-// The -H windowsgui linker flag prevents the main window;
-// subprocess console windows will flash briefly but this is
-// preferable to being flagged as malware.
+// hideWindow prevents subprocess from showing a console window.
+// Uses DETACHED_PROCESS + CREATE_NEW_PROCESS_GROUP which are less likely
+// to trigger antivirus than CREATE_NO_WINDOW (0x08000000).
 func hideWindow(cmd *exec.Cmd) {
-	// Intentionally empty — CREATE_NO_WINDOW triggers AV detection
+	cmd.SysProcAttr = &syscall.SysProcAttr{
+		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP | 0x00000008, // DETACHED_PROCESS
+	}
 }

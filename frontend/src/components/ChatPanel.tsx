@@ -262,7 +262,7 @@ function ChatPanel() {
                   {step.timestamp && <span className="replay-step-time">{step.timestamp.split(' ')[1] || step.timestamp}</span>}
                 </div>
                 {i === replayIndex && (
-                  <pre className="replay-step-content">{step.content?.slice(0, 2000)}{step.content?.length > 2000 ? '...' : ''}</pre>
+                  <pre className="replay-step-content">{step.content}</pre>
                 )}
               </div>
             ))}

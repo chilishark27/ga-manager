@@ -50,12 +50,9 @@ func (h *ReplayHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 		sessions = append(sessions, s)
 	}
 
-	// Sort newest first
 	sort.Slice(sessions, func(i, j int) bool {
 		return sessions[i].Modified > sessions[j].Modified
 	})
-
-	// Limit to 50
 	if len(sessions) > 50 {
 		sessions = sessions[:50]
 	}
@@ -82,11 +79,6 @@ func (h *ReplayHandler) GetSession(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Limit to 2MB
-	if len(content) > 2*1024*1024 {
-		content = content[:2*1024*1024]
-	}
-
 	steps := parseSessionLog(string(content))
 	writeJSON(w, http.StatusOK, models.ReplaySession{
 		Filename: filename,
@@ -106,22 +98,27 @@ func parseSessionLog(content string) []models.ReplayStep {
 	var currentContent strings.Builder
 
 	flushCurrent := func() {
-		if currentType != "" && currentContent.Len() > 0 {
-			text := strings.TrimSpace(currentContent.String())
-			if len(text) > 10000 {
-				text = text[:10000] + "\n... [truncated]"
-			}
-			if currentType == "response" {
-				// Try to parse response into sub-steps
-				subSteps := parseResponseBlock(text, currentTimestamp)
-				steps = append(steps, subSteps...)
-			} else {
-				steps = append(steps, models.ReplayStep{
-					Type:      currentType,
-					Timestamp: currentTimestamp,
-					Content:   text,
-				})
-			}
+		if currentType == "" || currentContent.Len() == 0 {
+			currentContent.Reset()
+			return
+		}
+		text := strings.TrimSpace(currentContent.String())
+		if text == "" {
+			currentContent.Reset()
+			return
+		}
+
+		if currentType == "response" {
+			subSteps := parseResponseBlock(text, currentTimestamp)
+			steps = append(steps, subSteps...)
+		} else {
+			// Prompt: extract the user text from JSON
+			userText := extractPromptText(text)
+			steps = append(steps, models.ReplayStep{
+				Type:      "prompt",
+				Timestamp: currentTimestamp,
+				Content:   userText,
+			})
 		}
 		currentContent.Reset()
 	}
@@ -149,40 +146,86 @@ func parseSessionLog(content string) []models.ReplayStep {
 	return steps
 }
 
+// extractPromptText pulls the user message text from the JSON prompt block
+func extractPromptText(raw string) string {
+	// Look for "text": "..." pattern (the actual user message)
+	re := regexp.MustCompile(`"text"\s*:\s*"((?:[^"\\]|\\.)*)`)
+	matches := re.FindAllStringSubmatch(raw, -1)
+	if len(matches) == 0 {
+		return raw
+	}
+	// Collect all text fields (there may be multiple content blocks)
+	var parts []string
+	for _, m := range matches {
+		text := m[1]
+		// Unescape basic JSON escapes
+		text = strings.ReplaceAll(text, `\n`, "\n")
+		text = strings.ReplaceAll(text, `\"`, `"`)
+		text = strings.ReplaceAll(text, `\\`, `\`)
+		if strings.TrimSpace(text) != "" {
+			parts = append(parts, strings.TrimSpace(text))
+		}
+	}
+	if len(parts) == 0 {
+		return raw
+	}
+	return strings.Join(parts, "\n\n")
+}
+
+// parseResponseBlock parses a GA response block (Python list format)
+// Format: [{'type': 'thinking', 'thinking': '...'}, {'type': 'text', 'text': '...'}]
 func parseResponseBlock(text string, timestamp string) []models.ReplayStep {
 	steps := make([]models.ReplayStep, 0)
 
-	// Simple heuristic parsing for thinking/tool_use/text blocks
-	if strings.Contains(text, `"type": "thinking"`) || strings.Contains(text, `"thinking":`) {
-		// Extract thinking blocks
-		thinkStart := strings.Index(text, `"thinking"`)
-		if thinkStart >= 0 {
+	// Extract thinking blocks: 'thinking': '...' (handle multiline with escaped quotes)
+	thinkingRe := regexp.MustCompile(`'thinking'\s*:\s*'((?:[^'\\]|\\.|'')*)'`)
+	thinkMatches := thinkingRe.FindAllStringSubmatch(text, -1)
+	for _, m := range thinkMatches {
+		content := unescapePythonStr(m[1])
+		if strings.TrimSpace(content) != "" {
 			steps = append(steps, models.ReplayStep{
 				Type:      "thinking",
 				Timestamp: timestamp,
-				Content:   extractJSONValue(text[thinkStart:], "thinking"),
+				Content:   content,
 			})
 		}
 	}
 
-	if strings.Contains(text, `"type": "tool_use"`) || strings.Contains(text, `"name":`) {
-		// Extract tool use
-		toolName := extractJSONValue(text, "name")
-		steps = append(steps, models.ReplayStep{
-			Type:      "tool_use",
-			Timestamp: timestamp,
-			Content:   text,
-			ToolName:  toolName,
-		})
-	} else if len(steps) == 0 {
-		// Plain response
-		steps = append(steps, models.ReplayStep{
-			Type:      "response",
-			Timestamp: timestamp,
-			Content:   text,
-		})
+	// Extract tool_use blocks: 'type': 'tool_use', ... 'name': '...'
+	if strings.Contains(text, "'type': 'tool_use'") {
+		nameRe := regexp.MustCompile(`'name'\s*:\s*'([^']*)'`)
+		inputRe := regexp.MustCompile(`'input'\s*:\s*(\{[^}]*\})`)
+		names := nameRe.FindAllStringSubmatch(text, -1)
+		inputs := inputRe.FindAllStringSubmatch(text, -1)
+		for i, nm := range names {
+			content := "Tool: " + nm[1]
+			if i < len(inputs) {
+				content += "\n" + inputs[i][1]
+			}
+			steps = append(steps, models.ReplayStep{
+				Type:      "tool_use",
+				Timestamp: timestamp,
+				Content:   content,
+				ToolName:  nm[1],
+			})
+		}
 	}
 
+	// Extract text blocks: 'type': 'text', 'text': '...'
+	textRe := regexp.MustCompile(`'type'\s*:\s*'text'\s*,\s*'text'\s*:\s*'((?:[^'\\]|\\.|'')*)'`)
+	textMatches := textRe.FindAllStringSubmatch(text, -1)
+	for _, m := range textMatches {
+		content := unescapePythonStr(m[1])
+		if strings.TrimSpace(content) != "" {
+			steps = append(steps, models.ReplayStep{
+				Type:      "response",
+				Timestamp: timestamp,
+				Content:   content,
+			})
+		}
+	}
+
+	// If nothing was parsed, show raw text
 	if len(steps) == 0 {
 		steps = append(steps, models.ReplayStep{
 			Type:      "response",
@@ -194,12 +237,10 @@ func parseResponseBlock(text string, timestamp string) []models.ReplayStep {
 	return steps
 }
 
-func extractJSONValue(text string, key string) string {
-	pattern := `"` + key + `"\s*:\s*"([^"]*)`
-	re := regexp.MustCompile(pattern)
-	m := re.FindStringSubmatch(text)
-	if len(m) > 1 {
-		return m[1]
-	}
-	return ""
+func unescapePythonStr(s string) string {
+	s = strings.ReplaceAll(s, `\n`, "\n")
+	s = strings.ReplaceAll(s, `\t`, "\t")
+	s = strings.ReplaceAll(s, `\'`, "'")
+	s = strings.ReplaceAll(s, `\\`, `\`)
+	return s
 }
