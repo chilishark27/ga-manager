@@ -6,321 +6,122 @@
 
 <p align="center">
   <strong>Multi-instance GenericAgent Desktop Manager</strong><br/>
-  A single-binary desktop app to create, monitor, and orchestrate AI agent instances.
+  Create, monitor, and orchestrate AI agent instances with a modern desktop UI.
 </p>
 
 <p align="center">
   <a href="#quick-start">Quick Start</a> •
   <a href="#features">Features</a> •
-  <a href="#agent-modes">Agent Modes</a> •
-  <a href="#management-tools">Tools</a> •
+  <a href="#conductor">Conductor</a> •
+  <a href="#dev-mode">Dev Mode</a> •
   <a href="#build-from-source">Build</a> •
-  <a href="#api-reference">API</a>
+  <a href="#update">Update</a>
 </p>
 
 ---
 
 ## Quick Start
 
-1. Download the zip for your platform from [Releases](https://github.com/chilishark27/ga-manager/releases)
-2. Extract the zip (contains `ga-manager` binary + `static/` + `bridge/`)
-3. Run the binary
-
-**Windows:**
-```
-ga-manager.exe
-```
-
-**macOS:**
-```bash
-chmod +x ga-manager
-xattr -d com.apple.quarantine ga-manager   # bypass Gatekeeper for unsigned binary
-./ga-manager
-```
-
-**Linux:**
-```bash
-chmod +x ga-manager
-./ga-manager
-```
-
-The browser opens automatically. Or use `--no-gui` for headless mode and visit `http://localhost:18600`.
-
-**Electron version (Windows):** Download `ga-manager-electron-win.exe` — double-click to run, no extraction needed.
+1. Download from [Releases](https://github.com/chilishark27/ga-manager/releases)
+2. Run:
+   - **Windows**: Double-click `GA Manager 2.0.0.exe` (Electron desktop app)
+   - **macOS**: Extract zip, `chmod +x ga-manager && ./ga-manager`
+   - **Linux**: Extract zip, `chmod +x ga-manager && ./ga-manager`
 
 **Prerequisites:**
 - [GenericAgent](https://github.com/lsdefine/GenericAgent) installed
-- Python 3.10+ with GenericAgent dependencies
-- A configured `mykey.py` in your GenericAgent directory
+- Python 3.10+ with GA dependencies
+- Configured `mykey.py` in your GenericAgent directory
 - For Conductor: `pip install fastapi uvicorn`
 
 ---
 
 ## Features
 
-### Core Architecture
+### Page Navigation Layout
 
-| Feature | Description |
-|---------|-------------|
-| **Single Binary** | HTTP server + system tray + embedded frontend — one file, no dependencies |
-| **Multi-instance** | Run multiple GA agents simultaneously, each with isolated state and config |
-| **Real-time Chat** | WebSocket streaming with full markdown rendering (code blocks, tables, math) |
-| **Cross-platform** | Windows (systray), macOS (browser launch), Linux (browser launch) |
-| **Headless Mode** | `--no-gui` flag for server-only deployment (no tray, no browser) |
+| Page | Description |
+|------|-------------|
+| **Chat** | Full-width message stream, markdown rendering, image paste, session history |
+| **Conductor** | Multi-agent orchestration — create/monitor/interact with subagents |
+| **Monitor** | System CPU/memory, token stats, health status, Vision, ADB |
+| **Skills** | Skill tree visualization + SOP editor |
+| **Settings** | mykey.py editor, app config, theme/language |
 
-### UI Design
+### Left Sidebar
 
-| Feature | Description |
-|---------|-------------|
-| **Glassmorphism Theme** | Dark theme with backdrop-blur, gradient accents (#667eea → #764ba2), glow effects |
-| **Light Theme** | Full component coverage with soft purple tints and proper contrast |
-| **Resizable Panels** | Drag sidebar (180-400px) and right panel (240-500px) edges to resize |
-| **Gradient Buttons** | Dark mode buttons have subtle gradient backgrounds; hover fills with full gradient |
-| **i18n** | Chinese / English interface toggle |
+- Navigation items (Chat / Conductor / Monitor / Skills / Settings)
+- Feature toggles (Autonomous / Reflect / Scheduler / Dev Mode)
+- Session history with message preview (click to restore)
+- Instance list with status indicators
+- Theme / Language toggle
+- Create / Scan buttons
 
----
+### Agent Modes
 
-## Agent Modes
-
-### Autonomous Mode
-
-| | |
-|---|---|
-| **What it does** | Agent works independently when you're away |
-| **How it triggers** | After 30 minutes of user inactivity, the idle monitor fires |
-| **What happens** | Agent reads `autonomous_operation_sop.md` and picks a task from its TODO list |
-| **Use case** | Overnight monitoring, background research, periodic maintenance |
-
-The agent follows a strict protocol: select task → execute (≤30 turns) → write report → mark complete. It won't touch core code or make irreversible changes without approval.
+| Mode | Description |
+|------|-------------|
+| **Autonomous** | Agent works independently after 30min idle, follows SOP |
+| **Reflect** | Self-check after each action, maintains direction |
+| **Scheduler** | Cron-based task execution |
+| **Goal** | Persistent objective in system prompt (set via chat command) |
+| **Dev Mode** | Development best practices injection (see below) |
 
 ---
 
-### Goal Mode
+## Conductor
 
-| | |
-|---|---|
-| **What it does** | Injects a persistent objective into every LLM call's system prompt |
-| **Format** | `[当前目标] Your goal text here` appended to system prompt |
-| **Use case** | Keep the agent focused on a specific domain across all conversations |
+Multi-agent orchestration powered by GA's `conductor.py`:
 
-Example goals:
-- `"You are a DevOps expert focused on K8s cluster operations"`
-- `"Monitor stock prices for 002741, 603178, 600867 and alert on signals"`
+- **You only talk to Conductor Chat** (right panel) — it dispatches tasks to subagents
+- **Click any subagent card** to view its full output (markdown rendered)
+- **Real-time updates** — 1s polling + WebSocket, live reply streaming
+- **Smart name extraction** — shows role name from prompt
+- **State persistence** — subagent history cached locally
+
+### How it works
+
+1. Send a task in Conductor Chat (e.g. "设计一个中转站UI")
+2. Conductor agent analyzes and dispatches to appropriate subagent
+3. Subagent executes, status updates in real-time (running → stopped)
+4. Conductor reviews output and reports back in Chat
+5. You can continue the conversation to refine or assign new tasks
 
 ---
 
-### Reflect Mode
+## Dev Mode
 
-| | |
-|---|---|
-| **What it does** | Adds self-check instruction to system prompt |
-| **Injection** | `[反射模式] 每次行动后自我检查：结果是否符合预期？是否需要修正方向？` |
-| **Result** | Every response includes a `<summary>` tag with: what was done + what's next |
-| **Use case** | Complex multi-step tasks where the agent needs to maintain direction |
+Toggle "开发模式" in the sidebar to inject development best practices:
 
+**What it enforces (~80 tokens, system prompt level):**
+1. Single module per reply, step-by-step delivery
+2. Design interfaces/structure first, implement after confirmation
+3. Single responsibility per module, files under 200 lines
+4. Separation of Concerns, DRY, SOLID principles
+5. Propose approach before writing code
+
+**Works for:**
+- Single agent chat (injected via bridge `extra_sys_prompt`)
+- Conductor subagents (prefix injected on creation/messaging)
+
+**Token cost:** ~80 tokens per turn (system prompt, not per-message)
+
+---
+
+## Update
+
+### Electron (Windows)
+Download the latest `GA Manager X.X.X.exe` from [Releases](https://github.com/chilishark27/ga-manager/releases) and replace the old one.
+
+### Standalone (macOS/Linux)
+```bash
+# Download latest release zip and extract, replacing old files
+# Or build from source:
+cd ga-manager && git pull
+cd frontend && npm run build && cd ..
+cp -r frontend/dist backend/static
+cd backend && go build -o ga-manager .
 ```
-Example output:
-"Database migration script complete..."
-
-<summary>Migration script generated covering 3 tables. Next: run tests to verify data integrity.</summary>
-```
-
----
-
-### Scheduler
-
-| | |
-|---|---|
-| **What it does** | Triggers agent tasks on a cron schedule |
-| **Two mechanisms** | 1) Go-side cron goroutines (UI-created tasks) 2) GA-native `reflect/scheduler.py` |
-| **Task format** | JSON files in `sche_tasks/` directory with schedule, repeat, prompt fields |
-| **Reports** | Execution reports written to `sche_tasks/done/YYYY-MM-DD_HHMM_taskname.md` |
-
-Presets: Every 5min / 30min / hourly / daily 9:00 / daily 18:00 / weekdays 9:00
-
----
-
-### Team Worker
-
-| | |
-|---|---|
-| **What it does** | Connects agent to a shared collaboration board (BBS-style) |
-| **Config** | Base URL + Board Key + Agent Name |
-| **Behavior** | Agent polls the board for tasks, executes them, reports results via `on_done()` |
-| **Use case** | Multiple agents working together — one posts tasks, others pick them up |
-
----
-
-### Peer Hint
-
-| | |
-|---|---|
-| **What it does** | Injects invisible system instructions to shape response style |
-| **Injection** | Points agent to `temp/model_responses/` for peer session awareness |
-| **Use case** | Let one agent know what another agent is doing (cross-session context) |
-
----
-
-### Verbose Mode
-
-| | |
-|---|---|
-| **What it does** | Controls output detail level in the bridge |
-| **Enabled** | Shows full reasoning process, tool call logs |
-| **Disabled** | Shows only final results |
-
----
-
-## Management Tools
-
-### Skill Tree
-
-Force-directed graph visualization of the agent's memory system:
-- **Nodes** = SOP files, Python scripts, index files in `memory/`
-- **Node size** = usage frequency (from `file_access_stats.json`)
-- **Node color** = type (SOP=blue, Script=green, Index=gold)
-- **Edges** = cross-references and imports between files
-- **Interaction** = drag nodes, zoom, click to open SOP editor
-
-Shows how the agent's knowledge is structured and which SOPs are most used.
-
----
-
-### SOP Editor
-
-Full CRUD for Standard Operating Procedures:
-- **Browse** — Tree view of `memory/` directory with collapsible folders
-- **View** — Syntax-highlighted content viewer
-- **Edit** — In-place editing with save (creates `.bak` backup)
-- **Create** — New SOP with filename and content
-- **Delete** — Soft delete (renames to `.deleted`)
-
----
-
-### Token Statistics
-
-Real-time token usage tracking per instance:
-- **Input/Output tokens** — Cumulative count
-- **Cache hit rate** — `cache_read / total_input × 100%`
-- **History chart** — Last 20 calls visualized as bar chart
-- **Source** — Parsed from bridge stdout `[Cache]` and `[Output]` log lines
-
----
-
-### Task Replay
-
-Step-by-step replay of agent sessions from `temp/model_responses/`:
-- **Session list** — All recorded sessions sorted by date
-- **Timeline view** — Each step shown with type indicator (thinking/tool_use/response)
-- **Step navigation** — Previous/Next buttons, click any step to jump
-- **Color coding** — Purple=thinking, Blue=tool_use, Green=prompt, White=response
-
----
-
-### Agent Vision
-
-Displays screenshots captured by the agent during visual operations:
-- **Grid view** — Thumbnails of recent screenshots from `temp/` directory
-- **Auto-scale** — Responsive grid with 16:9 aspect ratio
-- **Click to open** — Full-size image in new tab
-- **Purpose** — See what the agent "sees" when operating browser/desktop via screen capture
-
----
-
-### ADB Control
-
-Android device management for mobile automation:
-- **Device list** — Connected devices with model, serial, status
-- **Screenshot** — Capture device screen via `adb exec-out screencap`
-- **Tap** — Send tap at coordinates
-- **Swipe** — Send swipe gesture with duration
-
----
-
-### Health Monitor
-
-Background process that checks instance health every 30 seconds:
-- **Detection** — Identifies crashed processes by PID
-- **Auto-restart** — Automatically restarts crashed instances
-- **Status** — Reports healthy/error/stopped per instance
-
----
-
-### Memory Watcher
-
-Monitors the `memory/` directory for changes every 30 seconds:
-- **New SOP** — Broadcasts `sop_created` WebSocket event
-- **Modified SOP** — Broadcasts `sop_updated` event
-- **Frontend** — Skill tree auto-refreshes, toast notification shown
-
----
-
-### Message Forward
-
-Route messages between instances for multi-agent collaboration:
-```
-Instance A → "Please review this code" → Instance B
-Instance B receives: "[来自实例 a1b2c3d4] Please review this code"
-```
-
----
-
-## Architecture
-
-```
-┌──────────────────────────────────────────┐
-│         ga-manager (single binary)       │
-├──────────────────────────────────────────┤
-│  System Tray (Windows) / Browser Launch  │
-│  HTTP Server (port 18600)                │
-│  Embedded Frontend (React + Vite)        │
-│  WebSocket Proxy (real-time streaming)   │
-├──────────────────────────────────────────┤
-│  bridge.py (stdin/stdout JSON protocol)  │
-│  - Idle monitor (autonomous trigger)     │
-│  - Scheduler monitor (cron tasks)        │
-│  - Team worker monitor (BBS polling)     │
-├──────────────────────────────────────────┤
-│  GenericAgent (Python) × N instances     │
-│  - 9 atomic tools (browser, terminal,    │
-│    filesystem, keyboard, mouse, vision,  │
-│    mobile/ADB, memory, ask_user)         │
-│  - Self-evolving skill tree (SOPs)       │
-│  - Hierarchical memory (L1-L4)           │
-└──────────────────────────────────────────┘
-```
-
----
-
-## API Reference
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/instances` | List all instances |
-| `POST` | `/api/instances` | Create instance |
-| `DELETE` | `/api/instances/{id}` | Delete instance |
-| `POST` | `/api/instances/{id}/start` | Start instance |
-| `POST` | `/api/instances/{id}/stop` | Stop instance |
-| `POST` | `/api/instances/{id}/chat` | Send message |
-| `POST` | `/api/instances/{id}/interrupt` | Interrupt current task |
-| `PATCH` | `/api/instances/{id}/config` | Update features (autonomous, goal, reflect, etc.) |
-| `GET` | `/api/instances/{id}/ws` | WebSocket real-time stream |
-| `GET` | `/api/instances/{id}/tokens` | Token usage statistics |
-| `GET` | `/api/instances/{id}/tasks` | List scheduled tasks |
-| `POST` | `/api/instances/{id}/tasks` | Add scheduled task |
-| `GET` | `/api/instances/{id}/screenshots` | List agent screenshots |
-| `GET` | `/api/instances/{id}/replay/sessions` | List replay sessions |
-| `GET` | `/api/instances/{id}/replay/{file}` | Get parsed session steps |
-| `GET` | `/api/skilltree` | Skill tree graph data (nodes + edges) |
-| `GET` | `/api/sops/local` | List SOPs in memory/ |
-| `PUT` | `/api/sops/local/{name}` | Update SOP content |
-| `POST` | `/api/sops/local` | Create new SOP |
-| `DELETE` | `/api/sops/local/{name}` | Delete SOP |
-| `GET` | `/api/adb/devices` | List ADB devices |
-| `GET` | `/api/adb/screenshot/{serial}` | Device screenshot |
-| `POST` | `/api/adb/tap/{serial}` | Tap at coordinates |
-| `GET` | `/api/config/llms` | List available LLM configs |
-| `GET` | `/api/discover` | Scan for existing GA instances |
 
 ---
 
@@ -329,177 +130,67 @@ Instance B receives: "[来自实例 a1b2c3d4] Please review this code"
 ### Prerequisites
 - Go 1.21+
 - Node.js 18+ & npm
-- Python 3.10+ (with `fastapi`, `uvicorn` for Conductor feature)
+- Python 3.10+
 
-### Quick Build (all platforms)
+### Build
 
 ```bash
 git clone https://github.com/chilishark27/ga-manager.git
 cd ga-manager
 
-# 1. Build frontend
+# Frontend
 cd frontend && npm install && npm run build && cd ..
-
-# 2. Copy static files into backend
 cp -r frontend/dist backend/static
 
-# 3. Build Go backend (pick your platform)
+# Backend (pick platform)
 cd backend
-
-# Windows
-GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w -H windowsgui" -o ../build/ga-manager.exe .
-
-# macOS Apple Silicon
-GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ../build/ga-manager .
-
-# macOS Intel
-GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ../build/ga-manager .
-
-# Linux x64
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ../build/ga-manager .
-
-# Linux ARM64 (Raspberry Pi, etc.)
-GOOS=linux GOARCH=arm64 CGO_ENABLED=0 go build -ldflags="-s -w" -o ../build/ga-manager .
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o ../build/ga-manager.exe .
+GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -o ../build/ga-manager .
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ../build/ga-manager .
 ```
 
-### Electron Desktop App (optional)
-
-For a native desktop experience with window management and system tray:
+### Electron (optional)
 
 ```bash
-# After building the Go backend (step 3 above):
-cd electron
-npm install
-
-# Windows
-npx electron-builder --win portable
-
-# macOS (must run ON a Mac)
-npx electron-builder --mac
-
-# Linux (must run ON Linux, or use CI)
-npx electron-builder --linux
-```
-
-Output:
-- Windows: `build/electron/GA Manager 2.0.0.exe` (portable, ~90MB)
-- macOS: `build/electron/GA Manager-2.0.0.dmg`
-- Linux: `build/electron/GA Manager-2.0.0.AppImage`
-
-### macOS Notes
-
-```bash
-# Install Go (if not installed)
-brew install go node
-
-# Clone and build
-git clone https://github.com/chilishark27/ga-manager.git
-cd ga-manager
-cd frontend && npm install && npm run build && cd ..
-cp -r frontend/dist backend/static
-cd backend && go build -ldflags="-s -w" -o ../ga-manager . && cd ..
-
-# Run
-./ga-manager              # Opens browser automatically
-./ga-manager --no-gui     # Headless mode (server only)
-
-# Electron (native app)
-cd electron && npm install && npx electron-builder --mac
-```
-
-### Linux Notes
-
-```bash
-# Install dependencies (Ubuntu/Debian)
-sudo apt install golang-go nodejs npm
-
-# Clone and build
-git clone https://github.com/chilishark27/ga-manager.git
-cd ga-manager
-cd frontend && npm install && npm run build && cd ..
-cp -r frontend/dist backend/static
-cd backend && go build -ldflags="-s -w" -o ../ga-manager . && cd ..
-
-# Run
-./ga-manager              # Opens browser via xdg-open
-./ga-manager --no-gui     # Headless/server mode
-
-# Electron (native app)
-cd electron && npm install && npx electron-builder --linux
-# Output: build/electron/GA Manager-2.0.0.AppImage
-chmod +x "build/electron/GA Manager-2.0.0.AppImage"
-```
-
-### Python Dependencies (for Conductor)
-
-The Conductor feature requires FastAPI and Uvicorn:
-
-```bash
-pip install fastapi uvicorn
+cd electron && npm install
+npx electron-builder --win    # Windows
+npx electron-builder --mac    # macOS (must run on Mac)
+npx electron-builder --linux  # Linux
 ```
 
 ---
 
-## Configuration
+## Architecture
 
-On first run, GA Manager looks for `ga_manager_config.json` next to the binary:
-
-```json
-{
-  "ga_root": "D:\\python3_project\\GenericAgent",
-  "port": 18600,
-  "max_instances": 10,
-  "python_path": "python"
-}
+```
+┌──────────────────────────────────────────┐
+│         ga-manager (Go binary)           │
+├──────────────────────────────────────────┤
+│  HTTP Server (port 18600)                │
+│  Embedded Frontend (React + Vite)        │
+│  WebSocket Proxy (real-time streaming)   │
+│  Conductor Proxy (port 8900)             │
+├──────────────────────────────────────────┤
+│  bridge.py (stdin/stdout JSON protocol)  │
+│  - Feature toggles (dev_mode, etc.)      │
+│  - Idle/Scheduler/Team monitors          │
+├──────────────────────────────────────────┤
+│  GenericAgent (Python) × N instances     │
+│  - 9 atomic tools                        │
+│  - Self-evolving skill tree (SOPs)       │
+│  - Hierarchical memory (L1-L4)           │
+├──────────────────────────────────────────┤
+│  Conductor (FastAPI, port 8900)          │
+│  - Multi-agent orchestration             │
+│  - Subagent lifecycle management         │
+│  - Event-driven dispatch                 │
+└──────────────────────────────────────────┘
 ```
 
-Or set via environment variables: `GA_ROOT`, `GA_MANAGER_PORT`.
-
 ---
 
-## CLI Flags
+## Credits
 
-| Flag | Description |
-|------|-------------|
-| `--no-gui` | Headless mode — HTTP server only, no system tray or browser window |
-
----
-
-## Antivirus False Positive
-
-Some antivirus software (Windows Defender, 360, etc.) may flag `ga-manager.exe` as suspicious. **This is a false positive.**
-
-**Why it triggers:**
-- The binary is an HTTP server that listens on a local port (18600)
-- It spawns Python child processes (bridge.py → GenericAgent)
-- It uses system tray APIs (Windows only)
-- It's not code-signed (no purchased certificate)
-
-**What we've done to minimize detections:**
-- No registry writes (auto-start uses Startup folder .bat file)
-- No `CreateMutex` (uses port-based singleton detection)
-- No `GetConsoleWindow`/`ShowWindow` calls
-- No `taskkill` or `powershell` invocations
-- No `CREATE_NO_WINDOW` process creation flags
-- All source code is open and auditable
-
-**How to resolve:**
-1. Add `ga-manager.exe` to your antivirus exclusion list
-2. Or whitelist the folder where you placed it
-3. Or build from source yourself — locally compiled binaries are less likely to be flagged
-
----
-
-## Acknowledgments
-
-Built on [GenericAgent](https://github.com/lsdefine/GenericAgent) by [@Ironman](https://github.com/lsdefine).
-
-GenericAgent is a self-evolving AI agent framework that grows its skill tree from a minimal seed, achieving full system control with remarkable token efficiency. GA Manager exists to give this powerful framework a friendly face — making it easy to spin up multiple agents, monitor their work, and let them collaborate without touching the command line.
-
-The tool timeline UI and approval system are inspired by [Galley](https://github.com/wangjc683/galley) by [@wangjc683](https://github.com/wangjc683) — a beautifully designed local agent team orchestrator that pioneered structured tool call visualization and human-in-the-loop approval workflows for GenericAgent.
-
-Thanks to Ironman, wangjc683, and the GenericAgent community for building such an elegant and extensible agent ecosystem.
-
-## License
-
-MIT
+- [GenericAgent](https://github.com/lsdefine/GenericAgent) by @Ironman — the AI agent framework this manager wraps
+- Built with Go, React, TypeScript, Electron
+2. Extract the zip (contains `ga-manager` binary + `static/` + `bridge/`)
