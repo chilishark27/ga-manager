@@ -199,6 +199,7 @@ export const useStore = create<AppState>((set, get) => ({
           verbose: r.verbose !== undefined ? r.verbose : true,
           scheduler: r.scheduler || false,
           team_worker: r.team_worker || false,
+          dev_mode: r.dev_mode || false,
           uptime: r.uptime || '0',
           tokens_used: r.tokens_used || r.total_turns || 0,
           health: (r.state === 'running' || r.state === 'busy' || r.state === 'starting') ? 'healthy' : 'error',

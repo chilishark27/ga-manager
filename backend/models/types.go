@@ -30,6 +30,7 @@ type Instance struct {
 	Autonomous bool   `json:"autonomous"`
 	Goal       string `json:"goal,omitempty"`
 	Reflect    bool   `json:"reflect"`
+	DevMode    bool   `json:"dev_mode"`
 
 	// Stats
 	TotalTurns int    `json:"total_turns"`

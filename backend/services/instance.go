@@ -61,6 +61,7 @@ type managedInstance struct {
 	autonomous bool
 	goal       string
 	reflect    bool
+	devMode    bool
 	gaRoot     string
 
 	totalTurns int
@@ -98,6 +99,7 @@ func (inst *managedInstance) toDTO() models.Instance {
 		Autonomous: inst.autonomous,
 		Goal:       inst.goal,
 		Reflect:    inst.reflect,
+		DevMode:    inst.devMode,
 		TotalTurns: inst.totalTurns,
 		TokensUsed: inst.tokensUsed,
 		LastError:  inst.lastError,
@@ -709,6 +711,10 @@ func (m *InstanceManager) UpdateFeature(id string, key string, value interface{}
 	case "goal":
 		if v, ok := value.(string); ok {
 			inst.goal = v
+		}
+	case "dev_mode":
+		if v, ok := value.(bool); ok {
+			inst.devMode = v
 		}
 	}
 	inst.mu.Unlock()

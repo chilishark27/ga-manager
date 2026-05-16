@@ -133,10 +133,8 @@ func (h *ChatHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 			"key":   key,
 			"value": value,
 		}
-		if err := h.manager.SendCommand(id, cfgCmd); err != nil {
-			writeError(w, http.StatusInternalServerError, err.Error())
-			return
-		}
+		// Don't fail if bridge is not running — state is saved in memory
+		_ = h.manager.SendCommand(id, cfgCmd)
 	}
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "updated"})

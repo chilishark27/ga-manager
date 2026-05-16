@@ -17,10 +17,10 @@ function NavBar() {
     instances, activeInstanceId, selectInstance, currentPage, setPage,
     createInstance, deleteInstance, llmConfigs, fetchLLMs, toggleInstance,
     discoveredInstances, discoverLoading, discoverInstances, adoptInstance,
-    activeInstance: getActiveInstance, toggleFeature, theme, toggleTheme,
+    toggleFeature, theme, toggleTheme,
   } = useStore();
   const { t, tf, lang, setLang } = useI18n();
-  const inst = getActiveInstance();
+  const inst = instances.find(i => i.id === activeInstanceId) || null;
 
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
