@@ -36,6 +36,18 @@ function NavBar() {
   const [navWidth, setNavWidth] = useState(90);
   const [isResizing, setIsResizing] = useState(false);
 
+  // Supervisor state
+  const [supervisorStatus, setSupervisorStatus] = useState<string>('not_created');
+  const [supervisorLoading, setSupervisorLoading] = useState(false);
+
+  useEffect(() => {
+    fetch('/api/supervisor/status').then(r => r.json()).then(d => setSupervisorStatus(d.status || 'not_created')).catch(() => {});
+    const poll = setInterval(() => {
+      fetch('/api/supervisor/status').then(r => r.json()).then(d => setSupervisorStatus(d.status || 'not_created')).catch(() => {});
+    }, 5000);
+    return () => clearInterval(poll);
+  }, []);
+
   // Session history
   const [sessions, setSessions] = useState<{ name: string; modified: string; size: number; preview?: string }[]>([]);
   const [showSessions, setShowSessions] = useState(true);
@@ -159,6 +171,35 @@ function NavBar() {
           })}
         </div>
       )}
+
+      {/* Supervisor Agent */}
+      <div className="nav-supervisor">
+        <div
+          className={`nav-supervisor-btn ${supervisorStatus === 'running' || supervisorStatus === 'busy' ? 'active' : ''}`}
+          onClick={async () => {
+            if (supervisorLoading) return;
+            setSupervisorLoading(true);
+            try {
+              if (supervisorStatus === 'running' || supervisorStatus === 'busy') {
+                await fetch('/api/supervisor/stop', { method: 'POST' });
+                setSupervisorStatus('stopped');
+              } else {
+                const gaRoot = localStorage.getItem('ga_root') || (isMac ? '/Users/Shared/GenericAgent' : 'D:\\python3_project\\GenericAgent');
+                await fetch('/api/supervisor/start', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ ga_root: gaRoot }),
+                });
+                setSupervisorStatus('running');
+              }
+            } catch {}
+            setSupervisorLoading(false);
+          }}
+        >
+          <span className={`nav-supervisor-dot ${supervisorStatus === 'running' || supervisorStatus === 'busy' ? 'active' : ''}`} />
+          <span>{lang === 'zh' ? '总管 Agent' : 'Supervisor'}</span>
+        </div>
+      </div>
 
       {/* Session History */}
       {inst && (

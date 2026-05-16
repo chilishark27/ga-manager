@@ -97,7 +97,15 @@ func main() {
 
 	// Discover existing GA instances (port scan)
 	discoverHandler := handlers.NewDiscoverHandler()
+
+	// Supervisor Agent
+	supervisorHandler := handlers.NewSupervisorHandler(instanceMgr)
 	mux.HandleFunc("GET /api/discover", discoverHandler.Discover)
+
+	// Supervisor Agent
+	mux.HandleFunc("GET /api/supervisor/status", supervisorHandler.Status)
+	mux.HandleFunc("POST /api/supervisor/start", supervisorHandler.Start)
+	mux.HandleFunc("POST /api/supervisor/stop", supervisorHandler.Stop)
 
 	// Token statistics
 	mux.HandleFunc("GET /api/instances/{id}/tokens", featHandler.GetTokenStats)
