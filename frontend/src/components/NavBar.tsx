@@ -107,10 +107,11 @@ function NavBar() {
     } catch { /* ignore */ }
   };
 
-  const featurePills: { key: 'autonomous' | 'reflect' | 'scheduler'; label: string; labelZh: string }[] = [
+  const featurePills: { key: 'autonomous' | 'reflect' | 'scheduler' | 'dev_mode'; label: string; labelZh: string }[] = [
     { key: 'autonomous', label: 'Autonomous', labelZh: '自主行动' },
     { key: 'reflect', label: 'Reflect', labelZh: '反思' },
     { key: 'scheduler', label: 'Scheduler', labelZh: '定时任务' },
+    { key: 'dev_mode', label: 'Dev Mode', labelZh: '开发模式' },
   ];
 
   return (

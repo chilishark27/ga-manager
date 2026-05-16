@@ -595,6 +595,15 @@ def main():
         """Sync feature toggle states into agent.llmclient.backend.extra_sys_prompt
         so GA's run() picks them up via: sys_prompt = get_system_prompt() + extra_sys_prompt"""
         parts = []
+        if getattr(agent, 'dev_mode', False):
+            parts.append(
+                "\n[DEV MODE] 开发实践约束：\n"
+                "1. 单次回复不超过一个功能模块，分步交付\n"
+                "2. 先设计接口/结构，确认后再实现\n"
+                "3. 模块职责单一，文件不超过200行\n"
+                "4. 遵循：关注点分离、DRY、SOLID\n"
+                "5. 代码前先说方案，等确认"
+            )
         if getattr(agent, 'autonomous', False):
             parts.append(
                 "\n### 行动规范（持续有效）\n"
@@ -723,7 +732,7 @@ def main():
         elif c == "set_config":
             key = cmd.get("key", "")
             value = cmd.get("value")
-            allowed = {"autonomous", "goal", "peer_hint", "reflect", "verbose", "scheduler", "team_worker", "team_base_url", "team_board_key", "team_name"}
+            allowed = {"autonomous", "goal", "peer_hint", "reflect", "verbose", "scheduler", "dev_mode", "team_worker", "team_base_url", "team_board_key", "team_name"}
             if not key:
                 pass  # silently ignore empty key
             elif key in allowed:

@@ -1,6 +1,9 @@
 import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { useStore } from '../store';
+
+const DEV_PREFIX = '[DEV] 分步交付，先设计后实现，模块化。\n';
 
 const API = '/api/conductor';
 
@@ -22,6 +25,10 @@ interface ChatMsg {
 }
 
 function ConductorPage() {
+  const { activeInstance: getActiveInstance } = useStore();
+  const inst = getActiveInstance();
+  const devMode = !!(inst as any)?.dev_mode;
+
   const [status, setStatus] = useState<'stopped' | 'running' | 'loading' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
   const [subagents, setSubagents] = useState<Subagent[]>([]);
@@ -148,11 +155,12 @@ function ConductorPage() {
 
   const createSubagent = async () => {
     if (!newPrompt.trim()) return;
+    const prompt = devMode ? DEV_PREFIX + newPrompt : newPrompt;
     try {
       await fetch(`${API}/subagents`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: newPrompt }),
+        body: JSON.stringify({ prompt }),
       });
       setNewPrompt('');
     } catch {}
@@ -170,9 +178,10 @@ function ConductorPage() {
 
   const sendChat = async () => {
     if (!chatInput.trim()) return;
+    const msg = devMode ? DEV_PREFIX + chatInput : chatInput;
     // Send via WebSocket to trigger conductor agent wake
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ msg: chatInput }));
+      wsRef.current.send(JSON.stringify({ msg }));
       setChatInput('');
     } else {
       // Fallback to REST (won't wake conductor but at least stores the message)
@@ -180,7 +189,7 @@ function ConductorPage() {
         await fetch(`${API}/chat`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ msg: chatInput, role: 'user' }),
+          body: JSON.stringify({ msg, role: 'user' }),
         });
         setChatInput('');
       } catch {}

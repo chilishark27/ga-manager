@@ -11,6 +11,7 @@ export interface Instance {
   verbose: boolean;
   scheduler: boolean;
   team_worker: boolean;
+  dev_mode: boolean;
   uptime: string;
   tokens_used: number;
   health: string;        // "healthy" | "warning" | "error"

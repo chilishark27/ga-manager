@@ -116,7 +116,7 @@ func (h *ChatHandler) UpdateConfig(w http.ResponseWriter, r *http.Request) {
 	// Keys that are manager-level only (not forwarded to bridge)
 	managerOnly := map[string]bool{"im_channel": true}
 	// Keys that should also update in-memory instance state
-	featureKeys := map[string]bool{"autonomous": true, "reflect": true, "goal": true}
+	featureKeys := map[string]bool{"autonomous": true, "reflect": true, "goal": true, "dev_mode": true}
 	for key, value := range body {
 		if key == "llm_no" || key == "" {
 			continue // already handled above / skip empty keys
