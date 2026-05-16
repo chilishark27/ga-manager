@@ -24,9 +24,9 @@
 
 1. Download from [Releases](https://github.com/chilishark27/ga-manager/releases)
 2. Run:
-   - **Windows**: Double-click `GA Manager 2.0.0.exe` (Electron desktop app)
-   - **macOS**: Extract zip, `chmod +x ga-manager && ./ga-manager`
-   - **Linux**: Extract zip, `chmod +x ga-manager && ./ga-manager`
+   - **Windows**: Double-click `GA Manager 2.0.0.exe`
+   - **macOS**: Double-click `GA Manager-2.0.0.dmg` (需在 Mac 上构建)
+   - **Linux**: Run `GA Manager-2.0.0.AppImage` (需在 Linux 上构建)
 
 **Prerequisites:**
 - [GenericAgent](https://github.com/lsdefine/GenericAgent) installed
@@ -110,18 +110,12 @@ Toggle "开发模式" in the sidebar to inject development best practices:
 
 ## Update
 
-### Electron (Windows)
-Download the latest `GA Manager X.X.X.exe` from [Releases](https://github.com/chilishark27/ga-manager/releases) and replace the old one.
+Download the latest version from [Releases](https://github.com/chilishark27/ga-manager/releases) and replace the old file:
+- Windows: replace `GA Manager X.X.X.exe`
+- macOS: replace `.dmg`
+- Linux: replace `.AppImage`
 
-### Standalone (macOS/Linux)
-```bash
-# Download latest release zip and extract, replacing old files
-# Or build from source:
-cd ga-manager && git pull
-cd frontend && npm run build && cd ..
-cp -r frontend/dist backend/static
-cd backend && go build -o ga-manager .
-```
+Or build from source (see below).
 
 ---
 
@@ -142,21 +136,24 @@ cd ga-manager
 cd frontend && npm install && npm run build && cd ..
 cp -r frontend/dist backend/static
 
-# Backend (pick platform)
+# Backend (all platforms)
 cd backend
-GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o ../build/ga-manager.exe .
-GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -o ../build/ga-manager .
-GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ../build/ga-manager .
-```
+GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o ../build/windows-amd64/ga-manager.exe .
+GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -o ../build/darwin-arm64/ga-manager .
+GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ../build/linux-amd64/ga-manager .
+cd ..
 
-### Electron (optional)
-
-```bash
+# Electron (desktop app)
 cd electron && npm install
 npx electron-builder --win    # Windows
 npx electron-builder --mac    # macOS (must run on Mac)
-npx electron-builder --linux  # Linux
+npx electron-builder --linux  # Linux (must run on Linux)
 ```
+
+Output:
+- Windows: `build/electron/GA Manager 2.0.0.exe`
+- macOS: `build/electron/GA Manager-2.0.0.dmg`
+- Linux: `build/electron/GA Manager-2.0.0.AppImage`
 
 ---
 
