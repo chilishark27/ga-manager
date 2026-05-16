@@ -57,7 +57,7 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .app-content { flex: 1; overflow: auto; display: flex; flex-direction: column; padding: 24px; }
 
 /* ===== NavBar (Left, resizable) ===== */
-.nav-bar { width: 90px; min-width: 80px; height: 100vh; background: var(--sidebar-bg); backdrop-filter: blur(16px); display: flex; flex-direction: column; border-right: 1px solid var(--border); flex-shrink: 0; overflow: hidden; position: relative; }
+.nav-bar { width: 90px; min-width: 80px; height: 100vh; background: var(--sidebar-bg); backdrop-filter: blur(16px); display: flex; flex-direction: column; border-right: 1px solid var(--border); flex-shrink: 0; overflow-y: auto; overflow-x: hidden; position: relative; }
 .nav-resize-handle { position: absolute; top: 0; right: -3px; width: 6px; height: 100%; cursor: col-resize; z-index: 10; }
 .nav-resize-handle:hover, .nav-resize-handle.dragging { background: var(--accent); opacity: 0.4; }
 .nav-logo { display: flex; align-items: center; justify-content: center; height: 56px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
