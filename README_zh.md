@@ -10,7 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="README.md">🇬🇧 English</a> •
+  <a href="README.md">English</a> •
   <a href="https://github.com/chilishark27/GenericAgent">GenericAgent</a> •
   <a href="#快速开始">快速开始</a>
 </p>

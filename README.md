@@ -10,6 +10,7 @@
 </p>
 
 <p align="center">
+  <a href="README_zh.md">中文文档</a> •
   <a href="#quick-start">Quick Start</a> •
   <a href="#features">Features</a> •
   <a href="#conductor">Conductor</a> •
@@ -24,9 +25,9 @@
 
 1. Download from [Releases](https://github.com/chilishark27/ga-manager/releases)
 2. Run:
-   - **Windows**: Double-click `GA Manager 2.0.0.exe`
-   - **macOS**: Double-click `GA Manager-2.0.0.dmg` (需在 Mac 上构建)
-   - **Linux**: Run `GA Manager-2.0.0.AppImage` (需在 Linux 上构建)
+   - **Windows**: Double-click `GA Manager 2.1.1.exe`
+   - **macOS**: Double-click `GA Manager-2.1.1.dmg` (需在 Mac 上构建)
+   - **Linux**: Run `GA Manager-2.1.1.AppImage` (需在 Linux 上构建)
 
 **Prerequisites:**
 - [GenericAgent](https://github.com/lsdefine/GenericAgent) installed
@@ -164,7 +165,7 @@ Electron must be built **on the target platform**:
 cd electron
 npm install
 npm run build:win
-# Output: build/electron/GA Manager 2.0.0.exe (portable, ~95MB)
+# Output: build/electron/GA Manager 2.1.1.exe (portable, ~95MB)
 ```
 
 **macOS (on macOS):**
@@ -172,7 +173,7 @@ npm run build:win
 cd electron
 npm install
 npm run build:mac
-# Output: build/electron/GA Manager-2.0.0.dmg
+# Output: build/electron/GA Manager-2.1.1.dmg
 ```
 
 **Linux (on Linux):**
@@ -180,7 +181,7 @@ npm run build:mac
 cd electron
 npm install
 npm run build:linux
-# Output: build/electron/GA Manager-2.0.0.AppImage
+# Output: build/electron/GA Manager-2.1.1.AppImage
 ```
 
 ### CI/CD (all platforms)
