@@ -111,11 +111,21 @@ Toggle "开发模式" in the sidebar to inject development best practices:
 ## Update
 
 Download the latest version from [Releases](https://github.com/chilishark27/ga-manager/releases) and replace the old file:
-- Windows: replace `GA Manager X.X.X.exe`
-- macOS: replace `.dmg`
-- Linux: replace `.AppImage`
 
-Or build from source (see below).
+| Platform | Update Method |
+|----------|---------------|
+| Windows | Download new `GA Manager X.X.X.exe`, delete old one, run new one |
+| macOS | Download new `.dmg`, drag to Applications (replace old) |
+| Linux | Download new `.AppImage`, `chmod +x` and run |
+
+Or rebuild from source:
+```bash
+cd ga-manager && git pull
+cd frontend && npm run build && cd ..
+cp -r frontend/dist backend/static
+cd backend && go build -o ga-manager.exe .  # or ga-manager for unix
+cd ../electron && npm run build:win  # or build:mac / build:linux
+```
 
 ---
 
@@ -125,8 +135,9 @@ Or build from source (see below).
 - Go 1.21+
 - Node.js 18+ & npm
 - Python 3.10+
+- Electron dependencies: `cd electron && npm install`
 
-### Build
+### Step 1: Build Frontend + Backend
 
 ```bash
 git clone https://github.com/chilishark27/ga-manager.git
@@ -136,24 +147,50 @@ cd ga-manager
 cd frontend && npm install && npm run build && cd ..
 cp -r frontend/dist backend/static
 
-# Backend (all platforms)
+# Backend (cross-compile all platforms)
 cd backend
 GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o ../build/windows-amd64/ga-manager.exe .
 GOOS=darwin GOARCH=arm64 CGO_ENABLED=0 go build -o ../build/darwin-arm64/ga-manager .
 GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -o ../build/linux-amd64/ga-manager .
 cd ..
-
-# Electron (desktop app)
-cd electron && npm install
-npx electron-builder --win    # Windows
-npx electron-builder --mac    # macOS (must run on Mac)
-npx electron-builder --linux  # Linux (must run on Linux)
 ```
 
-Output:
-- Windows: `build/electron/GA Manager 2.0.0.exe`
-- macOS: `build/electron/GA Manager-2.0.0.dmg`
-- Linux: `build/electron/GA Manager-2.0.0.AppImage`
+### Step 2: Build Electron (per platform)
+
+Electron must be built **on the target platform**:
+
+**Windows (on Windows):**
+```powershell
+cd electron
+npm install
+npm run build:win
+# Output: build/electron/GA Manager 2.0.0.exe (portable, ~95MB)
+```
+
+**macOS (on macOS):**
+```bash
+cd electron
+npm install
+npm run build:mac
+# Output: build/electron/GA Manager-2.0.0.dmg
+```
+
+**Linux (on Linux):**
+```bash
+cd electron
+npm install
+npm run build:linux
+# Output: build/electron/GA Manager-2.0.0.AppImage
+```
+
+### CI/CD (all platforms)
+
+For automated builds on all platforms, use GitHub Actions with a matrix:
+```yaml
+strategy:
+  matrix:
+    os: [windows-latest, macos-latest, ubuntu-latest]
+```
 
 ---
 
