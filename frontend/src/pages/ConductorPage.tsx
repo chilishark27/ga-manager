@@ -27,11 +27,22 @@ function ConductorPage() {
   const [subagents, setSubagents] = useState<Subagent[]>([]);
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [newPrompt, setNewPrompt] = useState('');
+  const [selectedAgent, setSelectedAgent] = useState<Subagent | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [actionInput, setActionInput] = useState<Record<string, string>>({});
   const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
   const wsRef = useRef<WebSocket | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Keep selectedAgent in sync with latest data
+  useEffect(() => {
+    if (selectedAgent) {
+      const updated = subagents.find(s => s.id === selectedAgent.id);
+      if (updated && updated.reply !== selectedAgent.reply) {
+        setSelectedAgent(updated);
+      }
+    }
+  }, [subagents]);
 
   useEffect(() => {
     checkStatus();
@@ -242,36 +253,33 @@ function ConductorPage() {
             </p>
           )}
           {subagents.map(sa => {
-            const isExpanded = expandedAgents.has(sa.id);
             const timeSince = sa.updated_at ? Math.round((Date.now() / 1000 - sa.updated_at)) : 0;
             const timeLabel = timeSince < 60 ? `${timeSince}s` : timeSince < 3600 ? `${Math.floor(timeSince / 60)}m` : `${Math.floor(timeSince / 3600)}h`;
             const isRecent = timeSince < 30;
-            const name = sa.prompt.length <= 30 ? sa.prompt : sa.prompt.slice(0, 30) + '...';
+            // Extract a readable name: first line, or before colon/period, max 30 chars
+            let name = sa.prompt.split('\n')[0];
+            if (name.includes('：')) name = name.split('：')[0];
+            else if (name.includes(':') && name.indexOf(':') < 20) name = name.split(':')[0];
+            if (name.length > 30) name = name.slice(0, 30) + '...';
             return (
-            <div key={sa.id} className={`conductor-agent-card ${sa.status} ${isRecent ? 'recent' : ''}`}>
+            <div key={sa.id} className={`conductor-agent-card ${sa.status} ${isRecent ? 'recent' : ''} ${selectedAgent?.id === sa.id ? 'selected' : ''}`}
+              onClick={() => setSelectedAgent(selectedAgent?.id === sa.id ? null : sa)}
+            >
               <div className="conductor-agent-header">
                 <span className={`conductor-agent-dot ${sa.status}`} />
                 <span className="conductor-agent-name">{name}</span>
                 <span className="conductor-agent-time">{timeLabel}</span>
                 <span className={`conductor-agent-status ${sa.status}`}>{sa.status === 'running' ? 'working...' : sa.status}</span>
               </div>
-              {sa.reply && (
-                <div className={`conductor-agent-reply ${sa.status === 'running' ? 'live' : ''}`} onClick={() => {
-                  setExpandedAgents(prev => {
-                    const next = new Set(prev);
-                    if (next.has(sa.id)) next.delete(sa.id); else next.add(sa.id);
-                    return next;
-                  });
-                }}>
-                  {isExpanded || sa.status === 'running' ? sa.reply : (sa.reply.slice(0, 200) + (sa.reply.length > 200 ? ' ▸' : ''))}
+              {sa.reply && selectedAgent?.id !== sa.id && (
+                <div className="conductor-agent-reply-preview">
+                  {sa.reply.slice(0, 80)}{sa.reply.length > 80 ? '...' : ''}
                 </div>
               )}
               {sa.status === 'running' && !sa.reply && (
-                <div className="conductor-agent-working">
-                  <span className="conductor-working-dots">thinking</span>
-                </div>
+                <div className="conductor-agent-working">thinking...</div>
               )}
-              <div className="conductor-agent-actions">
+              <div className="conductor-agent-actions" onClick={e => e.stopPropagation()}>
                 <input
                   className="conductor-action-input"
                   placeholder="msg..."
@@ -287,41 +295,73 @@ function ConductorPage() {
         </div>
       </div>
 
-      {/* Right: Embedded chat */}
+      {/* Right: Agent Detail or Chat */}
       <div className="conductor-right">
-        <div className="conductor-chat-header">
-          <span style={{ fontWeight: 600, fontSize: '13px' }}>Conductor Chat</span>
-          <span style={{ fontSize: '11px', color: 'var(--text-3)', marginLeft: 'auto' }}>{chat.length} messages</span>
-        </div>
-        <div className="conductor-chat-messages-full">
-          {chat.length === 0 && (
-            <p style={{ color: 'var(--text-3)', fontSize: '12px', textAlign: 'center', padding: '20px' }}>
-              No messages yet.
-            </p>
-          )}
-          {chat.map(m => (
-            <div key={m.id} className={`conductor-chat-msg ${m.role}`}>
-              <span className="conductor-chat-role">{m.role}</span>
-              {m.role === 'user' ? (
-                <span className="conductor-chat-text">{m.msg}</span>
-              ) : (
-                <div className="conductor-chat-text markdown">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.msg}</ReactMarkdown>
+        {selectedAgent ? (
+          <>
+            <div className="conductor-chat-header">
+              <span style={{ fontWeight: 600, fontSize: '13px' }}>{selectedAgent.prompt.slice(0, 40)}</span>
+              <span className={`conductor-agent-status ${selectedAgent.status}`} style={{ marginLeft: '8px' }}>{selectedAgent.status}</span>
+              <button className="conductor-detail-close" onClick={() => setSelectedAgent(null)}>Back</button>
+            </div>
+            <div className="conductor-detail-content">
+              {selectedAgent.reply ? (
+                <div className="conductor-detail-reply">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{selectedAgent.reply}</ReactMarkdown>
                 </div>
+              ) : (
+                <p style={{ color: 'var(--text-3)', fontSize: '12px', padding: '20px', textAlign: 'center' }}>
+                  {selectedAgent.status === 'running' ? 'Agent is working...' : 'No output yet.'}
+                </p>
               )}
             </div>
-          ))}
-          <div ref={chatEndRef} />
-        </div>
-        <div className="conductor-chat-input-full">
-          <input
-            placeholder="Message conductor..."
-            value={chatInput}
-            onChange={e => setChatInput(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') sendChat(); }}
-          />
-          <button onClick={sendChat}>Send</button>
-        </div>
+            <div className="conductor-chat-input-full" onClick={e => e.stopPropagation()}>
+              <input
+                placeholder={`Message ${selectedAgent.prompt.slice(0, 20)}...`}
+                value={actionInput[selectedAgent.id] || ''}
+                onChange={e => setActionInput(prev => ({ ...prev, [selectedAgent.id]: e.target.value }))}
+                onKeyDown={e => { if (e.key === 'Enter') { doAction(selectedAgent.id, 'input', actionInput[selectedAgent.id]); setActionInput(prev => ({ ...prev, [selectedAgent.id]: '' })); } }}
+              />
+              <button onClick={() => { doAction(selectedAgent.id, 'input', actionInput[selectedAgent.id] || ''); setActionInput(prev => ({ ...prev, [selectedAgent.id]: '' })); }}>Send</button>
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="conductor-chat-header">
+              <span style={{ fontWeight: 600, fontSize: '13px' }}>Conductor Chat</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-3)', marginLeft: 'auto' }}>{chat.length} messages</span>
+            </div>
+            <div className="conductor-chat-messages-full">
+              {chat.length === 0 && (
+                <p style={{ color: 'var(--text-3)', fontSize: '12px', textAlign: 'center', padding: '20px' }}>
+                  No messages yet.
+                </p>
+              )}
+              {chat.map(m => (
+                <div key={m.id} className={`conductor-chat-msg ${m.role}`}>
+                  <span className="conductor-chat-role">{m.role}</span>
+                  {m.role === 'user' ? (
+                    <span className="conductor-chat-text">{m.msg}</span>
+                  ) : (
+                    <div className="conductor-chat-text markdown">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.msg}</ReactMarkdown>
+                    </div>
+                  )}
+                </div>
+              ))}
+              <div ref={chatEndRef} />
+            </div>
+            <div className="conductor-chat-input-full">
+              <input
+                placeholder="Message conductor..."
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') sendChat(); }}
+              />
+              <button onClick={sendChat}>Send</button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
