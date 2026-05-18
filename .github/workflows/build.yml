@@ -1,0 +1,89 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            goos: windows
+            goarch: amd64
+            ext: .exe
+            electron_cmd: build:win
+          - os: macos-latest
+            goos: darwin
+            goarch: arm64
+            ext: ""
+            electron_cmd: build:mac
+          - os: ubuntu-latest
+            goos: linux
+            goarch: amd64
+            ext: ""
+            electron_cmd: build:linux
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Build Frontend
+        working-directory: frontend
+        run: |
+          npm install
+          npm run build
+
+      - name: Copy frontend to backend/static
+        shell: bash
+        run: |
+          rm -rf backend/static
+          cp -r frontend/dist backend/static
+
+      - name: Build Backend
+        working-directory: backend
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+        run: go build -o ../build/${{ matrix.goos }}-${{ matrix.goarch }}/ga-manager${{ matrix.ext }} .
+
+      - name: Build Electron
+        working-directory: electron
+        run: |
+          npm install
+          npm run ${{ matrix.electron_cmd }}
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-${{ matrix.goos }}
+          path: build/electron/GA Manager*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/**/*
+          generate_release_notes: true
