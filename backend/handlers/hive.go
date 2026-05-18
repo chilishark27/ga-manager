@@ -18,30 +18,40 @@ import (
 )
 
 type HiveHandler struct {
-	mu       sync.Mutex
-	cfg      *models.AppConfig
-	running  bool
-	bbsCmd   *exec.Cmd
-	workers  []*exec.Cmd
+	mu        sync.Mutex
+	cfg       *models.AppConfig
+	running   bool
+	bbsCmd    *exec.Cmd
+	workers   []*exec.Cmd
 	masterCmd *exec.Cmd
-	port     int
-	boardKey string
+	port      int
+	boardKey  string
 	objective string
+	budget    int
 	startedAt time.Time
+	logs      []string
 }
 
 func NewHiveHandler(cfg *models.AppConfig) *HiveHandler {
 	return &HiveHandler{cfg: cfg, port: 58800}
 }
 
+func (h *HiveHandler) addLog(msg string) {
+	h.logs = append(h.logs, fmt.Sprintf("[%s] %s", time.Now().Format("15:04:05"), msg))
+	if len(h.logs) > 100 {
+		h.logs = h.logs[len(h.logs)-100:]
+	}
+	log.Printf("[Hive] %s", msg)
+}
+
 func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
-	defer h.mu.Unlock()
-
 	if h.running {
+		h.mu.Unlock()
 		writeJSON(w, http.StatusOK, map[string]string{"status": "already_running"})
 		return
 	}
+	h.mu.Unlock()
 
 	var body struct {
 		Objective string `json:"objective"`
@@ -65,11 +75,13 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		python = "python"
 	}
 
-	// Ensure BBS dependencies are installed
+	h.logs = nil
+	h.addLog("Checking dependencies...")
+
 	depCheck := exec.Command(python, "-c", "import fastapi, uvicorn, multipart")
 	depCheck.Dir = gaRoot
 	if err := depCheck.Run(); err != nil {
-		log.Printf("[Hive] Installing BBS dependencies...")
+		h.addLog("Installing dependencies...")
 		install := exec.Command(python, "-m", "pip", "install", "fastapi", "uvicorn", "python-multipart", "--quiet")
 		install.Dir = gaRoot
 		install.Run()
@@ -78,13 +90,13 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	h.port = 58800 + rand.Intn(100)
 	h.boardKey = fmt.Sprintf("hive-%d", time.Now().Unix())
 	h.objective = body.Objective
+	h.budget = body.Budget
 	h.startedAt = time.Now()
 
-	// Create BBS data dir
 	bbsCwd := filepath.Join(gaRoot, "temp", fmt.Sprintf("hive_%d", time.Now().Unix()))
 	os.MkdirAll(bbsCwd, 0755)
 
-	// Start BBS
+	h.addLog(fmt.Sprintf("Starting BBS on port %d...", h.port))
 	bbsScript := filepath.Join(gaRoot, "assets", "agent_bbs.py")
 	h.bbsCmd = exec.Command(python, "-u", bbsScript,
 		"--cwd", bbsCwd, "--port", fmt.Sprintf("%d", h.port), "--key", h.boardKey)
@@ -92,11 +104,11 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	h.bbsCmd.Stdout = os.Stdout
 	h.bbsCmd.Stderr = os.Stderr
 	if err := h.bbsCmd.Start(); err != nil {
+		h.addLog("ERROR: " + err.Error())
 		writeError(w, http.StatusInternalServerError, "failed to start BBS: "+err.Error())
 		return
 	}
 
-	// Wait for BBS to be ready
 	baseURL := fmt.Sprintf("http://127.0.0.1:%d", h.port)
 	ready := false
 	for i := 0; i < 20; i++ {
@@ -112,34 +124,36 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	}
 	if !ready {
 		h.bbsCmd.Process.Kill()
+		h.addLog("ERROR: BBS timeout")
 		writeError(w, http.StatusInternalServerError, "BBS failed to start")
 		return
 	}
+	h.addLog("BBS ready")
 
-	// Register as Hive Master and post initial task
-	regBody := fmt.Sprintf(`{"name":"hive-master"}`)
+	// Post initial task
+	regBody := `{"name":"hive-master"}`
 	regReq, _ := http.NewRequest("POST", baseURL+"/register", strings.NewReader(regBody))
 	regReq.Header.Set("Content-Type", "application/json")
 	regReq.Header.Set("X-API-Key", h.boardKey)
 	var masterToken string
 	if resp, err := http.DefaultClient.Do(regReq); err == nil {
-		defer resp.Body.Close()
-		var regResp map[string]string
-		json.NewDecoder(resp.Body).Decode(&regResp)
-		masterToken = regResp["token"]
+		var rr map[string]string
+		json.NewDecoder(resp.Body).Decode(&rr)
+		resp.Body.Close()
+		masterToken = rr["token"]
 	}
-
-	// Post initial task assignment
 	if masterToken != "" {
-		taskContent := fmt.Sprintf("[Hive Master 任务分配]\n\n目标: %s\n\n时间预算: %d 分钟\n\n请各 Worker 认领任务并开始执行。完成后在 BBS 回复结果。", body.Objective, body.Budget)
-		postBody := fmt.Sprintf(`{"token":"%s","content":"%s"}`, masterToken, strings.ReplaceAll(strings.ReplaceAll(taskContent, `"`, `\"`), "\n", `\n`))
-		postReq, _ := http.NewRequest("POST", baseURL+"/post", strings.NewReader(postBody))
-		postReq.Header.Set("Content-Type", "application/json")
-		postReq.Header.Set("X-API-Key", h.boardKey)
-		http.DefaultClient.Do(postReq)
+		task := fmt.Sprintf("[任务分配] 目标: %s | 时间: %d分钟 | Worker请认领执行，完成后回复。", body.Objective, body.Budget)
+		payload, _ := json.Marshal(map[string]string{"token": masterToken, "content": task})
+		pr, _ := http.NewRequest("POST", baseURL+"/post", strings.NewReader(string(payload)))
+		pr.Header.Set("Content-Type", "application/json")
+		pr.Header.Set("X-API-Key", h.boardKey)
+		http.DefaultClient.Do(pr)
+		h.addLog("Task posted")
 	}
 
 	// Start workers
+	h.addLog(fmt.Sprintf("Starting %d workers...", body.Workers))
 	workerReflect := filepath.Join(gaRoot, "reflect", "agent_team_worker.py")
 	h.workers = nil
 	for i := 0; i < body.Workers; i++ {
@@ -151,59 +165,44 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Start(); err != nil {
-			log.Printf("[Hive] Failed to start worker %s: %v", name, err)
+			h.addLog(fmt.Sprintf("Worker %s failed: %v", name, err))
 			continue
 		}
 		h.workers = append(h.workers, cmd)
+		h.addLog(fmt.Sprintf("Worker %s started (PID %d)", name, cmd.Process.Pid))
 	}
 
-	// Create goal_state.json
+	// Start master
 	goalState := map[string]interface{}{
-		"objective":      body.Objective,
-		"budget_seconds": body.Budget * 60,
-		"start_time":     time.Now().Unix(),
-		"turns_used":     0,
-		"max_turns":      200,
-		"status":         "running",
+		"objective": body.Objective, "budget_seconds": body.Budget * 60,
+		"start_time": time.Now().Unix(), "turns_used": 0, "max_turns": 200, "status": "running",
 	}
 	goalData, _ := json.MarshalIndent(goalState, "", "  ")
 	goalPath := filepath.Join(gaRoot, "temp", "goal_state.json")
 	os.WriteFile(goalPath, goalData, 0644)
 
-	// Start Hive Master
 	goalReflect := filepath.Join(gaRoot, "reflect", "goal_mode.py")
-	h.masterCmd = exec.Command(python, "-u", filepath.Join(gaRoot, "agentmain.py"),
-		"--reflect", goalReflect)
+	h.masterCmd = exec.Command(python, "-u", filepath.Join(gaRoot, "agentmain.py"), "--reflect", goalReflect)
 	h.masterCmd.Dir = gaRoot
 	h.masterCmd.Env = append(os.Environ(), "GOAL_STATE="+goalPath)
 	h.masterCmd.Stdout = os.Stdout
 	h.masterCmd.Stderr = os.Stderr
 	if err := h.masterCmd.Start(); err != nil {
-		log.Printf("[Hive] Failed to start master: %v", err)
+		h.addLog("Master failed: " + err.Error())
+	} else {
+		h.addLog(fmt.Sprintf("Master started (PID %d)", h.masterCmd.Process.Pid))
 	}
 
-	// Update config for proxy
 	h.cfg.BBSBaseURL = baseURL
 	h.cfg.BBSKey = h.boardKey
+	h.mu.Lock()
 	h.running = true
-
-	// Monitor processes
-	go func() {
-		if h.bbsCmd != nil {
-			h.bbsCmd.Wait()
-		}
-		h.mu.Lock()
-		h.running = false
-		h.mu.Unlock()
-	}()
+	h.mu.Unlock()
+	h.addLog("Hive session ready")
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"status":    "running",
-		"port":      h.port,
-		"board_key": h.boardKey,
-		"workers":   len(h.workers),
-		"objective": body.Objective,
-		"budget":    body.Budget,
+		"status": "running", "port": h.port, "board_key": h.boardKey,
+		"workers": len(h.workers), "objective": body.Objective, "budget": body.Budget,
 	})
 }
 
@@ -216,53 +215,49 @@ func (h *HiveHandler) Stop(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	h.addLog("Stopping...")
 	if h.masterCmd != nil && h.masterCmd.Process != nil {
-		h.masterCmd.Process.Kill()
+		killProcessTree(h.masterCmd.Process.Pid)
+		h.masterCmd = nil
 	}
-	for _, w := range h.workers {
-		if w != nil && w.Process != nil {
-			w.Process.Kill()
+	for _, wk := range h.workers {
+		if wk != nil && wk.Process != nil {
+			killProcessTree(wk.Process.Pid)
 		}
 	}
-	if h.bbsCmd != nil && h.bbsCmd.Process != nil {
-		h.bbsCmd.Process.Kill()
-	}
-
-	h.running = false
 	h.workers = nil
-	h.masterCmd = nil
-	h.bbsCmd = nil
+	if h.bbsCmd != nil && h.bbsCmd.Process != nil {
+		killProcessTree(h.bbsCmd.Process.Pid)
+		h.bbsCmd = nil
+	}
+	h.running = false
+	h.cfg.BBSBaseURL = ""
+	h.addLog("Stopped")
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "stopped"})
 }
 
 func (h *HiveHandler) Status(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
-	running := h.running
-	port := h.port
-	key := h.boardKey
-	objective := h.objective
-	workerCount := len(h.workers)
-	startedAt := h.startedAt
-	h.mu.Unlock()
-
 	resp := map[string]interface{}{
-		"running":   running,
-		"port":      port,
-		"board_key": key,
-		"objective": objective,
-		"workers":   workerCount,
+		"running":   h.running,
+		"port":      h.port,
+		"board_key": h.boardKey,
+		"objective": h.objective,
+		"budget":    h.budget,
+		"workers":   len(h.workers),
+		"logs":      h.logs,
 	}
-	if running {
-		resp["elapsed_minutes"] = int(time.Since(startedAt).Minutes())
+	if h.running {
+		resp["elapsed_minutes"] = int(time.Since(h.startedAt).Minutes())
 	}
+	h.mu.Unlock()
 	writeJSON(w, http.StatusOK, resp)
 }
 
-// Proxy methods for BBS access
 func (h *HiveHandler) proxyGet(w http.ResponseWriter, path string, query string) {
 	if h.cfg.BBSBaseURL == "" {
-		writeError(w, http.StatusServiceUnavailable, "Hive not running")
+		writeJSON(w, http.StatusOK, []interface{}{})
 		return
 	}
 	url := strings.TrimRight(h.cfg.BBSBaseURL, "/") + path
@@ -275,7 +270,7 @@ func (h *HiveHandler) proxyGet(w http.ResponseWriter, path string, query string)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		writeError(w, http.StatusBadGateway, "BBS unreachable")
+		writeJSON(w, http.StatusOK, []interface{}{})
 		return
 	}
 	defer resp.Body.Close()
@@ -294,4 +289,18 @@ func (h *HiveHandler) GetAuthors(w http.ResponseWriter, r *http.Request) {
 
 func (h *HiveHandler) Poll(w http.ResponseWriter, r *http.Request) {
 	h.proxyGet(w, "/poll", r.URL.RawQuery)
+}
+
+func killProcessTree(pid int) {
+	if pid <= 0 {
+		return
+	}
+	// On Windows, taskkill /T kills the entire tree
+	if exec.Command("taskkill", "/F", "/T", "/PID", fmt.Sprintf("%d", pid)).Run() == nil {
+		return
+	}
+	// Fallback: just kill the process
+	if p, err := os.FindProcess(pid); err == nil {
+		p.Kill()
+	}
 }

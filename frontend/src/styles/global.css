@@ -736,6 +736,11 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .hive-post-time { font-size: 11px; color: var(--text-3); }
 .hive-post-content { font-size: 13px; color: var(--text-1); white-space: pre-wrap; word-break: break-word; }
 .hive-author-tag { padding: 4px 10px; border-radius: 12px; background: rgba(59, 130, 246, 0.1); color: var(--accent); font-size: 12px; font-weight: 500; }
+.hive-running-layout { display: flex; gap: 16px; height: calc(100vh - 140px); }
+.hive-running-main { flex: 1; overflow-y: auto; }
+.hive-running-logs { width: 280px; min-width: 220px; }
+.hive-log-list { font-size: 11px; color: var(--text-3); font-family: monospace; max-height: 500px; overflow-y: auto; }
+.hive-log-item { padding: 3px 0; border-bottom: 1px solid var(--border); }
 
 /* ===== Responsive ===== */
 @media (max-width: 900px) {
