@@ -131,7 +131,7 @@ function createTray() {
 
 // --- Auto Updater ---
 function setupAutoUpdater() {
-  autoUpdater.autoDownload = true;
+  autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
 
   autoUpdater.on('update-available', (info) => {
@@ -170,6 +170,7 @@ function setupAutoUpdater() {
   });
 
   ipcMain.handle('check-for-update', () => autoUpdater.checkForUpdates());
+  ipcMain.handle('download-update', () => autoUpdater.downloadUpdate());
   ipcMain.handle('install-update', () => autoUpdater.quitAndInstall());
 
   setTimeout(() => autoUpdater.checkForUpdates(), 10000);
