@@ -230,16 +230,28 @@ Agent 回复示例：
 
 - 已安装 [GenericAgent](https://github.com/chilishark27/GenericAgent)
 - Python 3.10+
-- Windows 10/11
+- Windows 10/11 或 macOS 或 Linux
 
 ### 运行
 
-1. 启动 `ga_manager.exe`
-2. 点击 ⚙️ 配置：
-   - **GA 项目路径** — GenericAgent 安装目录
-   - **Python 路径** — Python 解释器路径
-3. 点击 **+ 新建实例** 创建 Agent
-4. 开始对话！
+**Windows**: 运行 `GA-Manager-Setup-X.X.X.exe` 安装
+
+**macOS**: 打开 `.dmg`，拖入 Applications，首次运行前执行：
+```bash
+xattr -cr /Applications/GA\ Manager.app
+```
+（解除 Gatekeeper 限制，仅需一次）
+
+**Linux**: 
+```bash
+chmod +x GA-Manager-X.X.X.AppImage && ./GA-Manager-X.X.X.AppImage
+```
+
+**首次配置**:
+1. 打开 Settings 页面
+2. 设置 **GA Root** 为你的 GenericAgent 目录路径
+3. 点击 Save
+4. 创建实例，开始对话
 
 ---
 

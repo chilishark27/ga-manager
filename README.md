@@ -25,9 +25,14 @@
 
 1. Download from [Releases](https://github.com/chilishark27/ga-manager/releases)
 2. Run:
-   - **Windows**: Double-click `GA Manager 2.2.1.exe`
-   - **macOS**: Double-click `GA Manager-2.2.1.dmg` (需在 Mac 上构建)
-   - **Linux**: Run `GA Manager-2.2.1.AppImage` (需在 Linux 上构建)
+   - **Windows**: Run `GA-Manager-Setup-X.X.X.exe` installer
+   - **macOS**: Open `.dmg`, drag to Applications, then run:
+     ```bash
+     xattr -cr /Applications/GA\ Manager.app
+     ```
+     (Required once — removes Gatekeeper quarantine for unsigned apps)
+   - **Linux**: `chmod +x GA-Manager-X.X.X.AppImage && ./GA-Manager-X.X.X.AppImage`
+3. Open Settings → configure **GA Root** path (your GenericAgent directory)
 
 **Prerequisites:**
 - [GenericAgent](https://github.com/lsdefine/GenericAgent) installed
