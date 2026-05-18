@@ -236,11 +236,10 @@ Agent 回复示例：
 
 **Windows**: 运行 `GA-Manager-Setup-X.X.X.exe` 安装
 
-**macOS**: 打开 `.dmg`，拖入 Applications，首次运行前执行：
-```bash
-xattr -cr /Applications/GA\ Manager.app
-```
-（解除 Gatekeeper 限制，仅需一次）
+**macOS**: 打开 `.dmg`，拖入 Applications。首次启动：
+- 右键点击 app → 选择"打开" → 弹窗中点"打开"
+- （macOS 会拦截未签名应用，仅首次需要此操作）
+- 如果仍被拦截：`xattr -cr /Applications/GA\ Manager.app`
 
 **Linux**: 
 ```bash

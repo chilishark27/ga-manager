@@ -26,11 +26,10 @@
 1. Download from [Releases](https://github.com/chilishark27/ga-manager/releases)
 2. Run:
    - **Windows**: Run `GA-Manager-Setup-X.X.X.exe` installer
-   - **macOS**: Open `.dmg`, drag to Applications, then run:
-     ```bash
-     xattr -cr /Applications/GA\ Manager.app
-     ```
-     (Required once — removes Gatekeeper quarantine for unsigned apps)
+   - **macOS**: Open `.dmg`, drag to Applications. First launch:
+     - Right-click the app → "Open" → click "Open" in the dialog
+     - (macOS blocks unsigned apps on first run, this only needs to be done once)
+     - If still blocked: `xattr -cr /Applications/GA\ Manager.app`
    - **Linux**: `chmod +x GA-Manager-X.X.X.AppImage && ./GA-Manager-X.X.X.AppImage`
 3. Open Settings → configure **GA Root** path (your GenericAgent directory)
 
