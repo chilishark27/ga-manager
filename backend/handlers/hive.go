@@ -116,6 +116,29 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Register as Hive Master and post initial task
+	regBody := fmt.Sprintf(`{"name":"hive-master"}`)
+	regReq, _ := http.NewRequest("POST", baseURL+"/register", strings.NewReader(regBody))
+	regReq.Header.Set("Content-Type", "application/json")
+	regReq.Header.Set("X-API-Key", h.boardKey)
+	var masterToken string
+	if resp, err := http.DefaultClient.Do(regReq); err == nil {
+		defer resp.Body.Close()
+		var regResp map[string]string
+		json.NewDecoder(resp.Body).Decode(&regResp)
+		masterToken = regResp["token"]
+	}
+
+	// Post initial task assignment
+	if masterToken != "" {
+		taskContent := fmt.Sprintf("[Hive Master 任务分配]\n\n目标: %s\n\n时间预算: %d 分钟\n\n请各 Worker 认领任务并开始执行。完成后在 BBS 回复结果。", body.Objective, body.Budget)
+		postBody := fmt.Sprintf(`{"token":"%s","content":"%s"}`, masterToken, strings.ReplaceAll(strings.ReplaceAll(taskContent, `"`, `\"`), "\n", `\n`))
+		postReq, _ := http.NewRequest("POST", baseURL+"/post", strings.NewReader(postBody))
+		postReq.Header.Set("Content-Type", "application/json")
+		postReq.Header.Set("X-API-Key", h.boardKey)
+		http.DefaultClient.Do(postReq)
+	}
+
 	// Start workers
 	workerReflect := filepath.Join(gaRoot, "reflect", "agent_team_worker.py")
 	h.workers = nil
