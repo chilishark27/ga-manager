@@ -116,6 +116,7 @@ func main() {
 	mux.HandleFunc("GET /api/hive/posts", hiveHandler.GetPosts)
 	mux.HandleFunc("GET /api/hive/authors", hiveHandler.GetAuthors)
 	mux.HandleFunc("GET /api/hive/poll", hiveHandler.Poll)
+	mux.HandleFunc("POST /api/hive/post", hiveHandler.PostMessage)
 
 	// Supervisor Agent
 	mux.HandleFunc("GET /api/supervisor/status", supervisorHandler.Status)

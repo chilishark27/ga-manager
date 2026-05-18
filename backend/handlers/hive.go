@@ -143,7 +143,7 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		masterToken = rr["token"]
 	}
 	if masterToken != "" {
-		task := fmt.Sprintf("[任务分配] 目标: %s | 时间: %d分钟 | Worker请认领执行，完成后回复。", body.Objective, body.Budget)
+		task := fmt.Sprintf("[任务分配] 目标: %s | 时间: %d分钟\n\n分工：请各Worker认领不同子任务，不要重复。Worker-1先认领，Worker-2等Worker-1认领后再选其他部分。完成后发帖汇报。", body.Objective, body.Budget)
 		payload, _ := json.Marshal(map[string]string{"token": masterToken, "content": task})
 		pr, _ := http.NewRequest("POST", baseURL+"/post", strings.NewReader(string(payload)))
 		pr.Header.Set("Content-Type", "application/json")
@@ -289,6 +289,52 @@ func (h *HiveHandler) GetAuthors(w http.ResponseWriter, r *http.Request) {
 
 func (h *HiveHandler) Poll(w http.ResponseWriter, r *http.Request) {
 	h.proxyGet(w, "/poll", r.URL.RawQuery)
+}
+
+func (h *HiveHandler) PostMessage(w http.ResponseWriter, r *http.Request) {
+	if h.cfg.BBSBaseURL == "" {
+		writeError(w, http.StatusServiceUnavailable, "Hive not running")
+		return
+	}
+	var body struct {
+		Content string `json:"content"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Content == "" {
+		writeError(w, http.StatusBadRequest, "content required")
+		return
+	}
+
+	// Use master token to post
+	baseURL := h.cfg.BBSBaseURL
+	// Register or reuse master
+	regBody := `{"name":"user"}`
+	regReq, _ := http.NewRequest("POST", baseURL+"/register", strings.NewReader(regBody))
+	regReq.Header.Set("Content-Type", "application/json")
+	regReq.Header.Set("X-API-Key", h.cfg.BBSKey)
+	var token string
+	if resp, err := http.DefaultClient.Do(regReq); err == nil {
+		var rr map[string]string
+		json.NewDecoder(resp.Body).Decode(&rr)
+		resp.Body.Close()
+		token = rr["token"]
+	}
+	if token == "" {
+		writeError(w, http.StatusInternalServerError, "failed to register")
+		return
+	}
+
+	payload, _ := json.Marshal(map[string]string{"token": token, "content": body.Content})
+	pr, _ := http.NewRequest("POST", baseURL+"/post", strings.NewReader(string(payload)))
+	pr.Header.Set("Content-Type", "application/json")
+	pr.Header.Set("X-API-Key", h.cfg.BBSKey)
+	resp, err := http.DefaultClient.Do(pr)
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "post failed")
+		return
+	}
+	defer resp.Body.Close()
+	w.Header().Set("Content-Type", "application/json")
+	io.Copy(w, resp.Body)
 }
 
 func killProcessTree(pid int) {

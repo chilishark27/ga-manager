@@ -22,6 +22,7 @@ function HivePage() {
   const [authors, setAuthors] = useState<string[]>([]);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
+  const [newMsg, setNewMsg] = useState('');
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const postsEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -87,6 +88,17 @@ function HivePage() {
     fetchStatus();
   };
 
+  const handleSendMsg = async () => {
+    if (!newMsg.trim()) return;
+    await fetch('/api/hive/post', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content: newMsg.trim() }),
+    });
+    setNewMsg('');
+    fetchPosts();
+  };
+
   const isRunning = status?.running;
 
   return (
@@ -145,6 +157,13 @@ function HivePage() {
 
               <div className="page-card">
                 <div className="page-card-title">{lang === 'zh' ? '消息流' : 'Messages'}</div>
+                <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+                  <input className="hive-input" style={{ flex: 1 }}
+                    placeholder={lang === 'zh' ? '发送指令或追加任务...' : 'Send instruction or new task...'}
+                    value={newMsg} onChange={e => setNewMsg(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') handleSendMsg(); }} />
+                  <button className="ch-btn" onClick={handleSendMsg}>{lang === 'zh' ? '发送' : 'Send'}</button>
+                </div>
                 <div className="hive-posts" style={{ maxHeight: '400px', overflowY: 'auto' }}>
                   {posts.length === 0 ? (
                     <div style={{ color: 'var(--text-3)', fontSize: '12px', padding: '20px 0', textAlign: 'center' }}>
