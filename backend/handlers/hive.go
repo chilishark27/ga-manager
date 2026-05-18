@@ -152,7 +152,7 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		h.addLog("Task posted")
 	}
 
-	// Start workers
+	// Start workers (with faster check interval)
 	h.addLog(fmt.Sprintf("Starting %d workers...", body.Workers))
 	workerReflect := filepath.Join(gaRoot, "reflect", "agent_team_worker.py")
 	h.workers = nil
@@ -162,6 +162,7 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 			"--reflect", workerReflect,
 			"--base_url", baseURL, "--board_key", h.boardKey, "--name", name)
 		cmd.Dir = gaRoot
+		cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Start(); err != nil {

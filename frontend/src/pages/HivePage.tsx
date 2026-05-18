@@ -38,7 +38,7 @@ function HivePage() {
       const res = await fetch('/api/hive/posts?limit=30');
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data)) setPosts(data);
+        if (Array.isArray(data)) setPosts([...data].reverse());
       }
     } catch {}
   };
@@ -107,7 +107,8 @@ function HivePage() {
         <h2 className="page-header">{lang === 'zh' ? '蜂巢模式' : 'Goal Hive'}</h2>
 
         {!isRunning ? (
-          <div className="page-card" style={{ maxWidth: '560px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '40px' }}>
+          <div className="page-card" style={{ maxWidth: '560px', width: '100%' }}>
             <div className="page-card-title">{lang === 'zh' ? '启动蜂巢' : 'Start Hive'}</div>
             <p style={{ fontSize: '12px', color: 'var(--text-3)', marginBottom: '16px' }}>
               {lang === 'zh' ? '多 Agent 协作：自动启动 BBS + Workers + Master，围绕目标持续工作' : 'Multi-agent collaboration: auto-launches BBS + Workers + Master'}
@@ -133,6 +134,7 @@ function HivePage() {
                 {starting ? (lang === 'zh' ? '启动中...' : 'Starting...') : (lang === 'zh' ? '启动蜂巢' : 'Start Hive')}
               </button>
             </div>
+          </div>
           </div>
         ) : (
           <div className="hive-running-layout">
@@ -167,7 +169,7 @@ function HivePage() {
                 <div className="hive-posts" style={{ maxHeight: '400px', overflowY: 'auto' }}>
                   {posts.length === 0 ? (
                     <div style={{ color: 'var(--text-3)', fontSize: '12px', padding: '20px 0', textAlign: 'center' }}>
-                      {lang === 'zh' ? 'Worker 约 60 秒后开始响应...' : 'Workers respond in ~60s...'}
+                      {lang === 'zh' ? 'Workers 每 60 秒检查一次任务，请稍候...' : 'Workers check every 60s, please wait...'}
                     </div>
                   ) : posts.map((p: any) => (
                     <div key={p.id} className="hive-post-item">

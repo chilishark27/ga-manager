@@ -18,6 +18,11 @@ function SettingsPage() {
     fetchLLMs();
     loadMykey();
     loadAppConfig();
+    const updater = (window as any).electronUpdater;
+    if (updater) {
+      updater.onUpdateAvailable((info: any) => setUpdateStatus(`v${info.version} ${lang === 'zh' ? '可更新' : 'available'}`));
+      updater.onUpdateError(() => setUpdateStatus(lang === 'zh' ? '已是最新版本' : 'Up to date'));
+    }
   }, []);
 
   const loadAppConfig = async () => {
@@ -126,18 +131,17 @@ function SettingsPage() {
           {/* Update card */}
           <div className="page-card" style={{ flex: '1', minWidth: '160px' }}>
             <div className="page-card-title">{lang === 'zh' ? '版本更新' : 'Updates'}</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-2)', marginBottom: '8px' }}>v2.2.4</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-2)', marginBottom: '8px' }}>v2.3.0</div>
             <button className="ch-btn" onClick={() => {
               const updater = (window as any).electronUpdater;
               if (updater) {
                 setUpdateStatus(lang === 'zh' ? '检查中...' : 'Checking...');
                 updater.checkForUpdate();
-                updater.onUpdateAvailable(() => setUpdateStatus(lang === 'zh' ? '发现新版本，下载中...' : 'New version found, downloading...'));
-                updater.onUpdateDownloaded(() => setUpdateStatus(lang === 'zh' ? '下载完成，可以更新' : 'Ready to install'));
-                updater.onUpdateError(() => setUpdateStatus(lang === 'zh' ? '已是最新版本' : 'Already up to date'));
-                setTimeout(() => { if (updateStatus === (lang === 'zh' ? '检查中...' : 'Checking...')) setUpdateStatus(lang === 'zh' ? '已是最新版本' : 'Already up to date'); }, 8000);
+                setTimeout(() => {
+                  setUpdateStatus(s => s === (lang === 'zh' ? '检查中...' : 'Checking...') ? (lang === 'zh' ? '已是最新版本' : 'Up to date') : s);
+                }, 10000);
               } else {
-                setUpdateStatus(lang === 'zh' ? '仅 Electron 版本支持自动更新' : 'Auto-update only in Electron app');
+                setUpdateStatus(lang === 'zh' ? '仅桌面版支持自动更新' : 'Desktop app only');
               }
             }}>
               {lang === 'zh' ? '检查更新' : 'Check for Updates'}
