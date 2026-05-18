@@ -260,6 +260,12 @@ func (m *InstanceManager) Create(req models.CreateInstanceRequest) (*models.Inst
 		pythonPath = "python"
 	}
 
+	// Verify bridge exists
+	if _, err := os.Stat(bridgePath); err != nil {
+		log.Printf("[InstanceManager] ERROR: bridge.py not found at %s", bridgePath)
+		return nil, fmt.Errorf("bridge.py not found at %s — check installation", bridgePath)
+	}
+
 	gaRoot := req.GARoot
 	if gaRoot == "" {
 		gaRoot = m.config.GARoot
@@ -920,9 +926,21 @@ func getBridgeDir() string {
 		abs, _ := filepath.Abs("../bridge")
 		return abs
 	}
-	// Fallback: parent of executable directory (exe is in backend/)
+	// Try relative to executable (Electron: resources/backend/ga-manager, bridge at resources/bridge/)
 	exe, _ := os.Executable()
-	parentDir := filepath.Dir(filepath.Dir(exe))
+	exeDir := filepath.Dir(exe)
+	candidate := filepath.Join(filepath.Dir(exeDir), "bridge")
+	if info, err := os.Stat(filepath.Join(candidate, "bridge.py")); err == nil && !info.IsDir() {
+		return candidate
+	}
+	// Also try sibling of exe dir
+	candidate = filepath.Join(exeDir, "..", "bridge")
+	if info, err := os.Stat(filepath.Join(candidate, "bridge.py")); err == nil && !info.IsDir() {
+		abs, _ := filepath.Abs(candidate)
+		return abs
+	}
+	// Fallback
+	parentDir := filepath.Dir(exeDir)
 	return filepath.Join(parentDir, "bridge")
 }
 

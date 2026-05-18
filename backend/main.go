@@ -29,6 +29,11 @@ func main() {
 
 	log.Printf("[GA Manager] Starting on port %d", cfg.Port)
 	log.Printf("[GA Manager] GA Root: %s", cfg.GARoot)
+	log.Printf("[GA Manager] Python: %s", cfg.PythonPath)
+	log.Printf("[GA Manager] Exe dir: %s", getExeDir())
+	if cwd, err := os.Getwd(); err == nil {
+		log.Printf("[GA Manager] Working dir: %s", cwd)
+	}
 
 	// Initialize services
 	instanceMgr := services.NewInstanceManager(cfg)
@@ -424,20 +429,29 @@ func main() {
 	})
 
 	// Serve frontend static files (production)
-	staticDir := filepath.Join(getExeDir(), "static")
-	if _, err := os.Stat(staticDir); err != nil {
-		// Fallback: check relative to working directory
-		staticDir = filepath.Join(".", "static")
+	// Try multiple locations to find static files
+	staticDir := ""
+	staticCandidates := []string{
+		filepath.Join(getExeDir(), "static"),
+		filepath.Join(".", "static"),
+		filepath.Join(getExeDir(), "..", "static"),
+		filepath.Join(filepath.Dir(getExeDir()), "frontend", "dist"),
 	}
-	if _, err := os.Stat(staticDir); err != nil {
-		// Fallback: check frontend/dist relative to project
-		staticDir = filepath.Join(filepath.Dir(getExeDir()), "frontend", "dist")
+	// Also check cwd-relative paths
+	if cwd, err := os.Getwd(); err == nil {
+		staticCandidates = append(staticCandidates,
+			filepath.Join(cwd, "static"),
+			filepath.Join(cwd, "..", "backend", "static"),
+		)
 	}
-	if _, err := os.Stat(staticDir); err != nil {
-		// Fallback: hardcoded project path
-		staticDir = filepath.Join(cfg.GARoot, "..", "ga_manager", "frontend", "dist")
+	for _, candidate := range staticCandidates {
+		indexPath := filepath.Join(candidate, "index.html")
+		if _, err := os.Stat(indexPath); err == nil {
+			staticDir = candidate
+			break
+		}
 	}
-	if _, err := os.Stat(staticDir); err == nil {
+	if staticDir != "" {
 		log.Printf("[GA Manager] Serving static files from: %s", staticDir)
 		mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 			// SPA fallback: serve file if exists, otherwise index.html
