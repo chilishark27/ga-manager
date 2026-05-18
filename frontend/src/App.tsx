@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import './styles/global.css';
 import NavBar from './components/NavBar';
 import TopBar from './components/TopBar';
+import SetupPage from './components/SetupPage';
 import ChatPage from './pages/ChatPage';
 import ConductorPage from './pages/ConductorPage';
 import MonitorPage from './pages/MonitorPage';
@@ -13,17 +14,26 @@ import { useStore } from './store';
 import { I18nProvider } from './i18n';
 
 function AppInner() {
-  const { theme, fetchInstances, currentPage } = useStore();
+  const { theme, fetchInstances, currentPage, configured, checkConfigured } = useStore();
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 
   useEffect(() => {
+    checkConfigured();
+  }, []);
+
+  useEffect(() => {
+    if (!configured) return;
     fetchInstances();
     const interval = setInterval(fetchInstances, 2000);
     return () => clearInterval(interval);
-  }, [fetchInstances]);
+  }, [configured, fetchInstances]);
+
+  if (!configured) {
+    return <SetupPage />;
+  }
 
   const renderPage = () => {
     switch (currentPage) {

@@ -168,7 +168,21 @@ func main() {
 	// App config (GA path, etc.)
 	mux.HandleFunc("GET /api/config/app", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(cfg)
+		// Check if GA root actually exists
+		_, gaExists := os.Stat(cfg.GARoot)
+		// Check if config file exists (user has explicitly configured)
+		configPath := filepath.Join(getConfigDir(), defaultConfigFile)
+		_, cfgExists := os.Stat(configPath)
+		resp := map[string]interface{}{
+			"ga_root":       cfg.GARoot,
+			"port":          cfg.Port,
+			"max_instances": cfg.MaxInstances,
+			"python_path":   cfg.PythonPath,
+			"bbs_base_url":  cfg.BBSBaseURL,
+			"bbs_key":       cfg.BBSKey,
+			"configured":    cfgExists == nil && gaExists == nil,
+		}
+		json.NewEncoder(w).Encode(resp)
 	})
 	mux.HandleFunc("PUT /api/config/app", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -183,8 +197,8 @@ func main() {
 		if update.PythonPath != "" {
 			cfg.PythonPath = update.PythonPath
 		}
-		// Persist to file
-		configPath := filepath.Join(getExeDir(), defaultConfigFile)
+		// Persist to file (user config dir)
+		configPath := filepath.Join(getConfigDir(), defaultConfigFile)
 		data, _ := json.MarshalIndent(cfg, "", "  ")
 		os.WriteFile(configPath, data, 0644)
 		// Update services
@@ -527,12 +541,7 @@ func loadConfig() *models.AppConfig {
 	// Platform-aware default GA root
 	defaultGARoot := ""
 	if home, err := os.UserHomeDir(); err == nil {
-		switch {
-		case strings.Contains(strings.ToLower(os.Getenv("OS")), "windows") || filepath.Separator == '\\':
-			defaultGARoot = filepath.Join(home, "GenericAgent")
-		default:
-			defaultGARoot = filepath.Join(home, "GenericAgent")
-		}
+		defaultGARoot = filepath.Join(home, "GenericAgent")
 	}
 	// Default python path: python3 on unix, python on windows
 	defaultPython := "python"
@@ -547,11 +556,17 @@ func loadConfig() *models.AppConfig {
 		PythonPath:   defaultPython,
 	}
 
-	// Try to load from file
-	configPath := filepath.Join(getExeDir(), defaultConfigFile)
-	data, err := os.ReadFile(configPath)
-	if err == nil {
-		json.Unmarshal(data, cfg)
+	// Try to load config from multiple locations (first found wins)
+	configPaths := []string{
+		filepath.Join(getConfigDir(), defaultConfigFile),
+		filepath.Join(getExeDir(), defaultConfigFile),
+		filepath.Join(".", defaultConfigFile),
+	}
+	for _, cp := range configPaths {
+		if data, err := os.ReadFile(cp); err == nil {
+			json.Unmarshal(data, cfg)
+			break
+		}
 	}
 
 	// Override from environment
@@ -563,6 +578,15 @@ func loadConfig() *models.AppConfig {
 	}
 
 	return cfg
+}
+
+func getConfigDir() string {
+	if home, err := os.UserHomeDir(); err == nil {
+		dir := filepath.Join(home, ".ga-manager")
+		os.MkdirAll(dir, 0755)
+		return dir
+	}
+	return getExeDir()
 }
 
 func getExeDir() string {

@@ -180,10 +180,10 @@ export const useStore = create<AppState>((set, get) => ({
   configured: false,
   checkConfigured: async () => {
     try {
-      const res = await fetch(`${API_BASE}/config`);
+      const res = await fetch(`${API_BASE}/config/app`);
       if (res.ok) {
         const data = await res.json();
-        set({ configured: !!data.ga_root });
+        set({ configured: !!data.configured });
       }
     } catch { /* not configured */ }
   },
