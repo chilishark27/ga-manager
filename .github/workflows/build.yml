@@ -59,31 +59,20 @@ jobs:
           CGO_ENABLED: '0'
         run: go build -o ../build/${{ matrix.goos }}-${{ matrix.goarch }}/ga-manager${{ matrix.ext }} .
 
-      - name: Build Electron
+      - name: Build & Publish Electron
         working-directory: electron
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm install
-          npm run ${{ matrix.electron_cmd }}
+          npx electron-builder --${{ matrix.goos == 'windows' && 'win' || matrix.goos == 'darwin' && 'mac' || 'linux' }} --publish always
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: electron-${{ matrix.goos }}
-          path: build/electron/GA Manager*
-
-  release:
-    needs: build
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-      - uses: actions/download-artifact@v4
-        with:
-          path: artifacts
-
-      - name: Create Release
-        uses: softprops/action-gh-release@v2
-        with:
-          files: artifacts/**/*
-          generate_release_notes: true
+          path: |
+            build/electron/*.exe
+            build/electron/*.dmg
+            build/electron/*.AppImage
+            build/electron/*.yml

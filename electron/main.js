@@ -1,4 +1,5 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
@@ -89,6 +90,7 @@ function createWindow() {
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
+      preload: path.join(__dirname, 'preload.js'),
     },
     show: false,
   });
@@ -127,6 +129,53 @@ function createTray() {
   tray.on('double-click', () => { if (mainWindow) mainWindow.show(); else createWindow(); });
 }
 
+// --- Auto Updater ---
+function setupAutoUpdater() {
+  autoUpdater.autoDownload = true;
+  autoUpdater.autoInstallOnAppQuit = true;
+
+  autoUpdater.on('update-available', (info) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('update-available', {
+        version: info.version,
+        releaseNotes: info.releaseNotes || '',
+        releaseDate: info.releaseDate || '',
+      });
+    }
+  });
+
+  autoUpdater.on('download-progress', (progress) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('update-progress', {
+        percent: Math.round(progress.percent),
+        transferred: progress.transferred,
+        total: progress.total,
+      });
+    }
+  });
+
+  autoUpdater.on('update-downloaded', (info) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('update-downloaded', {
+        version: info.version,
+        releaseNotes: info.releaseNotes || '',
+      });
+    }
+  });
+
+  autoUpdater.on('error', (err) => {
+    if (mainWindow) {
+      mainWindow.webContents.send('update-error', err.message || String(err));
+    }
+  });
+
+  ipcMain.handle('check-for-update', () => autoUpdater.checkForUpdates());
+  ipcMain.handle('install-update', () => autoUpdater.quitAndInstall());
+
+  setTimeout(() => autoUpdater.checkForUpdates(), 10000);
+  setInterval(() => autoUpdater.checkForUpdates(), 30 * 60 * 1000);
+}
+
 app.whenReady().then(async () => {
   startBackend();
 
@@ -141,6 +190,7 @@ app.whenReady().then(async () => {
 
   createTray();
   createWindow();
+  setupAutoUpdater();
 });
 
 app.on('window-all-closed', () => {

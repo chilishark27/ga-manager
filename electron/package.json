@@ -13,6 +13,9 @@
   "author": "chilishark27",
   "license": "MIT",
   "type": "commonjs",
+  "dependencies": {
+    "electron-updater": "^6.3.0"
+  },
   "devDependencies": {
     "electron": "^42.1.0",
     "electron-builder": "^26.8.1"
@@ -20,6 +23,11 @@
   "build": {
     "appId": "com.gamanager.app",
     "productName": "GA Manager",
+    "publish": {
+      "provider": "github",
+      "owner": "chilishark27",
+      "repo": "ga-manager"
+    },
     "directories": {
       "output": "../build/electron"
     },
@@ -41,7 +49,7 @@
       }
     ],
     "win": {
-      "target": ["portable"],
+      "target": ["nsis"],
       "icon": "icon.ico",
       "extraResources": [
         {
@@ -53,6 +61,11 @@
           "to": "backend/static"
         }
       ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "allowElevation": true
     },
     "mac": {
       "target": ["dmg"],

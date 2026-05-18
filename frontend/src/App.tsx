@@ -8,6 +8,7 @@ import MonitorPage from './pages/MonitorPage';
 import SkillsPage from './pages/SkillsPage';
 import SettingsPage from './pages/SettingsPage';
 import HivePage from './pages/HivePage';
+import UpdateNotifier from './components/UpdateNotifier';
 import { useStore } from './store';
 import { I18nProvider } from './i18n';
 
@@ -45,6 +46,7 @@ function AppInner() {
           {renderPage()}
         </div>
       </div>
+      <UpdateNotifier />
     </div>
   );
 }

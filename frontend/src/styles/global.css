@@ -680,6 +680,16 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 [data-theme="light"] .settings-llm-item { background: #f8fafc; border-color: #e8ecf2; }
 [data-theme="light"] .nav-action-btn.scan { background: #f0f3f7; border-color: #e2e8f0; }
 
+/* ===== Update Notifier ===== */
+.update-notifier { position: fixed; bottom: 20px; right: 20px; z-index: 9999; max-width: 380px; background: var(--card); border: 1px solid var(--accent); border-radius: 12px; box-shadow: var(--shadow), 0 8px 32px rgba(59, 130, 246, 0.15); animation: slideUp 0.3s ease; }
+.update-notifier-content { padding: 16px; }
+.update-notifier-text { font-size: 13px; color: var(--text-1); font-weight: 500; margin-bottom: 8px; }
+.update-progress-bar { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; margin-bottom: 8px; }
+.update-progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.3s; }
+.update-notes { max-height: 120px; overflow-y: auto; font-size: 11px; color: var(--text-2); background: var(--bg3); border-radius: 6px; padding: 8px; margin-bottom: 10px; }
+.update-notes pre { white-space: pre-wrap; word-break: break-word; margin: 0; font-family: inherit; }
+.update-notifier-actions { display: flex; gap: 8px; justify-content: flex-end; }
+
 /* ===== Hive Page ===== */
 .hive-page { height: 100%; overflow-y: auto; }
 .hive-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
