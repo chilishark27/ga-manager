@@ -4,23 +4,232 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
+	"math/rand"
 	"net/http"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"strings"
+	"sync"
+	"time"
 
 	"ga_manager/models"
 )
 
 type HiveHandler struct {
-	cfg *models.AppConfig
+	mu       sync.Mutex
+	cfg      *models.AppConfig
+	running  bool
+	bbsCmd   *exec.Cmd
+	workers  []*exec.Cmd
+	masterCmd *exec.Cmd
+	port     int
+	boardKey string
+	objective string
+	startedAt time.Time
 }
 
 func NewHiveHandler(cfg *models.AppConfig) *HiveHandler {
-	return &HiveHandler{cfg: cfg}
+	return &HiveHandler{cfg: cfg, port: 58800}
 }
 
+func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if h.running {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "already_running"})
+		return
+	}
+
+	var body struct {
+		Objective string `json:"objective"`
+		Budget    int    `json:"budget_minutes"`
+		Workers   int    `json:"workers"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Objective == "" {
+		writeError(w, http.StatusBadRequest, "objective is required")
+		return
+	}
+	if body.Budget <= 0 {
+		body.Budget = 180
+	}
+	if body.Workers <= 0 {
+		body.Workers = 2
+	}
+
+	gaRoot := h.cfg.GARoot
+	python := h.cfg.PythonPath
+	if python == "" {
+		python = "python"
+	}
+
+	h.port = 58800 + rand.Intn(100)
+	h.boardKey = fmt.Sprintf("hive-%d", time.Now().Unix())
+	h.objective = body.Objective
+	h.startedAt = time.Now()
+
+	// Create BBS data dir
+	bbsCwd := filepath.Join(gaRoot, "temp", fmt.Sprintf("hive_%d", time.Now().Unix()))
+	os.MkdirAll(bbsCwd, 0755)
+
+	// Start BBS
+	bbsScript := filepath.Join(gaRoot, "assets", "agent_bbs.py")
+	h.bbsCmd = exec.Command(python, "-u", bbsScript,
+		"--cwd", bbsCwd, "--port", fmt.Sprintf("%d", h.port), "--key", h.boardKey)
+	h.bbsCmd.Dir = gaRoot
+	h.bbsCmd.Stdout = os.Stdout
+	h.bbsCmd.Stderr = os.Stderr
+	if err := h.bbsCmd.Start(); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to start BBS: "+err.Error())
+		return
+	}
+
+	// Wait for BBS to be ready
+	baseURL := fmt.Sprintf("http://127.0.0.1:%d", h.port)
+	ready := false
+	for i := 0; i < 20; i++ {
+		time.Sleep(300 * time.Millisecond)
+		req, _ := http.NewRequest("GET", baseURL+"/authors?key="+h.boardKey, nil)
+		if resp, err := http.DefaultClient.Do(req); err == nil {
+			resp.Body.Close()
+			if resp.StatusCode == 200 {
+				ready = true
+				break
+			}
+		}
+	}
+	if !ready {
+		h.bbsCmd.Process.Kill()
+		writeError(w, http.StatusInternalServerError, "BBS failed to start")
+		return
+	}
+
+	// Start workers
+	workerReflect := filepath.Join(gaRoot, "reflect", "agent_team_worker.py")
+	h.workers = nil
+	for i := 0; i < body.Workers; i++ {
+		name := fmt.Sprintf("hive-worker-%d", i+1)
+		cmd := exec.Command(python, "-u", filepath.Join(gaRoot, "agentmain.py"),
+			"--reflect", workerReflect,
+			"--base_url", baseURL, "--board_key", h.boardKey, "--name", name)
+		cmd.Dir = gaRoot
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
+		if err := cmd.Start(); err != nil {
+			log.Printf("[Hive] Failed to start worker %s: %v", name, err)
+			continue
+		}
+		h.workers = append(h.workers, cmd)
+	}
+
+	// Create goal_state.json
+	goalState := map[string]interface{}{
+		"objective":      body.Objective,
+		"budget_seconds": body.Budget * 60,
+		"start_time":     time.Now().Unix(),
+		"turns_used":     0,
+		"max_turns":      200,
+		"status":         "running",
+	}
+	goalData, _ := json.MarshalIndent(goalState, "", "  ")
+	goalPath := filepath.Join(gaRoot, "temp", "goal_state.json")
+	os.WriteFile(goalPath, goalData, 0644)
+
+	// Start Hive Master
+	goalReflect := filepath.Join(gaRoot, "reflect", "goal_mode.py")
+	h.masterCmd = exec.Command(python, "-u", filepath.Join(gaRoot, "agentmain.py"),
+		"--reflect", goalReflect)
+	h.masterCmd.Dir = gaRoot
+	h.masterCmd.Env = append(os.Environ(), "GOAL_STATE="+goalPath)
+	h.masterCmd.Stdout = os.Stdout
+	h.masterCmd.Stderr = os.Stderr
+	if err := h.masterCmd.Start(); err != nil {
+		log.Printf("[Hive] Failed to start master: %v", err)
+	}
+
+	// Update config for proxy
+	h.cfg.BBSBaseURL = baseURL
+	h.cfg.BBSKey = h.boardKey
+	h.running = true
+
+	// Monitor processes
+	go func() {
+		if h.bbsCmd != nil {
+			h.bbsCmd.Wait()
+		}
+		h.mu.Lock()
+		h.running = false
+		h.mu.Unlock()
+	}()
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"status":    "running",
+		"port":      h.port,
+		"board_key": h.boardKey,
+		"workers":   len(h.workers),
+		"objective": body.Objective,
+		"budget":    body.Budget,
+	})
+}
+
+func (h *HiveHandler) Stop(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	defer h.mu.Unlock()
+
+	if !h.running {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "not_running"})
+		return
+	}
+
+	if h.masterCmd != nil && h.masterCmd.Process != nil {
+		h.masterCmd.Process.Kill()
+	}
+	for _, w := range h.workers {
+		if w != nil && w.Process != nil {
+			w.Process.Kill()
+		}
+	}
+	if h.bbsCmd != nil && h.bbsCmd.Process != nil {
+		h.bbsCmd.Process.Kill()
+	}
+
+	h.running = false
+	h.workers = nil
+	h.masterCmd = nil
+	h.bbsCmd = nil
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "stopped"})
+}
+
+func (h *HiveHandler) Status(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	running := h.running
+	port := h.port
+	key := h.boardKey
+	objective := h.objective
+	workerCount := len(h.workers)
+	startedAt := h.startedAt
+	h.mu.Unlock()
+
+	resp := map[string]interface{}{
+		"running":   running,
+		"port":      port,
+		"board_key": key,
+		"objective": objective,
+		"workers":   workerCount,
+	}
+	if running {
+		resp["elapsed_minutes"] = int(time.Since(startedAt).Minutes())
+	}
+	writeJSON(w, http.StatusOK, resp)
+}
+
+// Proxy methods for BBS access
 func (h *HiveHandler) proxyGet(w http.ResponseWriter, path string, query string) {
 	if h.cfg.BBSBaseURL == "" {
-		writeError(w, http.StatusServiceUnavailable, "BBS not configured")
+		writeError(w, http.StatusServiceUnavailable, "Hive not running")
 		return
 	}
 	url := strings.TrimRight(h.cfg.BBSBaseURL, "/") + path
@@ -33,29 +242,7 @@ func (h *HiveHandler) proxyGet(w http.ResponseWriter, path string, query string)
 	}
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		writeError(w, http.StatusBadGateway, fmt.Sprintf("BBS unreachable: %v", err))
-		return
-	}
-	defer resp.Body.Close()
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
-}
-
-func (h *HiveHandler) proxyPost(w http.ResponseWriter, r *http.Request, path string) {
-	if h.cfg.BBSBaseURL == "" {
-		writeError(w, http.StatusServiceUnavailable, "BBS not configured")
-		return
-	}
-	url := strings.TrimRight(h.cfg.BBSBaseURL, "/") + path
-	req, _ := http.NewRequest("POST", url, r.Body)
-	req.Header.Set("Content-Type", "application/json")
-	if h.cfg.BBSKey != "" {
-		req.Header.Set("X-API-Key", h.cfg.BBSKey)
-	}
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		writeError(w, http.StatusBadGateway, fmt.Sprintf("BBS unreachable: %v", err))
+		writeError(w, http.StatusBadGateway, "BBS unreachable")
 		return
 	}
 	defer resp.Body.Close()
@@ -72,39 +259,6 @@ func (h *HiveHandler) GetAuthors(w http.ResponseWriter, r *http.Request) {
 	h.proxyGet(w, "/authors", "")
 }
 
-func (h *HiveHandler) GetCount(w http.ResponseWriter, r *http.Request) {
-	h.proxyGet(w, "/count", r.URL.RawQuery)
-}
-
 func (h *HiveHandler) Poll(w http.ResponseWriter, r *http.Request) {
 	h.proxyGet(w, "/poll", r.URL.RawQuery)
-}
-
-func (h *HiveHandler) CreatePost(w http.ResponseWriter, r *http.Request) {
-	h.proxyPost(w, r, "/post")
-}
-
-func (h *HiveHandler) Register(w http.ResponseWriter, r *http.Request) {
-	h.proxyPost(w, r, "/register")
-}
-
-func (h *HiveHandler) GetConfig(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]string{
-		"base_url": h.cfg.BBSBaseURL,
-		"key":      h.cfg.BBSKey,
-	})
-}
-
-func (h *HiveHandler) SetConfig(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		BaseURL string `json:"base_url"`
-		Key     string `json:"key"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
-		writeError(w, http.StatusBadRequest, "invalid json")
-		return
-	}
-	h.cfg.BBSBaseURL = body.BaseURL
-	h.cfg.BBSKey = body.Key
-	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

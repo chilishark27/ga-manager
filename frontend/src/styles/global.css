@@ -735,6 +735,7 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .hive-post-author { font-size: 12px; font-weight: 600; color: var(--accent); }
 .hive-post-time { font-size: 11px; color: var(--text-3); }
 .hive-post-content { font-size: 13px; color: var(--text-1); white-space: pre-wrap; word-break: break-word; }
+.hive-author-tag { padding: 4px 10px; border-radius: 12px; background: rgba(59, 130, 246, 0.1); color: var(--accent); font-size: 12px; font-weight: 500; }
 
 /* ===== Responsive ===== */
 @media (max-width: 900px) {

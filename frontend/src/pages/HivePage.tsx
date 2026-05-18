@@ -1,126 +1,176 @@
 import { useEffect, useState, useRef } from 'react';
-import { useStore } from '../store';
 import { useI18n } from '../i18n';
 
+interface HiveStatus {
+  running: boolean;
+  port: number;
+  board_key: string;
+  objective: string;
+  workers: number;
+  elapsed_minutes?: number;
+}
+
 function HivePage() {
-  const { hivePosts, hiveAuthors, hiveConfig, fetchHivePosts, fetchHiveAuthors, fetchHiveConfig, saveHiveConfig, createHivePost, registerHive } = useStore();
   const { lang } = useI18n();
-  const [filterAuthor, setFilterAuthor] = useState('');
-  const [postContent, setPostContent] = useState('');
-  const [token, setToken] = useState(() => localStorage.getItem('hive_token') || '');
-  const [agentName, setAgentName] = useState('');
-  const [showConfig, setShowConfig] = useState(false);
-  const [cfgUrl, setCfgUrl] = useState('');
-  const [cfgKey, setCfgKey] = useState('');
+  const [status, setStatus] = useState<HiveStatus | null>(null);
+  const [objective, setObjective] = useState('');
+  const [budget, setBudget] = useState(180);
+  const [workers, setWorkers] = useState(2);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [authors, setAuthors] = useState<string[]>([]);
+  const [starting, setStarting] = useState(false);
+  const [error, setError] = useState('');
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
 
+  const fetchStatus = async () => {
+    try {
+      const res = await fetch('/api/hive/status');
+      if (res.ok) setStatus(await res.json());
+    } catch {}
+  };
+
+  const fetchPosts = async () => {
+    try {
+      const res = await fetch('/api/hive/posts?limit=30');
+      if (res.ok) setPosts(await res.json());
+    } catch {}
+  };
+
+  const fetchAuthors = async () => {
+    try {
+      const res = await fetch('/api/hive/authors');
+      if (res.ok) setAuthors(await res.json());
+    } catch {}
+  };
+
   useEffect(() => {
-    fetchHiveConfig();
-    fetchHiveAuthors();
-    fetchHivePosts();
-    timer.current = setInterval(() => { fetchHivePosts(filterAuthor || undefined); }, 8000);
+    fetchStatus();
+    timer.current = setInterval(() => {
+      fetchStatus();
+      if (status?.running) { fetchPosts(); fetchAuthors(); }
+    }, 5000);
     return () => { if (timer.current) clearInterval(timer.current); };
   }, []);
 
   useEffect(() => {
-    if (hiveConfig) { setCfgUrl(hiveConfig.base_url || ''); setCfgKey(hiveConfig.key || ''); }
-  }, [hiveConfig]);
+    if (status?.running) { fetchPosts(); fetchAuthors(); }
+  }, [status?.running]);
 
-  const handleRegister = async () => {
-    if (!agentName.trim()) return;
-    const t = await registerHive(agentName.trim());
-    if (t) { setToken(t); localStorage.setItem('hive_token', t); }
+  const handleStart = async () => {
+    if (!objective.trim()) { setError(lang === 'zh' ? '请输入目标' : 'Objective required'); return; }
+    setStarting(true); setError('');
+    try {
+      const res = await fetch('/api/hive/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ objective: objective.trim(), budget_minutes: budget, workers }),
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        setError(d.error || 'Start failed');
+      } else {
+        fetchStatus();
+      }
+    } catch { setError('Network error'); }
+    setStarting(false);
   };
 
-  const handlePost = async () => {
-    if (!token || !postContent.trim()) return;
-    await createHivePost(token, postContent.trim());
-    setPostContent('');
+  const handleStop = async () => {
+    await fetch('/api/hive/stop', { method: 'POST' });
+    fetchStatus();
+    setPosts([]); setAuthors([]);
   };
-
-  const handleFilterChange = (author: string) => {
-    setFilterAuthor(author);
-    fetchHivePosts(author || undefined);
-  };
-
-  const notConfigured = !hiveConfig || !hiveConfig.base_url;
 
   return (
     <div className="hive-page">
       <div className="page-container">
-        <div className="hive-header">
-          <h2 className="page-header">{lang === 'zh' ? '蜂巢 (BBS)' : 'Hive (BBS)'}</h2>
-          <button className="ch-btn" onClick={() => setShowConfig(!showConfig)}>
-            {lang === 'zh' ? '配置' : 'Config'}
-          </button>
-        </div>
+        <h2 className="page-header">{lang === 'zh' ? '蜂巢模式' : 'Goal Hive'}</h2>
 
-        {showConfig && (
-          <div className="page-card" style={{ marginBottom: '16px' }}>
-            <div className="page-card-title">{lang === 'zh' ? 'BBS 配置' : 'BBS Config'}</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <input className="hive-input" placeholder="BBS URL (e.g. http://127.0.0.1:8800)" value={cfgUrl} onChange={e => setCfgUrl(e.target.value)} />
-              <input className="hive-input" placeholder="API Key" value={cfgKey} onChange={e => setCfgKey(e.target.value)} />
-              <button className="ch-btn" onClick={() => { saveHiveConfig(cfgUrl, cfgKey); setShowConfig(false); }}>
-                {lang === 'zh' ? '保存' : 'Save'}
+        {!status?.running ? (
+          <div className="page-card" style={{ maxWidth: '560px' }}>
+            <div className="page-card-title">{lang === 'zh' ? '启动蜂巢' : 'Start Hive Session'}</div>
+            <p style={{ fontSize: '12px', color: 'var(--text-3)', marginBottom: '16px' }}>
+              {lang === 'zh' ? '输入目标，系统自动启动 BBS + Workers + Hive Master 协同工作' : 'Enter objective, system auto-launches BBS + Workers + Hive Master'}
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <textarea
+                className="hive-input"
+                style={{ minHeight: '80px', resize: 'vertical' }}
+                placeholder={lang === 'zh' ? '输入目标，例如：设计一个中转站UI...' : 'Enter objective...'}
+                value={objective}
+                onChange={e => setObjective(e.target.value)}
+              />
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '11px', color: 'var(--text-3)', display: 'block', marginBottom: '4px' }}>
+                    {lang === 'zh' ? '时间预算（分钟）' : 'Budget (min)'}
+                  </label>
+                  <input className="hive-input" type="number" value={budget} onChange={e => setBudget(Number(e.target.value))} min={30} />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '11px', color: 'var(--text-3)', display: 'block', marginBottom: '4px' }}>
+                    {lang === 'zh' ? 'Worker 数量' : 'Workers'}
+                  </label>
+                  <input className="hive-input" type="number" value={workers} onChange={e => setWorkers(Number(e.target.value))} min={1} max={5} />
+                </div>
+              </div>
+              {error && <div style={{ color: 'var(--red)', fontSize: '12px' }}>{error}</div>}
+              <button className="setup-btn" onClick={handleStart} disabled={starting}>
+                {starting ? (lang === 'zh' ? '启动中...' : 'Starting...') : (lang === 'zh' ? '启动蜂巢' : 'Start Hive')}
               </button>
             </div>
           </div>
-        )}
-
-        {notConfigured ? (
-          <div className="page-card">
-            <p style={{ color: 'var(--text-3)', textAlign: 'center', padding: '40px' }}>
-              {lang === 'zh' ? '请先配置 BBS 地址和 API Key' : 'Please configure BBS URL and API Key first'}
-            </p>
-          </div>
         ) : (
-          <div className="hive-layout">
-            <div className="hive-sidebar">
-              <div className="hive-sidebar-title">{lang === 'zh' ? '作者' : 'Authors'}</div>
-              <div className={`hive-author-item ${!filterAuthor ? 'active' : ''}`} onClick={() => handleFilterChange('')}>
-                {lang === 'zh' ? '全部' : 'All'}
-              </div>
-              {(hiveAuthors || []).map(a => (
-                <div key={a} className={`hive-author-item ${filterAuthor === a ? 'active' : ''}`} onClick={() => handleFilterChange(a)}>
-                  {a}
+          <div>
+            <div className="page-card" style={{ marginBottom: '16px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div className="page-card-title" style={{ marginBottom: '4px' }}>{lang === 'zh' ? '运行中' : 'Running'}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-2)' }}>{status.objective}</div>
                 </div>
-              ))}
+                <button className="ch-btn danger" onClick={handleStop}>{lang === 'zh' ? '停止' : 'Stop'}</button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginTop: '12px' }}>
+                <div className="token-stat-item">
+                  <span className="token-stat-label">Workers</span>
+                  <span className="token-stat-value">{status.workers}</span>
+                </div>
+                <div className="token-stat-item">
+                  <span className="token-stat-label">Port</span>
+                  <span className="token-stat-value">{status.port}</span>
+                </div>
+                <div className="token-stat-item">
+                  <span className="token-stat-label">{lang === 'zh' ? '已运行' : 'Elapsed'}</span>
+                  <span className="token-stat-value">{status.elapsed_minutes || 0}m</span>
+                </div>
+              </div>
             </div>
 
-            <div className="hive-main">
-              {/* Post input */}
-              <div className="hive-post-form">
-                {!token ? (
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input className="hive-input" placeholder={lang === 'zh' ? '输入名称注册' : 'Enter name to register'} value={agentName} onChange={e => setAgentName(e.target.value)} />
-                    <button className="ch-btn" onClick={handleRegister}>{lang === 'zh' ? '注册' : 'Register'}</button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <input className="hive-input" style={{ flex: 1 }} placeholder={lang === 'zh' ? '发送消息...' : 'Post message...'} value={postContent} onChange={e => setPostContent(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') handlePost(); }} />
-                    <button className="ch-btn" onClick={handlePost}>{lang === 'zh' ? '发送' : 'Post'}</button>
-                  </div>
-                )}
+            {authors.length > 0 && (
+              <div className="page-card" style={{ marginBottom: '16px' }}>
+                <div className="page-card-title">{lang === 'zh' ? '参与者' : 'Participants'}</div>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                  {authors.map(a => <span key={a} className="hive-author-tag">{a}</span>)}
+                </div>
               </div>
+            )}
 
-              {/* Posts list */}
+            <div className="page-card">
+              <div className="page-card-title">{lang === 'zh' ? '消息流' : 'Message Feed'}</div>
               <div className="hive-posts">
-                {(hivePosts || []).length === 0 ? (
-                  <div style={{ color: 'var(--text-3)', textAlign: 'center', padding: '40px' }}>
-                    {lang === 'zh' ? '暂无消息' : 'No posts yet'}
+                {posts.length === 0 ? (
+                  <div style={{ color: 'var(--text-3)', fontSize: '12px', padding: '20px 0', textAlign: 'center' }}>
+                    {lang === 'zh' ? '等待消息...' : 'Waiting for messages...'}
                   </div>
-                ) : (
-                  (hivePosts || []).map((p: any) => (
-                    <div key={p.id} className="hive-post-item">
-                      <div className="hive-post-header">
-                        <span className="hive-post-author">{p.author}</span>
-                        <span className="hive-post-time">{p.created_at ? new Date(p.created_at * 1000).toLocaleString() : ''}</span>
-                      </div>
-                      <div className="hive-post-content">{p.content}</div>
+                ) : posts.map((p: any) => (
+                  <div key={p.id} className="hive-post-item">
+                    <div className="hive-post-header">
+                      <span className="hive-post-author">{p.author}</span>
+                      <span className="hive-post-time">{p.created_at ? new Date(p.created_at * 1000).toLocaleTimeString() : ''}</span>
                     </div>
-                  ))
-                )}
+                    <div className="hive-post-content">{p.content}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

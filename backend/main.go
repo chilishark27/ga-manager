@@ -108,16 +108,14 @@ func main() {
 	supervisorHandler := handlers.NewSupervisorHandler(instanceMgr)
 	mux.HandleFunc("GET /api/discover", discoverHandler.Discover)
 
-	// Hive (BBS proxy)
+	// Hive (Goal Hive - one-click multi-agent orchestration)
 	hiveHandler := handlers.NewHiveHandler(cfg)
+	mux.HandleFunc("POST /api/hive/start", hiveHandler.Start)
+	mux.HandleFunc("POST /api/hive/stop", hiveHandler.Stop)
+	mux.HandleFunc("GET /api/hive/status", hiveHandler.Status)
 	mux.HandleFunc("GET /api/hive/posts", hiveHandler.GetPosts)
 	mux.HandleFunc("GET /api/hive/authors", hiveHandler.GetAuthors)
-	mux.HandleFunc("GET /api/hive/count", hiveHandler.GetCount)
 	mux.HandleFunc("GET /api/hive/poll", hiveHandler.Poll)
-	mux.HandleFunc("POST /api/hive/post", hiveHandler.CreatePost)
-	mux.HandleFunc("POST /api/hive/register", hiveHandler.Register)
-	mux.HandleFunc("GET /api/hive/config", hiveHandler.GetConfig)
-	mux.HandleFunc("PUT /api/hive/config", hiveHandler.SetConfig)
 
 	// Supervisor Agent
 	mux.HandleFunc("GET /api/supervisor/status", supervisorHandler.Status)
