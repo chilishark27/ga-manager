@@ -7,9 +7,9 @@ function SettingsPage() {
   const { t, lang, setLang } = useI18n();
 
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-  const [gaPath, setGaPath] = useState(() => localStorage.getItem('ga_root') || (isMac ? '/Users/Shared/GenericAgent' : 'D:\\python3_project\\GenericAgent'));
-  const [pythonPath, setPythonPath] = useState(() => localStorage.getItem('ga_python') || 'python');
-  const [port, setPort] = useState(() => localStorage.getItem('ga_port') || '9015');
+  const [gaPath, setGaPath] = useState('');
+  const [pythonPath, setPythonPath] = useState('');
+  const [port, setPort] = useState('18600');
   const [mykeyContent, setMykeyContent] = useState('');
   const [mykeyLoading, setMykeyLoading] = useState(false);
   const [updateStatus, setUpdateStatus] = useState('');
@@ -17,7 +17,20 @@ function SettingsPage() {
   useEffect(() => {
     fetchLLMs();
     loadMykey();
+    loadAppConfig();
   }, []);
+
+  const loadAppConfig = async () => {
+    try {
+      const res = await fetch('/api/config/app');
+      if (res.ok) {
+        const data = await res.json();
+        setGaPath(data.ga_root || '');
+        setPythonPath(data.python_path || (isMac ? 'python3' : 'python'));
+        setPort(String(data.port || 18600));
+      }
+    } catch { /* ignore */ }
+  };
 
   const loadMykey = async () => {
     setMykeyLoading(true);
@@ -48,11 +61,21 @@ function SettingsPage() {
     }
   };
 
-  const saveAppConfig = () => {
-    localStorage.setItem('ga_root', gaPath);
-    localStorage.setItem('ga_python', pythonPath);
-    localStorage.setItem('ga_port', port);
-    showToast('Config saved');
+  const saveAppConfig = async () => {
+    try {
+      const res = await fetch('/api/config/app', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ga_root: gaPath, python_path: pythonPath, port: parseInt(port) || 18600 }),
+      });
+      if (res.ok) {
+        showToast(lang === 'zh' ? '配置已保存' : 'Config saved');
+      } else {
+        showToast(lang === 'zh' ? '保存失败' : 'Save failed');
+      }
+    } catch {
+      showToast(lang === 'zh' ? '保存失败' : 'Save failed');
+    }
   };
 
   return (
@@ -103,7 +126,7 @@ function SettingsPage() {
           {/* Update card */}
           <div className="page-card" style={{ flex: '1', minWidth: '160px' }}>
             <div className="page-card-title">{lang === 'zh' ? '版本更新' : 'Updates'}</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-2)', marginBottom: '8px' }}>v2.2.2</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-2)', marginBottom: '8px' }}>v2.2.4</div>
             <button className="ch-btn" onClick={() => {
               const updater = (window as any).electronUpdater;
               if (updater) {

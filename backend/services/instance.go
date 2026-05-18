@@ -271,6 +271,12 @@ func (m *InstanceManager) Create(req models.CreateInstanceRequest) (*models.Inst
 		gaRoot = m.config.GARoot
 	}
 
+	// Verify GA root exists
+	if _, err := os.Stat(gaRoot); err != nil {
+		log.Printf("[InstanceManager] ERROR: GA root not found: %s", gaRoot)
+		return nil, fmt.Errorf("GA root directory not found: %s — configure it in Settings", gaRoot)
+	}
+
 	args := []string{"-u", bridgePath,
 		"--ga-root", gaRoot,
 		"--llm-no", strconv.Itoa(req.LLMNo),
@@ -777,6 +783,15 @@ func (m *InstanceManager) Start(id string) error {
 	pythonPath := m.config.PythonPath
 	if pythonPath == "" {
 		pythonPath = "python"
+	}
+
+	if _, err := os.Stat(bridgePath); err != nil {
+		cancel()
+		return fmt.Errorf("bridge.py not found at %s", bridgePath)
+	}
+	if _, err := os.Stat(m.config.GARoot); err != nil {
+		cancel()
+		return fmt.Errorf("GA root not found: %s — configure in Settings", m.config.GARoot)
 	}
 
 	args := []string{"-u", bridgePath,

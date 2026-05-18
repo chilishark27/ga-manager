@@ -312,10 +312,15 @@ export const useStore = create<AppState>((set, get) => ({
     if (!inst) return;
     const action = inst.status === 'running' ? 'stop' : 'start';
     try {
-      await fetch(`${API_BASE}/instances/${id}/${action}`, { method: 'POST' });
+      const res = await fetch(`${API_BASE}/instances/${id}/${action}`, { method: 'POST' });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        get().showToast(data.error || `${action} failed`);
+        return;
+      }
       await get().fetchInstances();
     } catch {
-      get().showToast(`${action} 失败`);
+      get().showToast(`${action} failed`);
     }
   },
 
