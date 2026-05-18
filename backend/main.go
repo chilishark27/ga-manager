@@ -510,11 +510,27 @@ func main() {
 }
 
 func loadConfig() *models.AppConfig {
+	// Platform-aware default GA root
+	defaultGARoot := ""
+	if home, err := os.UserHomeDir(); err == nil {
+		switch {
+		case strings.Contains(strings.ToLower(os.Getenv("OS")), "windows") || filepath.Separator == '\\':
+			defaultGARoot = filepath.Join(home, "GenericAgent")
+		default:
+			defaultGARoot = filepath.Join(home, "GenericAgent")
+		}
+	}
+	// Default python path: python3 on unix, python on windows
+	defaultPython := "python"
+	if filepath.Separator != '\\' {
+		defaultPython = "python3"
+	}
+
 	cfg := &models.AppConfig{
-		GARoot:       `D:\python3_project\GenericAgent`,
+		GARoot:       defaultGARoot,
 		Port:         18600,
 		MaxInstances: 10,
-		PythonPath:   "python",
+		PythonPath:   defaultPython,
 	}
 
 	// Try to load from file
@@ -542,21 +558,25 @@ func getExeDir() string {
 
 func detectGAPath() []string {
 	var found []string
-	// Common locations to check
+	home, _ := os.UserHomeDir()
+
+	// Common locations to check (cross-platform)
 	candidates := []string{
-		// Windows common locations
-		filepath.Join(os.Getenv("USERPROFILE"), "GenericAgent"),
-		filepath.Join(os.Getenv("USERPROFILE"), "Desktop", "GenericAgent"),
-		filepath.Join(os.Getenv("USERPROFILE"), "Documents", "GenericAgent"),
-		`D:\python3_project\GenericAgent`,
-		`C:\GenericAgent`,
-		// macOS / Linux common locations
-		filepath.Join(os.Getenv("HOME"), "GenericAgent"),
-		filepath.Join(os.Getenv("HOME"), "Documents", "GenericAgent"),
-		filepath.Join(os.Getenv("HOME"), "Developer", "GenericAgent"),
-		filepath.Join(os.Getenv("HOME"), "projects", "GenericAgent"),
-		filepath.Join(os.Getenv("HOME"), "Desktop", "GenericAgent"),
+		filepath.Join(home, "GenericAgent"),
+		filepath.Join(home, "Desktop", "GenericAgent"),
+		filepath.Join(home, "Documents", "GenericAgent"),
+		filepath.Join(home, "projects", "GenericAgent"),
+		filepath.Join(home, "Developer", "GenericAgent"),
 	}
+
+	// Windows-specific
+	if filepath.Separator == '\\' {
+		candidates = append(candidates,
+			`D:\python3_project\GenericAgent`,
+			`C:\GenericAgent`,
+		)
+	}
+
 	// Also check sibling directories of exe
 	exeDir := getExeDir()
 	candidates = append(candidates, filepath.Join(filepath.Dir(exeDir), "GenericAgent"))
