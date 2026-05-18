@@ -65,6 +65,16 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		python = "python"
 	}
 
+	// Ensure BBS dependencies are installed
+	depCheck := exec.Command(python, "-c", "import fastapi, uvicorn, multipart")
+	depCheck.Dir = gaRoot
+	if err := depCheck.Run(); err != nil {
+		log.Printf("[Hive] Installing BBS dependencies...")
+		install := exec.Command(python, "-m", "pip", "install", "fastapi", "uvicorn", "python-multipart", "--quiet")
+		install.Dir = gaRoot
+		install.Run()
+	}
+
 	h.port = 58800 + rand.Intn(100)
 	h.boardKey = fmt.Sprintf("hive-%d", time.Now().Unix())
 	h.objective = body.Objective
