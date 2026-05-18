@@ -79,3 +79,12 @@ jobs:
             build/electron/*.dmg
             build/electron/*.AppImage
             build/electron/*.yml
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish release (remove draft)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit ${{ github.ref_name }} --repo ${{ github.repository }} --draft=false
