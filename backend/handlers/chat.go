@@ -241,14 +241,22 @@ func (h *ChatHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 	sessDir := filepath.Join(gaRoot, "temp", "model_responses")
 
 	type SessionInfo struct {
-		Name     string `json:"name"`
-		Modified string `json:"modified"`
-		Size     int64  `json:"size"`
-		Source   string `json:"source"`
-		Preview  string `json:"preview"`
+		Name        string `json:"name"`
+		Modified    string `json:"modified"`
+		Size        int64  `json:"size"`
+		Source      string `json:"source"`
+		Preview     string `json:"preview"`
+		DisplayName string `json:"display_name,omitempty"`
 	}
 
 	var sessions []SessionInfo
+
+	// Load session names
+	namesPath := filepath.Join(gaRoot, "temp", "model_responses", "session_names.json")
+	var namesMap map[string]string
+	if data, err := os.ReadFile(namesPath); err == nil {
+		json.Unmarshal(data, &namesMap)
+	}
 
 	// Scan current model_responses
 	entries, err := os.ReadDir(sessDir)
@@ -262,13 +270,19 @@ func (h *ChatHandler) ListSessions(w http.ResponseWriter, r *http.Request) {
 				continue
 			}
 			preview := extractSessionPreview(filepath.Join(sessDir, e.Name()))
-			sessions = append(sessions, SessionInfo{
+			si := SessionInfo{
 				Name:     e.Name(),
 				Modified: info.ModTime().Format("2006-01-02 15:04"),
 				Size:     info.Size(),
 				Source:   "current",
 				Preview:  preview,
-			})
+			}
+			if namesMap != nil {
+				if dn, ok := namesMap[e.Name()]; ok {
+					si.DisplayName = dn
+				}
+			}
+			sessions = append(sessions, si)
 		}
 	}
 
@@ -349,4 +363,42 @@ func (h *ChatHandler) GetSessionContent(w http.ResponseWriter, r *http.Request) 
 
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Write(data)
+}
+
+// RenameSession handles POST /api/instances/{id}/sessions/rename
+func (h *ChatHandler) RenameSession(w http.ResponseWriter, r *http.Request) {
+	var body struct {
+		File string `json:"file"`
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.File == "" {
+		writeError(w, http.StatusBadRequest, "file and name required")
+		return
+	}
+	if strings.Contains(body.File, "..") || strings.Contains(body.File, "/") || strings.Contains(body.File, "\\") {
+		writeError(w, http.StatusBadRequest, "invalid file name")
+		return
+	}
+
+	gaRoot := h.manager.GetGARoot()
+	namesPath := filepath.Join(gaRoot, "temp", "model_responses", "session_names.json")
+
+	namesMap := make(map[string]string)
+	if data, err := os.ReadFile(namesPath); err == nil {
+		json.Unmarshal(data, &namesMap)
+	}
+
+	if body.Name == "" {
+		delete(namesMap, body.File)
+	} else {
+		namesMap[body.File] = body.Name
+	}
+
+	data, _ := json.MarshalIndent(namesMap, "", "  ")
+	if err := os.WriteFile(namesPath, data, 0644); err != nil {
+		writeError(w, http.StatusInternalServerError, "failed to save")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }

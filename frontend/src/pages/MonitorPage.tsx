@@ -13,6 +13,7 @@ function MonitorPage() {
   const {
     activeInstanceId, activeInstance: getActiveInstance,
     fetchTokenStats, tokenStats,
+    fetchCosts, costStats,
     fetchADBDevices, adbDevices, fetchScreenshots, screenshots,
   } = useStore();
   const { t, lang } = useI18n();
@@ -37,7 +38,7 @@ function MonitorPage() {
     }
     timer.current = setInterval(() => {
       fetchSysResources();
-      if (id) fetchTokenStats(id);
+      if (id) { fetchTokenStats(id); fetchCosts(id); }
     }, 5000);
     return () => { if (timer.current) clearInterval(timer.current); };
   }, [id]);
@@ -64,23 +65,42 @@ function MonitorPage() {
       <div className="page-container">
         <h2 className="page-header">{lang === 'zh' ? '监控' : 'Monitor'}</h2>
 
-        {/* Token stats */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', marginBottom: '16px' }}>
-          <div className="token-stat-item">
-            <span className="token-stat-label">Input</span>
-            <span className="token-stat-value">{tokenStats ? `${((tokenStats.input_tokens || 0) / 1000).toFixed(1)}K` : '-'}</span>
-          </div>
-          <div className="token-stat-item">
-            <span className="token-stat-label">Output</span>
-            <span className="token-stat-value">{tokenStats ? `${((tokenStats.output_tokens || 0) / 1000).toFixed(1)}K` : '-'}</span>
-          </div>
-          <div className="token-stat-item">
-            <span className="token-stat-label">Cache Hit</span>
-            <span className="token-stat-value">{tokenStats ? `${(tokenStats.cache_hit_rate || 0).toFixed(1)}%` : '-'}</span>
-          </div>
-          <div className="token-stat-item">
-            <span className="token-stat-label">Turns</span>
-            <span className="token-stat-value">{tokenStats ? (tokenStats.total_turns || 0) : '-'}</span>
+        {/* Cost Tracking */}
+        <div className="page-card" style={{ marginBottom: '16px' }}>
+          <div className="page-card-title">{lang === 'zh' ? '费用追踪' : 'Cost Tracking'}</div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+            <div className="token-stat-item">
+              <span className="token-stat-label">{lang === 'zh' ? '请求数' : 'Requests'}</span>
+              <span className="token-stat-value">{costStats?.requests || 0}</span>
+            </div>
+            <div className="token-stat-item">
+              <span className="token-stat-label">Input</span>
+              <span className="token-stat-value">{costStats?.input ? `${(costStats.input / 1000).toFixed(1)}K` : '-'}</span>
+            </div>
+            <div className="token-stat-item">
+              <span className="token-stat-label">Output</span>
+              <span className="token-stat-value">{costStats?.output ? `${(costStats.output / 1000).toFixed(1)}K` : '-'}</span>
+            </div>
+            <div className="token-stat-item">
+              <span className="token-stat-label">{lang === 'zh' ? '缓存命中' : 'Cache Hit'}</span>
+              <span className="token-stat-value">{costStats?.cache_hit_rate ? `${costStats.cache_hit_rate}%` : '-'}</span>
+            </div>
+            <div className="token-stat-item">
+              <span className="token-stat-label">{lang === 'zh' ? '总 Token' : 'Total Tokens'}</span>
+              <span className="token-stat-value">{costStats?.total_tokens ? `${(costStats.total_tokens / 1000).toFixed(1)}K` : '-'}</span>
+            </div>
+            <div className="token-stat-item">
+              <span className="token-stat-label">Turns</span>
+              <span className="token-stat-value">{tokenStats ? (tokenStats.total_turns || 0) : '-'}</span>
+            </div>
+            <div className="token-stat-item">
+              <span className="token-stat-label">{lang === 'zh' ? '会话时长' : 'Duration'}</span>
+              <span className="token-stat-value">{costStats?.elapsed_seconds ? `${Math.floor(costStats.elapsed_seconds / 60)}m` : '-'}</span>
+            </div>
+            <div className="token-stat-item">
+              <span className="token-stat-label">{lang === 'zh' ? '已用 Token' : 'Used'}</span>
+              <span className="token-stat-value">{tokenStats ? `${((tokenStats.input_tokens + tokenStats.output_tokens) / 1000).toFixed(1)}K` : '-'}</span>
+            </div>
           </div>
         </div>
 

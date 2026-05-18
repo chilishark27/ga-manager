@@ -4,11 +4,12 @@ import { useStore } from '../store';
 import { useI18n } from '../i18n';
 import { parseSessionLog } from '../utils/chatUtils';
 
-const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings'; label: string; labelZh: string }[] = [
+const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive'; label: string; labelZh: string }[] = [
   { key: 'chat', label: 'Chat', labelZh: '聊天' },
   { key: 'conductor', label: 'Orch', labelZh: '编排' },
   { key: 'monitor', label: 'Monitor', labelZh: '监控' },
   { key: 'skills', label: 'Skills', labelZh: '技能' },
+  { key: 'hive', label: 'Hive', labelZh: '蜂巢' },
   { key: 'settings', label: 'Settings', labelZh: '设置' },
 ];
 
@@ -49,7 +50,7 @@ function NavBar() {
   }, []);
 
   // Session history
-  const [sessions, setSessions] = useState<{ name: string; modified: string; size: number; preview?: string }[]>([]);
+  const [sessions, setSessions] = useState<{ name: string; modified: string; size: number; preview?: string; display_name?: string }[]>([]);
   const [showSessions, setShowSessions] = useState(true);
 
   useEffect(() => {
@@ -214,8 +215,8 @@ function NavBar() {
                 <div className="nav-session-empty">{lang === 'zh' ? '暂无记录' : 'No sessions'}</div>
               ) : (
                 sessions.slice(0, 10).map(s => (
-                  <div key={s.name} className="nav-session-item" onClick={() => restoreSession(s.name)} title={s.preview || s.name}>
-                    <span className="nav-session-preview">{s.preview || s.name.replace('model_responses_', '').replace('.txt', '')}</span>
+                  <div key={s.name} className="nav-session-item" onClick={() => restoreSession(s.name)} title={s.display_name || s.preview || s.name}>
+                    <span className="nav-session-preview">{s.display_name || s.preview || s.name.replace('model_responses_', '').replace('.txt', '')}</span>
                     <span className="nav-session-meta">{s.modified}</span>
                   </div>
                 ))
@@ -240,6 +241,7 @@ function NavBar() {
             >
               <span className="nav-inst-name">{inst.name}</span>
               <span className="nav-inst-status">{getStatusText(inst.status)}</span>
+              <span className="nav-inst-delete" onClick={(e) => { e.stopPropagation(); if (confirm(lang === 'zh' ? `确定删除实例 "${inst.name}"？` : `Delete instance "${inst.name}"?`)) deleteInstance(inst.id); }} title={lang === 'zh' ? '删除' : 'Delete'}>×</span>
             </div>
           ))}
         </div>

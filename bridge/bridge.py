@@ -311,6 +311,14 @@ def main():
             except Exception as e:
                 send({"event": "log", "msg": f"Recovery failed (non-fatal): {e}"})
 
+        # Install cost tracker (must be before agent.run() to hook llmcore)
+        try:
+            from frontends.cost_tracker import install as _install_cost_tracker
+            _install_cost_tracker()
+            send({"event": "log", "msg": "cost_tracker installed"})
+        except Exception as e:
+            send({"event": "log", "msg": f"cost_tracker not available: {e}"})
+
         # Start agent's task consumer thread
         threading.Thread(target=agent.run, daemon=True).start()
 
@@ -745,6 +753,30 @@ def main():
 
         elif c == "ping":
             send({"event": "pong", "ts": time.time()})
+
+        elif c == "get_costs":
+            try:
+                from frontends.cost_tracker import all_trackers
+                trackers = all_trackers()
+                result = {"requests": 0, "input": 0, "output": 0,
+                          "cache_create": 0, "cache_read": 0, "last_input": 0, "started_at": 0}
+                for _name, ts in trackers.items():
+                    result["requests"] += ts.requests
+                    result["input"] += ts.input
+                    result["output"] += ts.output
+                    result["cache_create"] += ts.cache_create
+                    result["cache_read"] += ts.cache_read
+                    result["last_input"] = max(result["last_input"], ts.last_input)
+                    if ts.started_at and (result["started_at"] == 0 or ts.started_at < result["started_at"]):
+                        result["started_at"] = ts.started_at
+                total_input_side = result["input"] + result["cache_create"] + result["cache_read"]
+                result["cache_hit_rate"] = round(result["cache_read"] / total_input_side * 100, 1) if total_input_side else 0
+                result["total_tokens"] = result["input"] + result["output"] + result["cache_create"] + result["cache_read"]
+                result["elapsed_seconds"] = int(time.time() - result["started_at"]) if result["started_at"] else 0
+                send({"event": "costs", **result})
+            except Exception as e:
+                send({"event": "costs", "error": str(e), "requests": 0, "input": 0, "output": 0,
+                      "cache_create": 0, "cache_read": 0, "cache_hit_rate": 0, "total_tokens": 0, "elapsed_seconds": 0})
 
         else:
             send({"event": "error", "msg": f"Unknown cmd: {c}"})

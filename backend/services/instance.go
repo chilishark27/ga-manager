@@ -71,6 +71,9 @@ type managedInstance struct {
 	// Token statistics
 	tokenStats *tokenStats
 
+	// Cost tracking (cached from bridge get_costs response)
+	costStats map[string]interface{}
+
 	// Subprocess management
 	cmd       *exec.Cmd
 	cancel    context.CancelFunc
@@ -558,6 +561,12 @@ func (m *InstanceManager) readBridgeOutput(inst *managedInstance, stdout io.Read
 			m.broadcast(inst, line)
 
 		case "pong", "ack":
+			m.broadcast(inst, line)
+
+		case "costs":
+			inst.mu.Lock()
+			inst.costStats = event
+			inst.mu.Unlock()
 			m.broadcast(inst, line)
 
 		default:

@@ -25,9 +25,9 @@
 
 1. Download from [Releases](https://github.com/chilishark27/ga-manager/releases)
 2. Run:
-   - **Windows**: Double-click `GA Manager 2.1.1.exe`
-   - **macOS**: Double-click `GA Manager-2.1.1.dmg` (需在 Mac 上构建)
-   - **Linux**: Run `GA Manager-2.1.1.AppImage` (需在 Linux 上构建)
+   - **Windows**: Double-click `GA Manager 2.2.0.exe`
+   - **macOS**: Double-click `GA Manager-2.2.0.dmg` (需在 Mac 上构建)
+   - **Linux**: Run `GA Manager-2.2.0.AppImage` (需在 Linux 上构建)
 
 **Prerequisites:**
 - [GenericAgent](https://github.com/lsdefine/GenericAgent) installed
@@ -43,18 +43,19 @@
 
 | Page | Description |
 |------|-------------|
-| **Chat** | Full-width message stream, markdown rendering, image paste, session history |
-| **Conductor** | Multi-agent orchestration — create/monitor/interact with subagents |
-| **Monitor** | System CPU/memory, token stats, health status, Vision, ADB |
+| **Chat** | Full-width message stream, markdown rendering, image paste, session history, code review |
+| **Conductor** | Multi-agent orchestration — create/monitor/interact with subagents (persistent state) |
+| **Monitor** | Cost tracking, system CPU/memory, health status, Vision, ADB |
 | **Skills** | Skill tree visualization + SOP editor |
+| **Hive** | Goal Hive BBS — multi-agent task board, worker coordination |
 | **Settings** | mykey.py editor, app config, theme/language |
 
 ### Left Sidebar
 
-- Navigation items (Chat / Conductor / Monitor / Skills / Settings)
+- Navigation items (Chat / Conductor / Monitor / Skills / Hive / Settings)
 - Feature toggles (Autonomous / Reflect / Scheduler / Dev Mode)
-- Session history with message preview (click to restore)
-- Instance list with status indicators
+- Session history with display names (click to restore)
+- Instance list with status indicators and delete button
 - Theme / Language toggle
 - Create / Scan buttons
 
@@ -165,7 +166,7 @@ Electron must be built **on the target platform**:
 cd electron
 npm install
 npm run build:win
-# Output: build/electron/GA Manager 2.1.1.exe (portable, ~95MB)
+# Output: build/electron/GA Manager 2.2.0.exe (portable, ~95MB)
 ```
 
 **macOS (on macOS):**
@@ -173,7 +174,7 @@ npm run build:win
 cd electron
 npm install
 npm run build:mac
-# Output: build/electron/GA Manager-2.1.1.dmg
+# Output: build/electron/GA Manager-2.2.0.dmg
 ```
 
 **Linux (on Linux):**
@@ -181,7 +182,7 @@ npm run build:mac
 cd electron
 npm install
 npm run build:linux
-# Output: build/electron/GA Manager-2.1.1.AppImage
+# Output: build/electron/GA Manager-2.2.0.AppImage
 ```
 
 ### CI/CD (all platforms)

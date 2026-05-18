@@ -25,6 +25,7 @@ type ConductorHandler struct {
 	gaRoot          string
 	python          string
 	cachedSubagents []interface{}
+	cachedChat      []interface{}
 }
 
 func NewConductorHandler(gaRoot, pythonPath string) *ConductorHandler {
@@ -38,6 +39,10 @@ func NewConductorHandler(gaRoot, pythonPath string) *ConductorHandler {
 
 func (h *ConductorHandler) cacheFilePath() string {
 	return filepath.Join(h.gaRoot, "temp", "conductor_state.json")
+}
+
+func (h *ConductorHandler) chatCacheFilePath() string {
+	return filepath.Join(h.gaRoot, "temp", "conductor_chat.json")
 }
 
 func (h *ConductorHandler) saveCachedState() {
@@ -55,14 +60,35 @@ func (h *ConductorHandler) saveCachedState() {
 	os.WriteFile(h.cacheFilePath(), b, 0644)
 }
 
-func (h *ConductorHandler) loadCachedState() {
-	b, err := os.ReadFile(h.cacheFilePath())
+func (h *ConductorHandler) saveCachedChat() {
+	h.mu.Lock()
+	data := h.cachedChat
+	h.mu.Unlock()
+	if data == nil {
+		return
+	}
+	b, err := json.Marshal(data)
 	if err != nil {
 		return
 	}
-	var data []interface{}
-	if json.Unmarshal(b, &data) == nil {
-		h.cachedSubagents = data
+	os.MkdirAll(filepath.Dir(h.chatCacheFilePath()), 0755)
+	os.WriteFile(h.chatCacheFilePath(), b, 0644)
+}
+
+func (h *ConductorHandler) loadCachedState() {
+	b, err := os.ReadFile(h.cacheFilePath())
+	if err == nil {
+		var data []interface{}
+		if json.Unmarshal(b, &data) == nil {
+			h.cachedSubagents = data
+		}
+	}
+	cb, err := os.ReadFile(h.chatCacheFilePath())
+	if err == nil {
+		var chatData []interface{}
+		if json.Unmarshal(cb, &chatData) == nil {
+			h.cachedChat = chatData
+		}
 	}
 }
 
@@ -255,7 +281,7 @@ func (h *ConductorHandler) SubagentAction(w http.ResponseWriter, r *http.Request
 	io.Copy(w, resp.Body)
 }
 
-// GetChat proxies GET /chat
+// GetChat proxies GET /chat, caches result for persistence
 func (h *ConductorHandler) GetChat(w http.ResponseWriter, r *http.Request) {
 	last := r.URL.Query().Get("last")
 	url := conductorURL + "/chat"
@@ -264,13 +290,34 @@ func (h *ConductorHandler) GetChat(w http.ResponseWriter, r *http.Request) {
 	}
 	resp, err := http.Get(url)
 	if err != nil {
+		// Return cached chat if conductor is down
+		h.mu.Lock()
+		cached := h.cachedChat
+		h.mu.Unlock()
+		if cached != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(map[string]interface{}{"items": cached, "cached": true})
+			return
+		}
 		writeError(w, http.StatusBadGateway, "conductor not reachable")
 		return
 	}
 	defer resp.Body.Close()
+	body, _ := io.ReadAll(resp.Body)
+	// Cache the chat state
+	var result struct {
+		Items []interface{} `json:"items"`
+	}
+	if json.Unmarshal(body, &result) == nil && len(result.Items) > 0 {
+		h.mu.Lock()
+		h.cachedChat = result.Items
+		h.mu.Unlock()
+		go h.saveCachedChat()
+	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.StatusCode)
-	io.Copy(w, resp.Body)
+	w.Write(body)
 }
 
 // PostChat proxies POST /chat

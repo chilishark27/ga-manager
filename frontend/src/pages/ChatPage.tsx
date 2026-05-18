@@ -213,6 +213,9 @@ function ChatPage() {
         <button className={`ch-btn ${showInfoPanel ? 'active' : ''}`} onClick={() => setShowInfoPanel(!showInfoPanel)}>
           Tools
         </button>
+        <button className="ch-btn" onClick={() => sendMessage('/review')} title="Run code review on uncommitted changes">
+          Review
+        </button>
       </div>
 
       {/* Tools & Commands Info Panel */}

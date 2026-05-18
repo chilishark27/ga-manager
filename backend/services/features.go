@@ -974,3 +974,29 @@ func (m *InstanceManager) broadcastAll(data []byte) {
 		m.broadcast(inst, data)
 	}
 }
+
+// GetCosts returns cached cost stats for an instance and triggers a refresh.
+func (m *InstanceManager) GetCosts(id string) (map[string]interface{}, error) {
+	m.mu.RLock()
+	inst, ok := m.instances[id]
+	m.mu.RUnlock()
+	if !ok {
+		return nil, fmt.Errorf("instance %s not found", id)
+	}
+
+	// Trigger a refresh (fire-and-forget)
+	_ = m.SendCommand(id, map[string]interface{}{"cmd": "get_costs"})
+
+	inst.mu.RLock()
+	stats := inst.costStats
+	inst.mu.RUnlock()
+
+	if stats == nil {
+		return map[string]interface{}{
+			"requests": 0, "input": 0, "output": 0,
+			"cache_create": 0, "cache_read": 0,
+			"cache_hit_rate": 0, "total_tokens": 0, "elapsed_seconds": 0,
+		}, nil
+	}
+	return stats, nil
+}

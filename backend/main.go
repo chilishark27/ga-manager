@@ -75,6 +75,7 @@ func main() {
 	mux.HandleFunc("PATCH /api/instances/{id}/config", chatHandler.UpdateConfig)
 	mux.HandleFunc("GET /api/instances/{id}/sessions", chatHandler.ListSessions)
 	mux.HandleFunc("GET /api/instances/{id}/sessions/{file}", chatHandler.GetSessionContent)
+	mux.HandleFunc("POST /api/instances/{id}/sessions/rename", chatHandler.RenameSession)
 
 	// WebSocket proxy
 	mux.HandleFunc("GET /api/instances/{id}/ws", wsHandler.Handle)
@@ -102,6 +103,17 @@ func main() {
 	supervisorHandler := handlers.NewSupervisorHandler(instanceMgr)
 	mux.HandleFunc("GET /api/discover", discoverHandler.Discover)
 
+	// Hive (BBS proxy)
+	hiveHandler := handlers.NewHiveHandler(cfg)
+	mux.HandleFunc("GET /api/hive/posts", hiveHandler.GetPosts)
+	mux.HandleFunc("GET /api/hive/authors", hiveHandler.GetAuthors)
+	mux.HandleFunc("GET /api/hive/count", hiveHandler.GetCount)
+	mux.HandleFunc("GET /api/hive/poll", hiveHandler.Poll)
+	mux.HandleFunc("POST /api/hive/post", hiveHandler.CreatePost)
+	mux.HandleFunc("POST /api/hive/register", hiveHandler.Register)
+	mux.HandleFunc("GET /api/hive/config", hiveHandler.GetConfig)
+	mux.HandleFunc("PUT /api/hive/config", hiveHandler.SetConfig)
+
 	// Supervisor Agent
 	mux.HandleFunc("GET /api/supervisor/status", supervisorHandler.Status)
 	mux.HandleFunc("POST /api/supervisor/start", supervisorHandler.Start)
@@ -109,6 +121,7 @@ func main() {
 
 	// Token statistics
 	mux.HandleFunc("GET /api/instances/{id}/tokens", featHandler.GetTokenStats)
+	mux.HandleFunc("GET /api/instances/{id}/costs", featHandler.GetCosts)
 
 	// Skill tree
 	mux.HandleFunc("GET /api/skilltree", skillTreeHandler.GetSkillTree)

@@ -40,8 +40,8 @@ function getWsUrl(instanceId: string): string {
 
 interface AppState {
   // Page navigation
-  currentPage: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings';
-  setPage: (page: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings') => void;
+  currentPage: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive';
+  setPage: (page: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive') => void;
 
   // Setup / Configuration
   configured: boolean;
@@ -134,6 +134,10 @@ interface AppState {
   tokenStats: any;
   fetchTokenStats: (id: string) => Promise<void>;
 
+  // Cost tracking
+  costStats: any;
+  fetchCosts: (id: string) => Promise<void>;
+
   // Replay
   replayMode: boolean;
   replaySessions: any[];
@@ -156,6 +160,17 @@ interface AppState {
   saveSop: (name: string, content: string) => Promise<boolean>;
   createSop: (name: string, content: string) => Promise<boolean>;
   deleteSop: (name: string) => Promise<boolean>;
+
+  // Hive (BBS)
+  hivePosts: any[];
+  hiveAuthors: string[];
+  hiveConfig: { base_url: string; key: string } | null;
+  fetchHivePosts: (author?: string) => Promise<void>;
+  fetchHiveAuthors: () => Promise<void>;
+  fetchHiveConfig: () => Promise<void>;
+  saveHiveConfig: (baseUrl: string, key: string) => Promise<void>;
+  createHivePost: (token: string, content: string) => Promise<void>;
+  registerHive: (name: string) => Promise<string>;
 }
 
 export const useStore = create<AppState>((set, get) => ({
@@ -174,7 +189,7 @@ export const useStore = create<AppState>((set, get) => ({
   },
   setConfigured: (v: boolean) => set({ configured: v }),
 
-  theme: 'dark',
+  theme: 'light',
   toggleTheme: () => set(state => ({ theme: state.theme === 'dark' ? 'light' : 'dark' })),
 
   instances: [],
@@ -942,6 +957,17 @@ export const useStore = create<AppState>((set, get) => ({
     } catch { /* ignore */ }
   },
 
+  costStats: null,
+  fetchCosts: async (id: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/instances/${id}/costs`);
+      if (res.ok) {
+        const data = await res.json();
+        set({ costStats: data });
+      }
+    } catch { /* ignore */ }
+  },
+
   // === Replay ===
   replayMode: false,
   replaySessions: [] as any[],
@@ -1043,5 +1069,63 @@ export const useStore = create<AppState>((set, get) => ({
       get().showToast('删除失败');
       return false;
     }
+  },
+
+  // === Hive (BBS) ===
+  hivePosts: [],
+  hiveAuthors: [],
+  hiveConfig: null,
+  fetchHivePosts: async (author?: string) => {
+    try {
+      const q = author ? `?author=${encodeURIComponent(author)}&limit=50` : '?limit=50';
+      const res = await fetch(`${API_BASE}/hive/posts${q}`);
+      if (res.ok) set({ hivePosts: await res.json() });
+    } catch { /* ignore */ }
+  },
+  fetchHiveAuthors: async () => {
+    try {
+      const res = await fetch(`${API_BASE}/hive/authors`);
+      if (res.ok) set({ hiveAuthors: await res.json() });
+    } catch { /* ignore */ }
+  },
+  fetchHiveConfig: async () => {
+    try {
+      const res = await fetch(`${API_BASE}/hive/config`);
+      if (res.ok) set({ hiveConfig: await res.json() });
+    } catch { /* ignore */ }
+  },
+  saveHiveConfig: async (baseUrl: string, key: string) => {
+    try {
+      await fetch(`${API_BASE}/hive/config`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ base_url: baseUrl, key }),
+      });
+      set({ hiveConfig: { base_url: baseUrl, key } });
+    } catch { /* ignore */ }
+  },
+  createHivePost: async (token: string, content: string) => {
+    try {
+      await fetch(`${API_BASE}/hive/post`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, content }),
+      });
+      get().fetchHivePosts();
+    } catch { /* ignore */ }
+  },
+  registerHive: async (name: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/hive/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return data.token || '';
+      }
+    } catch { /* ignore */ }
+    return '';
   },
 }));

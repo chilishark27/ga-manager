@@ -215,3 +215,14 @@ func (h *FeaturesHandler) GetTokenStats(w http.ResponseWriter, r *http.Request) 
 	}
 	writeJSON(w, http.StatusOK, stats)
 }
+
+// GetCosts returns cost tracking data from the bridge's cost_tracker.
+func (h *FeaturesHandler) GetCosts(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	costs, err := h.manager.GetCosts(id)
+	if err != nil {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, costs)
+}

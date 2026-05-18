@@ -66,11 +66,36 @@ function ConductorPage() {
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const d = await r.json();
       setStatus(d.status === 'running' ? 'running' : 'stopped');
-      if (d.status === 'running') connectWs();
+      if (d.status === 'running') {
+        connectWs();
+      } else {
+        // Load cached state when conductor is stopped
+        loadCachedState();
+      }
     } catch (e: any) {
       setStatus('stopped');
       setErrorMsg('');
+      loadCachedState();
     }
+  };
+
+  const loadCachedState = async () => {
+    try {
+      const [subRes, chatRes] = await Promise.all([
+        fetch(`${API}/subagents`),
+        fetch(`${API}/chat`),
+      ]);
+      if (subRes.ok) {
+        const d = await subRes.json();
+        const items = d.items || d.subagents || [];
+        if (items.length > 0) setSubagents(items);
+      }
+      if (chatRes.ok) {
+        const d = await chatRes.json();
+        const items = d.items || d.chat || [];
+        if (items.length > 0) setChat(items);
+      }
+    } catch { /* ignore */ }
   };
 
   const startConductor = async () => {
@@ -99,8 +124,6 @@ function ConductorPage() {
     } catch {}
     setStatus('stopped');
     if (wsRef.current) wsRef.current.close();
-    setSubagents([]);
-    setChat([]);
   };
 
   const connectWs = () => {
