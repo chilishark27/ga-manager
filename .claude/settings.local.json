@@ -1,0 +1,33 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd /d D:\\\\python3_project\\\\ga_manager)",
+      "Bash(Get-ChildItem -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "Bash(gh repo *)",
+      "WebFetch(domain:github.com)",
+      "WebSearch",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:mer.vin)",
+      "WebFetch(domain:aiprofitboardroom.com)",
+      "WebFetch(domain:arxiv.org)",
+      "WebFetch(domain:www.emergentmind.com)",
+      "WebFetch(domain:hexmos.com)",
+      "WebFetch(domain:www.cnblogs.com)",
+      "WebFetch(domain:eu.36kr.com)",
+      "WebFetch(domain:explainx.ai)",
+      "WebFetch(domain:datawhalechina.github.io)",
+      "WebFetch(domain:sourceforge.net)",
+      "Bash(Get-ChildItem -Path \"D:\\\\python3_project\\\\GenericAgent\" -Recurse -Name)",
+      "Bash(Sort-Object)",
+      "Bash(Get-ChildItem -Path \"D:\\\\python3_project\\\\GenericAgent\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(go build *)",
+      "PowerShell(go build *)",
+      "PowerShell(Copy-Item *)",
+      "PowerShell(Remove-Item *)",
+      "Bash(Get-ChildItem -Path \"D:\\\\python3_project\\\\new_ai_gw\" -Force)",
+      "PowerShell(Set-Location D:\\\\python3_project\\\\ga_manager; \\(git show HEAD:frontend/src/styles/global.css 2>&1\\).Count)"
+    ]
+  }
+}

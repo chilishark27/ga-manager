@@ -12,6 +12,7 @@ function SettingsPage() {
   const [port, setPort] = useState(() => localStorage.getItem('ga_port') || '9015');
   const [mykeyContent, setMykeyContent] = useState('');
   const [mykeyLoading, setMykeyLoading] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState('');
 
   useEffect(() => {
     fetchLLMs();
@@ -97,6 +98,28 @@ function SettingsPage() {
                 Chinese
               </button>
             </div>
+          </div>
+
+          {/* Update card */}
+          <div className="page-card" style={{ flex: '1', minWidth: '160px' }}>
+            <div className="page-card-title">{lang === 'zh' ? '版本更新' : 'Updates'}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-2)', marginBottom: '8px' }}>v2.2.1</div>
+            <button className="ch-btn" onClick={() => {
+              const updater = (window as any).electronUpdater;
+              if (updater) {
+                setUpdateStatus(lang === 'zh' ? '检查中...' : 'Checking...');
+                updater.checkForUpdate();
+                updater.onUpdateAvailable(() => setUpdateStatus(lang === 'zh' ? '发现新版本，下载中...' : 'New version found, downloading...'));
+                updater.onUpdateDownloaded(() => setUpdateStatus(lang === 'zh' ? '下载完成，可以更新' : 'Ready to install'));
+                updater.onUpdateError(() => setUpdateStatus(lang === 'zh' ? '已是最新版本' : 'Already up to date'));
+                setTimeout(() => { if (updateStatus === (lang === 'zh' ? '检查中...' : 'Checking...')) setUpdateStatus(lang === 'zh' ? '已是最新版本' : 'Already up to date'); }, 8000);
+              } else {
+                setUpdateStatus(lang === 'zh' ? '仅 Electron 版本支持自动更新' : 'Auto-update only in Electron app');
+              }
+            }}>
+              {lang === 'zh' ? '检查更新' : 'Check for Updates'}
+            </button>
+            {updateStatus && <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '6px' }}>{updateStatus}</div>}
           </div>
 
           {/* App Config card */}
