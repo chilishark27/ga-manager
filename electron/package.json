@@ -71,6 +71,7 @@
       "target": ["dmg"],
       "icon": "icon.png",
       "category": "public.app-category.developer-tools",
+      "identity": "-",
       "extraResources": [
         {
           "from": "../build/darwin-arm64/ga-manager",
