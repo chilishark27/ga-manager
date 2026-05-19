@@ -4,13 +4,13 @@ import { useStore } from '../store';
 import { useI18n } from '../i18n';
 import { parseSessionLog } from '../utils/chatUtils';
 
-const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive'; label: string; labelZh: string }[] = [
-  { key: 'chat', label: 'Chat', labelZh: '聊天' },
-  { key: 'conductor', label: 'Orch', labelZh: '编排' },
-  { key: 'monitor', label: 'Monitor', labelZh: '监控' },
-  { key: 'skills', label: 'Skills', labelZh: '技能' },
-  { key: 'hive', label: 'Hive', labelZh: '蜂巢' },
-  { key: 'settings', label: 'Settings', labelZh: '设置' },
+const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive'; label: string; labelZh: string; tip: string; tipZh: string }[] = [
+  { key: 'chat', label: 'Chat', labelZh: '聊天', tip: 'Chat with Agent', tipZh: '与 Agent 对话' },
+  { key: 'conductor', label: 'Orch', labelZh: '编排', tip: 'Multi-agent orchestration', tipZh: '多 Agent 编排协作' },
+  { key: 'monitor', label: 'Monitor', labelZh: '监控', tip: 'Token usage & system resources', tipZh: '费用追踪与系统资源' },
+  { key: 'skills', label: 'Skills', labelZh: '技能', tip: 'Skill tree & SOP editor', tipZh: '技能树与 SOP 编辑' },
+  { key: 'hive', label: 'Hive', labelZh: '蜂巢', tip: 'Multi-agent goal collaboration', tipZh: '多 Agent 目标协作' },
+  { key: 'settings', label: 'Settings', labelZh: '设置', tip: 'App configuration', tipZh: '应用配置' },
 ];
 
 function NavBar() {
@@ -136,11 +136,11 @@ function NavBar() {
     setRenamingSession(null);
   };
 
-  const featurePills: { key: 'autonomous' | 'reflect' | 'scheduler' | 'dev_mode'; label: string; labelZh: string }[] = [
-    { key: 'autonomous', label: 'Autonomous', labelZh: '自主行动' },
-    { key: 'reflect', label: 'Reflect', labelZh: '反思' },
-    { key: 'scheduler', label: 'Scheduler', labelZh: '定时任务' },
-    { key: 'dev_mode', label: 'Dev Mode', labelZh: '开发模式' },
+  const featurePills: { key: 'autonomous' | 'reflect' | 'scheduler' | 'dev_mode'; label: string; labelZh: string; tip: string; tipZh: string }[] = [
+    { key: 'autonomous', label: 'Autonomous', labelZh: '自主行动', tip: 'Agent works independently after 30min idle', tipZh: '30分钟无操作后自动执行任务' },
+    { key: 'reflect', label: 'Reflect', labelZh: '反思', tip: 'Self-check after each action', tipZh: '每次行动后自我检查总结' },
+    { key: 'scheduler', label: 'Scheduler', labelZh: '定时任务', tip: 'Cron-based task execution', tipZh: '按 cron 表达式定时执行任务' },
+    { key: 'dev_mode', label: 'Dev Mode', labelZh: '开发模式', tip: 'Inject dev best practices', tipZh: '注入开发最佳实践到系统提示词' },
   ];
 
   return (
@@ -162,7 +162,7 @@ function NavBar() {
             key={item.key}
             className={`nav-item ${currentPage === item.key ? 'active' : ''}`}
             onClick={() => setPage(item.key)}
-            title={item.label}
+            title={lang === 'zh' ? item.tipZh : item.tip}
           >
             <span className="nav-item-text">{lang === 'zh' ? item.labelZh : item.label}</span>
           </div>
@@ -180,7 +180,7 @@ function NavBar() {
                 key={pill.key}
                 className={`nav-feature-pill ${isActive ? 'active' : ''}`}
                 onClick={() => toggleFeature(inst.id, pill.key)}
-                title={lang === 'zh' ? pill.labelZh : pill.label}
+                title={lang === 'zh' ? pill.tipZh : pill.tip}
               >
                 {lang === 'zh' ? pill.labelZh : pill.label}
               </div>
@@ -295,9 +295,11 @@ function NavBar() {
 
         {discoveredInstances.length > 0 && (
           <div className="nav-discovered">
+            <div className="nav-discovered-title">{lang === 'zh' ? '发现的实例' : 'Discovered'}</div>
             {discoveredInstances.map(d => (
-              <div key={d.port} className="nav-inst-item discovered running" onClick={() => { setAdoptPort(d.port); setShowAdopt(true); }}>
-                <span className="nav-inst-name">:{d.port}</span>
+              <div key={d.port} className="nav-inst-item discovered running" onClick={() => { setAdoptPort(d.port); setShowAdopt(true); }} title={lang === 'zh' ? '点击接管此实例' : 'Click to adopt this instance'}>
+                <span className="nav-inst-name">GA :{d.port}</span>
+                <span className="nav-inst-status">{lang === 'zh' ? '运行中' : 'running'}</span>
               </div>
             ))}
           </div>
@@ -307,16 +309,16 @@ function NavBar() {
       {/* Bottom: Theme/Lang + Actions */}
       <div className="nav-bottom">
         <div className="nav-bottom-toggles">
-          <div className="nav-toggle-btn" onClick={toggleTheme} title="Theme">
-            {theme === 'dark' ? 'Light' : 'Dark'}
+          <div className="nav-toggle-btn" onClick={toggleTheme} title={lang === 'zh' ? '切换主题' : 'Toggle theme'}>
+            {theme === 'dark' ? '☀️' : '🌙'}
           </div>
-          <div className="nav-toggle-btn" onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')} title="Language">
-            {lang === 'zh' ? 'En' : '中文'}
+          <div className="nav-toggle-btn" onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')} title={lang === 'zh' ? '切换语言' : 'Toggle language'}>
+            {lang === 'zh' ? 'En' : '中'}
           </div>
         </div>
         <div className="nav-actions">
-          <button className="nav-action-btn create" onClick={() => { fetchLLMs(); setShowCreate(true); }} title={t.newInstance}>{lang === 'zh' ? '新建' : 'New'}</button>
-          <button className="nav-action-btn scan" onClick={() => discoverInstances()} title="Scan">
+          <button className="nav-action-btn create" onClick={() => { fetchLLMs(); setShowCreate(true); }} title={lang === 'zh' ? '创建新的 Agent 实例' : 'Create new Agent instance'}>{lang === 'zh' ? '+ 新建实例' : '+ New'}</button>
+          <button className="nav-action-btn scan" onClick={() => discoverInstances()} title={lang === 'zh' ? '扫描本机已运行的 GA 实例' : 'Scan for running GA instances'}>
             {discoverLoading ? '...' : (lang === 'zh' ? '扫描' : 'Scan')}
           </button>
         </div>

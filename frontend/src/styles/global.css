@@ -129,6 +129,7 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .nav-inst-delete { display: none; font-size: 14px; color: var(--text-3); cursor: pointer; margin-left: auto; padding: 0 4px; border-radius: 4px; line-height: 1; }
 .nav-inst-delete:hover { color: var(--red); background: rgba(255, 77, 79, 0.1); }
 .nav-inst-item:hover .nav-inst-delete { display: block; }
+.nav-discovered-title { font-size: 10px; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.5px; padding: 8px 12px 4px; }
 .nav-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
 .nav-dot.green { background: var(--green); box-shadow: 0 0 4px var(--green); }
 .nav-dot.yellow { background: var(--yellow); }

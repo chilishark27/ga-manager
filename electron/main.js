@@ -174,6 +174,7 @@ function setupAutoUpdater() {
   });
 
   autoUpdater.on('error', (err) => {
+    console.log('[Updater] Error:', err.message);
     if (mainWindow) {
       mainWindow.webContents.send('update-error', err.message || String(err));
     }
@@ -181,10 +182,10 @@ function setupAutoUpdater() {
 
   ipcMain.handle('check-for-update', () => autoUpdater.checkForUpdates());
   ipcMain.handle('download-update', () => autoUpdater.downloadUpdate());
-  ipcMain.handle('install-update', () => autoUpdater.quitAndInstall());
+  ipcMain.handle('install-update', () => autoUpdater.quitAndInstall(true, true));
 
-  setTimeout(() => autoUpdater.checkForUpdates(), 10000);
-  setInterval(() => autoUpdater.checkForUpdates(), 30 * 60 * 1000);
+  setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 15000);
+  setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 60 * 60 * 1000);
 }
 
 app.whenReady().then(async () => {

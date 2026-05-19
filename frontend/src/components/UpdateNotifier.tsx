@@ -59,13 +59,13 @@ function UpdateNotifier() {
       <div className="update-notifier-content">
         <div className="update-notifier-text">
           {state === 'available' && (
-            <span>{lang === 'zh' ? `发现新版本 v${info?.version}` : `New version v${info?.version} available`}</span>
+            <span>{lang === 'zh' ? `新版本 v${info?.version} 可用` : `v${info?.version} available`}</span>
           )}
           {state === 'downloading' && (
             <span>{lang === 'zh' ? `下载中 ${progress?.percent || 0}%` : `Downloading ${progress?.percent || 0}%`}</span>
           )}
           {state === 'ready' && (
-            <span>{lang === 'zh' ? `v${info?.version} 下载完成，重启即可更新` : `v${info?.version} ready to install`}</span>
+            <span>{lang === 'zh' ? `v${info?.version} 已就绪` : `v${info?.version} ready`}</span>
           )}
         </div>
 
@@ -75,26 +75,27 @@ function UpdateNotifier() {
           </div>
         )}
 
-        {info?.releaseNotes && state !== 'downloading' && (
-          <div className="update-notes">
-            <pre>{typeof info.releaseNotes === 'string' ? info.releaseNotes : JSON.stringify(info.releaseNotes)}</pre>
-          </div>
-        )}
-
         <div className="update-notifier-actions">
           {state === 'available' && (
-            <button className="ch-btn" onClick={handleDownload}>
-              {lang === 'zh' ? '下载更新' : 'Download'}
-            </button>
+            <>
+              <button className="ch-btn" onClick={handleDownload}>
+                {lang === 'zh' ? '下载' : 'Download'}
+              </button>
+              <button className="ch-btn" onClick={() => setDismissed(true)}>
+                {lang === 'zh' ? '退出时自动更新' : 'Update on quit'}
+              </button>
+            </>
           )}
           {state === 'ready' && (
-            <button className="ch-btn" onClick={handleInstall}>
-              {lang === 'zh' ? '重启更新' : 'Restart & Update'}
-            </button>
+            <>
+              <button className="ch-btn" onClick={handleInstall}>
+                {lang === 'zh' ? '立即重启' : 'Restart now'}
+              </button>
+              <button className="ch-btn" onClick={() => setDismissed(true)}>
+                {lang === 'zh' ? '退出时安装' : 'Install on quit'}
+              </button>
+            </>
           )}
-          <button className="ch-btn" onClick={() => setDismissed(true)}>
-            {lang === 'zh' ? '稍后' : 'Later'}
-          </button>
         </div>
       </div>
     </div>

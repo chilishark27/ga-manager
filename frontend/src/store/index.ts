@@ -331,14 +331,21 @@ export const useStore = create<AppState>((set, get) => ({
 
   createInstance: async (data) => {
     try {
-      await fetch(`${API_BASE}/instances`, {
+      const res = await fetch(`${API_BASE}/instances`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        get().showToast(d.error || 'Failed to create instance');
+        return;
+      }
       await get().fetchInstances();
+      const result = await res.json().catch(() => null);
+      if (result?.id) get().selectInstance(result.id);
     } catch {
-      // ignore
+      get().showToast('Failed to create instance');
     }
   },
 

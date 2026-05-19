@@ -634,13 +634,29 @@ func detectGAPath() []string {
 		filepath.Join(home, "Documents", "GenericAgent"),
 		filepath.Join(home, "projects", "GenericAgent"),
 		filepath.Join(home, "Developer", "GenericAgent"),
+		filepath.Join(home, "code", "GenericAgent"),
+		filepath.Join(home, "Code", "GenericAgent"),
+		filepath.Join(home, "workspace", "GenericAgent"),
+		filepath.Join(home, "dev", "GenericAgent"),
 	}
 
 	// Windows-specific
 	if filepath.Separator == '\\' {
+		drives := []string{"C:", "D:", "E:"}
+		for _, d := range drives {
+			candidates = append(candidates,
+				filepath.Join(d, "GenericAgent"),
+				filepath.Join(d, "python3_project", "GenericAgent"),
+				filepath.Join(d, "projects", "GenericAgent"),
+			)
+		}
+	}
+
+	// macOS-specific
+	if filepath.Separator == '/' {
 		candidates = append(candidates,
-			`D:\python3_project\GenericAgent`,
-			`C:\GenericAgent`,
+			"/opt/GenericAgent",
+			filepath.Join(home, "Library", "GenericAgent"),
 		)
 	}
 
