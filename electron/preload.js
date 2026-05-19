@@ -9,3 +9,7 @@ contextBridge.exposeInMainWorld('electronUpdater', {
   onUpdateDownloaded: (cb) => ipcRenderer.on('update-downloaded', (_e, info) => cb(info)),
   onUpdateError: (cb) => ipcRenderer.on('update-error', (_e, err) => cb(err)),
 });
+
+contextBridge.exposeInMainWorld('electronDialog', {
+  selectFolder: () => ipcRenderer.invoke('select-folder'),
+});

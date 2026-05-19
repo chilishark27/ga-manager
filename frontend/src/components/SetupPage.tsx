@@ -97,25 +97,45 @@ export default function SetupPage() {
 
           <div className="setup-input-group">
             <label>GA 项目路径</label>
-            <input
-              type="text"
-              className="setup-input"
-              placeholder="例如 D:\projects\GenericAgent"
-              value={gaPath}
-              onChange={(e) => setGaPath(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                className="setup-input"
+                style={{ flex: 1 }}
+                placeholder="例如 D:\projects\GenericAgent"
+                value={gaPath}
+                onChange={(e) => setGaPath(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              />
+              <button
+                className="ch-btn"
+                onClick={async () => {
+                  const dialog = (window as any).electronDialog;
+                  if (dialog) {
+                    const path = await dialog.selectFolder();
+                    if (path) setGaPath(path);
+                  } else {
+                    setError('文件夹选择仅在桌面版可用');
+                  }
+                }}
+              >
+                浏览
+              </button>
+            </div>
           </div>
 
           <div className="setup-input-group">
             <label>Python 路径 (可选，留空自动检测)</label>
-            <input
-              type="text"
-              className="setup-input"
-              placeholder="例如 /opt/homebrew/bin/python3 或 python"
-              value={pythonPath}
-              onChange={(e) => setPythonPath(e.target.value)}
-            />
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                type="text"
+                className="setup-input"
+                style={{ flex: 1 }}
+                placeholder="例如 /opt/homebrew/bin/python3 或 python"
+                value={pythonPath}
+                onChange={(e) => setPythonPath(e.target.value)}
+              />
+            </div>
           </div>
 
           {error && <div className="setup-error">{error}</div>}

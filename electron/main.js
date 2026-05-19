@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, dialog } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const { spawn } = require('child_process');
 const path = require('path');
@@ -138,6 +138,16 @@ function createTray() {
   tray.setContextMenu(contextMenu);
   tray.on('double-click', () => { if (mainWindow) mainWindow.show(); else createWindow(); });
 }
+
+// --- Folder Picker ---
+ipcMain.handle('select-folder', async () => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openDirectory'],
+    title: 'Select GenericAgent Directory',
+  });
+  if (result.canceled || result.filePaths.length === 0) return null;
+  return result.filePaths[0];
+});
 
 // --- Auto Updater ---
 function setupAutoUpdater() {
