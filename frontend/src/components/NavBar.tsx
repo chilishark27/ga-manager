@@ -225,15 +225,19 @@ function NavBar() {
                   .filter(s => {
                     if (!sessionSearch.trim()) return true;
                     const q = sessionSearch.toLowerCase();
-                    return (s.display_name || '').toLowerCase().includes(q) || (s.preview || '').toLowerCase().includes(q);
+                    const text = (s.display_name || s.preview || s.name).toLowerCase();
+                    return text.includes(q);
                   })
                   .slice(0, sessionSearch.trim() ? 20 : 10)
-                  .map(s => (
-                  <div key={s.name} className="nav-session-item" onClick={() => restoreSession(s.name)} title={s.display_name || s.preview || s.name}>
-                    <span className="nav-session-preview">{s.display_name || s.preview || s.name.replace('model_responses_', '').replace('.txt', '')}</span>
+                  .map(s => {
+                  const label = s.display_name || s.preview || s.name.replace('model_responses_', '').replace('.txt', '');
+                  return (
+                  <div key={s.name} className="nav-session-item" onClick={() => restoreSession(s.name)} title={label}>
+                    <span className="nav-session-preview">{label}</span>
                     <span className="nav-session-meta">{s.modified}</span>
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
           )}

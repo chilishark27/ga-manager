@@ -201,22 +201,32 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	h.mu.Unlock()
 	h.addLog("Hive session ready")
 
+	// Auto-stop when budget expires
+	go func() {
+		timeout := time.Duration(body.Budget) * time.Minute
+		time.Sleep(timeout + 2*time.Minute)
+		h.mu.Lock()
+		if h.running {
+			h.mu.Unlock()
+			h.addLog(fmt.Sprintf("Budget expired (%d min), auto-stopping...", body.Budget))
+			h.stopAll()
+		} else {
+			h.mu.Unlock()
+		}
+	}()
+
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"status": "running", "port": h.port, "board_key": h.boardKey,
 		"workers": len(h.workers), "objective": body.Objective, "budget": body.Budget,
 	})
 }
 
-func (h *HiveHandler) Stop(w http.ResponseWriter, r *http.Request) {
+func (h *HiveHandler) stopAll() {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-
 	if !h.running {
-		writeJSON(w, http.StatusOK, map[string]string{"status": "not_running"})
 		return
 	}
-
-	h.addLog("Stopping...")
 	if h.masterCmd != nil && h.masterCmd.Process != nil {
 		killProcessTree(h.masterCmd.Process.Pid)
 		h.masterCmd = nil
@@ -234,7 +244,18 @@ func (h *HiveHandler) Stop(w http.ResponseWriter, r *http.Request) {
 	h.running = false
 	h.cfg.BBSBaseURL = ""
 	h.addLog("Stopped")
+}
 
+func (h *HiveHandler) Stop(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	running := h.running
+	h.mu.Unlock()
+	if !running {
+		writeJSON(w, http.StatusOK, map[string]string{"status": "not_running"})
+		return
+	}
+	h.addLog("Stopping...")
+	h.stopAll()
 	writeJSON(w, http.StatusOK, map[string]string{"status": "stopped"})
 }
 
