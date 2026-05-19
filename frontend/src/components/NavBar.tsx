@@ -26,15 +26,14 @@ function NavBar() {
   const [showCreate, setShowCreate] = useState(false);
   const [newName, setNewName] = useState('');
   const [selectedLLM, setSelectedLLM] = useState(1);
-  const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-  const defaultGaRoot = localStorage.getItem('ga_root') || (isMac ? '/Users/Shared/GenericAgent' : 'D:\\python3_project\\GenericAgent');
+  const defaultGaRoot = localStorage.getItem('ga_root') || '';
   const [gaRoot, setGaRoot] = useState(defaultGaRoot);
 
   const [showAdopt, setShowAdopt] = useState(false);
   const [adoptPort, setAdoptPort] = useState(0);
-  const [adoptGaRoot, setAdoptGaRoot] = useState('D:\\python3_project\\GenericAgent');
+  const [adoptGaRoot, setAdoptGaRoot] = useState(localStorage.getItem('ga_root') || '');
 
-  const [navWidth, setNavWidth] = useState(90);
+  const [navWidth, setNavWidth] = useState(180);
   const [isResizing, setIsResizing] = useState(false);
 
   // Supervisor state
@@ -52,6 +51,7 @@ function NavBar() {
   // Session history
   const [sessions, setSessions] = useState<{ name: string; modified: string; size: number; preview?: string; display_name?: string }[]>([]);
   const [showSessions, setShowSessions] = useState(true);
+  const [showFeatures, setShowFeatures] = useState(true);
   const [sessionSearch, setSessionSearch] = useState('');
   const [renamingSession, setRenamingSession] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
@@ -71,7 +71,7 @@ function NavBar() {
     const startX = e.clientX;
     const startWidth = navWidth;
     const onMouseMove = (ev: MouseEvent) => {
-      const newWidth = Math.max(80, Math.min(220, startWidth + ev.clientX - startX));
+      const newWidth = Math.max(160, Math.min(320, startWidth + ev.clientX - startX));
       setNavWidth(newWidth);
     };
     const onMouseUp = () => {
@@ -143,7 +143,7 @@ function NavBar() {
   ];
 
   return (
-    <div className="nav-bar" style={{ width: navWidth, minWidth: navWidth, position: 'relative' }}>
+    <div className="nav-bar" style={{ width: navWidth, minWidth: navWidth }}>
       <div
         className={`nav-resize-handle ${isResizing ? 'dragging' : ''}`}
         onMouseDown={handleResizeMouseDown}
@@ -171,8 +171,11 @@ function NavBar() {
       {/* Feature Toggles */}
       {inst && (
         <div className="nav-features">
-          <div className="nav-features-title">Features</div>
-          {featurePills.map(pill => {
+          <div className="nav-features-header" onClick={() => setShowFeatures(!showFeatures)}>
+            <span className="nav-features-title">Features</span>
+            <span className="nav-sessions-chevron">{showFeatures ? '▾' : '▸'}</span>
+          </div>
+          {showFeatures && featurePills.map(pill => {
             const isActive = !!(inst as any)[pill.key];
             return (
               <div
@@ -200,7 +203,7 @@ function NavBar() {
                 await fetch('/api/supervisor/stop', { method: 'POST' });
                 setSupervisorStatus('stopped');
               } else {
-                const gaRoot = localStorage.getItem('ga_root') || (isMac ? '/Users/Shared/GenericAgent' : 'D:\\python3_project\\GenericAgent');
+                const gaRoot = localStorage.getItem('ga_root') || '';
                 await fetch('/api/supervisor/start', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
@@ -331,7 +334,7 @@ function NavBar() {
             <input className="modal-input" placeholder={t.instanceName} value={newName} onChange={e => setNewName(e.target.value)} autoFocus />
             <div className="modal-llm-section">
               <label className="modal-label">GA Root</label>
-              <input className="modal-input" placeholder={isMac ? '/Users/Shared/GenericAgent' : 'D:\\python3_project\\GenericAgent'} value={gaRoot} onChange={e => setGaRoot(e.target.value)} />
+              <input className="modal-input" placeholder={lang === 'zh' ? 'GenericAgent 项目路径' : 'Path to GenericAgent'} value={gaRoot} onChange={e => setGaRoot(e.target.value)} />
             </div>
             <div className="modal-llm-section">
               <label className="modal-label">{t.selectLLM}</label>
@@ -364,7 +367,7 @@ function NavBar() {
             <h3>Adopt (Port {adoptPort})</h3>
             <div className="modal-llm-section">
               <label className="modal-label">GA Root (ga_root)</label>
-              <input className="modal-input" value={adoptGaRoot} onChange={e => setAdoptGaRoot(e.target.value)} placeholder="D:\python3_project\GenericAgent" />
+              <input className="modal-input" value={adoptGaRoot} onChange={e => setAdoptGaRoot(e.target.value)} placeholder={lang === 'zh' ? 'GenericAgent 项目路径' : 'Path to GenericAgent'} />
             </div>
             <div className="modal-actions">
               <button className="modal-btn cancel" onClick={() => setShowAdopt(false)}>{t.cancel}</button>

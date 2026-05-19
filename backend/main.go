@@ -212,6 +212,66 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]interface{}{"paths": candidates, "configured": cfg.GARoot})
 	})
 
+	mux.HandleFunc("POST /api/config/validate", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		var req struct {
+			GARoot     string `json:"ga_root"`
+			PythonPath string `json:"python_path"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			json.NewEncoder(w).Encode(map[string]interface{}{"error": "invalid request"})
+			return
+		}
+
+		result := map[string]interface{}{
+			"ga_valid":     false,
+			"python_valid": false,
+			"bridge_valid": false,
+		}
+
+		// Check GA root
+		if req.GARoot != "" {
+			agentMain := filepath.Join(req.GARoot, "agentmain.py")
+			if _, err := os.Stat(agentMain); err == nil {
+				result["ga_valid"] = true
+			}
+		}
+
+		// Check Python
+		pythonCmd := req.PythonPath
+		if pythonCmd == "" {
+			pythonCmd = detectPython()
+		}
+		if out, err := exec.Command(pythonCmd, "--version").Output(); err == nil {
+			result["python_valid"] = true
+			result["python_version"] = strings.TrimSpace(string(out))
+		}
+
+		// Check bridge
+		bridgeFound := false
+		bridgeCandidates := []string{
+			filepath.Join(".", "bridge", "bridge.py"),
+			filepath.Join("..", "bridge", "bridge.py"),
+		}
+		exePath, _ := os.Executable()
+		if exePath != "" {
+			exeDir := filepath.Dir(exePath)
+			bridgeCandidates = append(bridgeCandidates,
+				filepath.Join(filepath.Dir(exeDir), "bridge", "bridge.py"),
+				filepath.Join(exeDir, "..", "bridge", "bridge.py"),
+			)
+		}
+		for _, bp := range bridgeCandidates {
+			if _, err := os.Stat(bp); err == nil {
+				bridgeFound = true
+				break
+			}
+		}
+		result["bridge_valid"] = bridgeFound
+
+		json.NewEncoder(w).Encode(result)
+	})
+
 	// Health check
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -603,12 +663,15 @@ func detectPython() string {
 		"/usr/bin/python3",
 		"/opt/homebrew/bin/python",
 		"/usr/local/bin/python",
+		"/opt/local/bin/python3",
 	}
-	// Also check user's pyenv
+	// Also check user's pyenv, conda, and versioned installs
 	if home, err := os.UserHomeDir(); err == nil {
 		candidates = append([]string{
 			filepath.Join(home, ".pyenv", "shims", "python3"),
 			filepath.Join(home, ".local", "bin", "python3"),
+			filepath.Join(home, "miniconda3", "bin", "python3"),
+			filepath.Join(home, "anaconda3", "bin", "python3"),
 		}, candidates...)
 	}
 	for _, p := range candidates {
@@ -652,10 +715,13 @@ func detectGAPath() []string {
 		}
 	}
 
-	// macOS-specific
+	// macOS/Linux-specific
 	if filepath.Separator == '/' {
 		candidates = append(candidates,
 			"/opt/GenericAgent",
+			filepath.Join(home, ".local", "share", "GenericAgent"),
+			filepath.Join(home, "src", "GenericAgent"),
+			filepath.Join(home, "git", "GenericAgent"),
 			filepath.Join(home, "Library", "GenericAgent"),
 		)
 	}

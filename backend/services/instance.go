@@ -12,7 +12,9 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -215,8 +217,13 @@ func (m *InstanceManager) SendCommand(id string, cmd map[string]interface{}) err
 	}
 
 	inst.mu.RLock()
+	state := inst.state
 	stdinPipe := inst.stdin
 	inst.mu.RUnlock()
+
+	if state == models.StateStopped || state == models.StateError {
+		return fmt.Errorf("instance %s is not running (state: %s)", id, state)
+	}
 
 	if stdinPipe == nil {
 		return fmt.Errorf("instance %s stdin not available (process may have exited)", id)
@@ -230,7 +237,7 @@ func (m *InstanceManager) SendCommand(id string, cmd map[string]interface{}) err
 	// Write JSON line to stdin (newline-terminated)
 	line := append(data, '\n')
 	if _, err := stdinPipe.Write(line); err != nil {
-		return fmt.Errorf("failed to write to bridge stdin: %w", err)
+		return fmt.Errorf("instance %s bridge process has exited", id)
 	}
 
 	return nil
@@ -290,7 +297,7 @@ func (m *InstanceManager) Create(req models.CreateInstanceRequest) (*models.Inst
 
 	cmd := exec.CommandContext(ctx, pythonPath, args...)
 	cmd.Dir = gaRoot
-	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1")
+	cmd.Env = buildBridgeEnv()
 	hideWindow(cmd)
 
 	stdinPipe, err := cmd.StdinPipe()
@@ -421,7 +428,7 @@ func (m *InstanceManager) Adopt(req models.AdoptInstanceRequest) (*models.Instan
 
 	cmd := exec.CommandContext(ctx, pythonPath, args...)
 	cmd.Dir = gaRoot
-	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1")
+	cmd.Env = buildBridgeEnv()
 	hideWindow(cmd)
 
 	stdinPipe, err := cmd.StdinPipe()
@@ -637,6 +644,7 @@ func (m *InstanceManager) waitForExit(inst *managedInstance) {
 	svcLog("WAIT_FOR_EXIT DONE instance=%s err=%v", inst.id, err)
 
 	inst.mu.Lock()
+	inst.stdin = nil
 	if inst.state != models.StateStopped {
 		if err != nil {
 			stderrOut := ""
@@ -807,7 +815,7 @@ func (m *InstanceManager) Start(id string) error {
 
 	cmd := exec.CommandContext(ctx, pythonPath, args...)
 	cmd.Dir = m.config.GARoot
-	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1")
+	cmd.Env = buildBridgeEnv()
 	hideWindow(cmd)
 
 	stdinPipe, err := cmd.StdinPipe()
@@ -871,11 +879,13 @@ func (m *InstanceManager) Stop(id string) error {
 	inst.mu.Lock()
 	pid := inst.pid
 	inst.state = models.StateStopped
+	stdinRef := inst.stdin
+	inst.stdin = nil
 	inst.mu.Unlock()
 
 	// Close stdin first (graceful signal — bridge.py exits on stdin EOF)
-	if inst.stdin != nil {
-		_ = inst.stdin.Close()
+	if stdinRef != nil {
+		_ = stdinRef.Close()
 	}
 
 	// Give bridge 3 seconds to exit gracefully
@@ -1046,18 +1056,46 @@ func findPIDByPort(port int) (int, error) {
 	return -1, nil
 }
 
+// buildBridgeEnv returns environment variables for bridge subprocesses.
+// On macOS/Linux, injects common paths so bridge can find Python and tools.
+func buildBridgeEnv() []string {
+	env := os.Environ()
+	env = append(env, "PYTHONUNBUFFERED=1")
+	if runtime.GOOS != "windows" {
+		extraPaths := []string{"/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/opt/local/bin"}
+		if home, err := os.UserHomeDir(); err == nil {
+			extraPaths = append([]string{
+				filepath.Join(home, ".pyenv", "shims"),
+				filepath.Join(home, ".local", "bin"),
+				filepath.Join(home, "miniconda3", "bin"),
+			}, extraPaths...)
+		}
+		currentPath := os.Getenv("PATH")
+		env = append(env, "PATH="+strings.Join(extraPaths, ":")+":"+currentPath)
+	}
+	return env
+}
+
 // killProcessTree terminates a process and its children.
-// On Windows, uses cmd /c taskkill to kill the process tree.
-// On other platforms, kills the main process (children get SIGHUP).
+// On Windows, uses taskkill /F /T to kill the entire process tree.
+// On Unix, kills the process group (set via Setpgid in hideWindow).
 func killProcessTree(pid int) error {
 	if pid <= 0 {
 		return nil
 	}
+	// Windows: taskkill kills the entire tree
+	if err := exec.Command("taskkill", "/F", "/T", "/PID", strconv.Itoa(pid)).Run(); err == nil {
+		return nil
+	}
+	// Unix: kill process group (negative PID)
+	// This works because we set Setpgid: true when spawning
+	if err := killPgid(pid); err == nil {
+		return nil
+	}
+	// Fallback: just kill the main process
 	proc, err := os.FindProcess(pid)
 	if err != nil {
 		return err
 	}
-	// Try graceful kill first
-	_ = proc.Kill()
-	return nil
+	return proc.Kill()
 }

@@ -25,13 +25,13 @@ function Sidebar() {
   const [newName, setNewName] = useState('');
   const [selectedLLM, setSelectedLLM] = useState(1);
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
-  const defaultGaRoot = localStorage.getItem('ga_root') || (isMac ? '/Users/Shared/GenericAgent' : 'D:\\python3_project\\GenericAgent');
+  const defaultGaRoot = localStorage.getItem('ga_root') || '';
   const [gaRoot, setGaRoot] = useState(defaultGaRoot);
 
   // Adopt modal state
   const [showAdopt, setShowAdopt] = useState(false);
   const [adoptPort, setAdoptPort] = useState(0);
-  const [adoptGaRoot, setAdoptGaRoot] = useState('D:\\python3_project\\GenericAgent');
+  const [adoptGaRoot, setAdoptGaRoot] = useState(localStorage.getItem('ga_root') || '');
 
   const handleCreate = async () => {
     const name = newName.trim() || `GA-${instances.length + 1}`;
@@ -205,7 +205,7 @@ function Sidebar() {
               <label className="modal-label">GA 项目路径</label>
               <input
                 className="modal-input"
-                placeholder={isMac ? '/Users/Shared/GenericAgent' : 'D:\\python3_project\\GenericAgent'}
+                placeholder="GenericAgent project path"
                 value={gaRoot}
                 onChange={e => setGaRoot(e.target.value)}
               />
@@ -250,7 +250,7 @@ function Sidebar() {
                 type="text"
                 value={adoptGaRoot}
                 onChange={e => setAdoptGaRoot(e.target.value)}
-                placeholder="D:\python3_project\GenericAgent"
+                placeholder="GenericAgent project path"
               />
             </div>
             <div className="modal-actions">

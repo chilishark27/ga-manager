@@ -3,6 +3,7 @@
 package services
 
 import (
+	"fmt"
 	"os/exec"
 	"syscall"
 )
@@ -14,4 +15,9 @@ func hideWindow(cmd *exec.Cmd) {
 	cmd.SysProcAttr = &syscall.SysProcAttr{
 		CreationFlags: syscall.CREATE_NEW_PROCESS_GROUP | 0x00000008, // DETACHED_PROCESS
 	}
+}
+
+// killPgid is not used on Windows (taskkill handles tree killing).
+func killPgid(pid int) error {
+	return fmt.Errorf("not supported on windows")
 }

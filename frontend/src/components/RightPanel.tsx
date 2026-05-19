@@ -705,7 +705,7 @@ claude47_apibase = "https://your-proxy.com"
           <div className="modal-content" onClick={e => e.stopPropagation()}>
             <h4>{t.systemConfig}</h4>
             <label className="config-label">{t.gaPath}</label>
-            <input className="rp-input" value={configForm.ga_path} onChange={e => setConfigForm(f => ({ ...f, ga_path: e.target.value }))} placeholder="D:\GenericAgent" />
+            <input className="rp-input" value={configForm.ga_path} onChange={e => setConfigForm(f => ({ ...f, ga_path: e.target.value }))} placeholder="GenericAgent project path" />
             <label className="config-label">{t.pythonPath}</label>
             <input className="rp-input" value={configForm.python_path} onChange={e => setConfigForm(f => ({ ...f, python_path: e.target.value }))} placeholder="python" />
             <div className="modal-actions">

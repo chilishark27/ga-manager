@@ -2,7 +2,17 @@
 
 package services
 
-import "os/exec"
+import (
+	"os/exec"
+	"syscall"
+)
 
-// hideWindow is a no-op on non-Windows platforms.
-func hideWindow(cmd *exec.Cmd) {}
+// hideWindow sets process group on Unix so we can kill the entire tree later.
+func hideWindow(cmd *exec.Cmd) {
+	cmd.SysProcAttr = &syscall.SysProcAttr{Setpgid: true}
+}
+
+// killPgid kills a process group by sending SIGKILL to the negative PID.
+func killPgid(pid int) error {
+	return syscall.Kill(-pid, syscall.SIGKILL)
+}
