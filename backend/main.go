@@ -555,8 +555,8 @@ func main() {
 		log.Printf("[GA Manager] WARNING: No static directory found, frontend will not be served")
 	}
 
-	// CORS middleware for development
-	handler := corsMiddleware(mux)
+	// CORS + panic recovery middleware
+	handler := panicRecovery(corsMiddleware(mux))
 
 	// Graceful shutdown
 	go func() {
@@ -756,6 +756,18 @@ func detectGAPath() []string {
 }
 
 // corsMiddleware adds CORS headers for development
+func panicRecovery(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if err := recover(); err != nil {
+				log.Printf("[PANIC] %s %s: %v", r.Method, r.URL.Path, err)
+				http.Error(w, "Internal server error", http.StatusInternalServerError)
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
 func corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")

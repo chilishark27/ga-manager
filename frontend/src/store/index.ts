@@ -55,6 +55,7 @@ interface AppState {
   // Instances
   instances: Instance[];
   activeInstanceId: string | null;
+  backendAlive: boolean;
   fetchInstances: () => Promise<void>;
   selectInstance: (id: string) => void;
   toggleInstance: (id: string) => void;
@@ -185,11 +186,13 @@ export const useStore = create<AppState>((set, get) => ({
 
   instances: [],
   activeInstanceId: null,
+  backendAlive: true,
 
   fetchInstances: async () => {
     try {
       const res = await fetch(`${API_BASE}/instances`);
       if (res.ok) {
+        if (!get().backendAlive) set({ backendAlive: true });
         const raw = await res.json();
         // Map backend fields to frontend Instance type
         const instances: Instance[] = (raw || []).map((r: any) => ({
@@ -233,7 +236,7 @@ export const useStore = create<AppState>((set, get) => ({
         }
       }
     } catch {
-      // Network error - keep existing state
+      if (get().backendAlive) set({ backendAlive: false });
     }
   },
 

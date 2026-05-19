@@ -14,7 +14,7 @@ import { useStore } from './store';
 import { I18nProvider } from './i18n';
 
 function AppInner() {
-  const { theme, fetchInstances, currentPage, configured, checkConfigured } = useStore();
+  const { theme, fetchInstances, currentPage, configured, checkConfigured, backendAlive } = useStore();
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -56,6 +56,11 @@ function AppInner() {
           {renderPage()}
         </div>
       </div>
+      {!backendAlive && (
+        <div className="toast-msg" style={{ background: 'var(--red)', color: '#fff', borderColor: 'var(--red)' }}>
+          Backend disconnected — retrying...
+        </div>
+      )}
       <UpdateNotifier />
     </div>
   );
