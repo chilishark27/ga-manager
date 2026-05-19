@@ -85,8 +85,7 @@ function NavBar() {
 
   const handleCreate = async () => {
     const name = newName.trim() || `GA-${instances.length + 1}`;
-    localStorage.setItem('ga_root', gaRoot);
-    await createInstance({ name, llm_no: selectedLLM, ga_root: gaRoot });
+    await createInstance({ name, llm_no: selectedLLM, ga_root: gaRoot || undefined });
     setNewName('');
     setSelectedLLM(1);
     setShowCreate(false);

@@ -336,16 +336,19 @@ export const useStore = create<AppState>((set, get) => ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
+      const result = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        get().showToast(d.error || 'Failed to create instance');
+        get().showToast(result.error || 'Failed to create instance');
         return;
       }
       await get().fetchInstances();
-      const result = await res.json().catch(() => null);
-      if (result?.id) get().selectInstance(result.id);
-    } catch {
-      get().showToast('Failed to create instance');
+      if (result.id) {
+        set({ activeInstanceId: result.id });
+        get().connectWs(result.id);
+      }
+      get().showToast(`Instance "${result.name || data.name}" created`);
+    } catch (e: any) {
+      get().showToast('Failed to create instance: ' + (e.message || ''));
     }
   },
 

@@ -65,6 +65,11 @@ function SkillsPage() {
           <button className="action-btn" style={{ fontSize: '11px', padding: '3px 10px' }} onClick={() => setShowNewSop(true)}>+ New</button>
         </div>
         <div className="sop-list">
+          {localSops.length === 0 && (
+            <div style={{ padding: '16px', fontSize: '12px', color: 'var(--text-3)', textAlign: 'center' }}>
+              No SOPs found. Check GA Root path in Settings.
+            </div>
+          )}
           {localSops.map(sop => (
             <div key={sop.name}>
               <div className="sop-item" onClick={() => sop.type === 'dir' ? toggleDir(sop.name) : viewSop(sop.name)}>
