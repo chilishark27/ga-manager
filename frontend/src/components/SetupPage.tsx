@@ -7,6 +7,7 @@ import { useStore } from '../store';
  */
 export default function SetupPage() {
   const [gaPath, setGaPath] = useState('');
+  const [pythonPath, setPythonPath] = useState('');
   const [detecting, setDetecting] = useState(false);
   const [detected, setDetected] = useState<string[]>([]);
   const [error, setError] = useState('');
@@ -26,6 +27,11 @@ export default function SetupPage() {
       })
       .catch(() => {})
       .finally(() => setDetecting(false));
+    // Load current python path
+    fetch('/api/config/app')
+      .then(res => res.ok ? res.json() : {})
+      .then((data: any) => { if (data.python_path) setPythonPath(data.python_path); })
+      .catch(() => {});
   }, []);
 
   const handleSave = async () => {
@@ -37,10 +43,12 @@ export default function SetupPage() {
     setSaving(true);
     setError('');
     try {
+      const body: any = { ga_root: path };
+      if (pythonPath.trim()) body.python_path = pythonPath.trim();
       const res = await fetch('/api/config/app', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ga_root: path }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({ error: res.statusText }));
@@ -96,6 +104,17 @@ export default function SetupPage() {
               value={gaPath}
               onChange={(e) => setGaPath(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+            />
+          </div>
+
+          <div className="setup-input-group">
+            <label>Python 路径 (可选，留空自动检测)</label>
+            <input
+              type="text"
+              className="setup-input"
+              placeholder="例如 /opt/homebrew/bin/python3 或 python"
+              value={pythonPath}
+              onChange={(e) => setPythonPath(e.target.value)}
             />
           </div>
 

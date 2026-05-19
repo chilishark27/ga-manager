@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strings"
@@ -542,10 +543,10 @@ func loadConfig() *models.AppConfig {
 	if home, err := os.UserHomeDir(); err == nil {
 		defaultGARoot = filepath.Join(home, "GenericAgent")
 	}
-	// Default python path: python3 on unix, python on windows
+	// Default python path: detect on unix, "python" on windows
 	defaultPython := "python"
 	if filepath.Separator != '\\' {
-		defaultPython = "python3"
+		defaultPython = detectPython()
 	}
 
 	cfg := &models.AppConfig{
@@ -591,6 +592,35 @@ func getConfigDir() string {
 func getExeDir() string {
 	exe, _ := os.Executable()
 	return filepath.Dir(exe)
+}
+
+func detectPython() string {
+	// Search common Python locations on macOS/Linux
+	// GUI apps (Electron) don't inherit shell PATH, so we check explicitly
+	candidates := []string{
+		"/opt/homebrew/bin/python3",
+		"/usr/local/bin/python3",
+		"/usr/bin/python3",
+		"/opt/homebrew/bin/python",
+		"/usr/local/bin/python",
+	}
+	// Also check user's pyenv
+	if home, err := os.UserHomeDir(); err == nil {
+		candidates = append([]string{
+			filepath.Join(home, ".pyenv", "shims", "python3"),
+			filepath.Join(home, ".local", "bin", "python3"),
+		}, candidates...)
+	}
+	for _, p := range candidates {
+		if _, err := os.Stat(p); err == nil {
+			return p
+		}
+	}
+	// Fallback: try PATH (works if launched from terminal)
+	if path, err := exec.LookPath("python3"); err == nil {
+		return path
+	}
+	return "python3"
 }
 
 func detectGAPath() []string {

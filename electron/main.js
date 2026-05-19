@@ -34,10 +34,20 @@ function startBackend() {
   const backendPath = getBackendPath();
   console.log(`Starting backend: ${backendPath}`);
 
+  // Ensure Python is findable — macOS GUI apps have limited PATH
+  const env = { ...process.env };
+  if (process.platform === 'darwin') {
+    const extraPaths = ['/opt/homebrew/bin', '/usr/local/bin', '/usr/bin'];
+    const home = process.env.HOME || '';
+    if (home) extraPaths.unshift(`${home}/.pyenv/shims`, `${home}/.local/bin`);
+    env.PATH = extraPaths.join(':') + ':' + (env.PATH || '');
+  }
+
   backendProcess = spawn(backendPath, ['--no-gui'], {
     cwd: path.dirname(backendPath),
     stdio: ['ignore', 'pipe', 'pipe'],
     detached: false,
+    env,
   });
 
   backendProcess.stdout.on('data', (data) => {
