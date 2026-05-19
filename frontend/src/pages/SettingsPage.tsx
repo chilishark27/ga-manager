@@ -131,7 +131,7 @@ function SettingsPage() {
           {/* Update card */}
           <div className="page-card" style={{ flex: '1', minWidth: '160px' }}>
             <div className="page-card-title">{lang === 'zh' ? '版本更新' : 'Updates'}</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-2)', marginBottom: '8px' }}>v2.3.0</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-2)', marginBottom: '8px' }}>v{__APP_VERSION__}</div>
             <button className="ch-btn" onClick={() => {
               const updater = (window as any).electronUpdater;
               if (updater) {
