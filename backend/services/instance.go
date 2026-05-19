@@ -604,6 +604,28 @@ func (m *InstanceManager) readBridgeOutput(inst *managedInstance, stdout io.Read
 			inst.mu.Lock()
 			inst.costStats = event
 			inst.mu.Unlock()
+			// Also sync token stats from cost data for persistence
+			if inst.tokenStats != nil {
+				if input, ok := toInt64(event["input"]); ok && input > 0 {
+					inst.tokenStats.mu.Lock()
+					inst.tokenStats.InputTokens = input
+					if output, ok2 := toInt64(event["output"]); ok2 {
+						inst.tokenStats.OutputTokens = output
+					}
+					if cc, ok2 := toInt64(event["cache_create"]); ok2 {
+						inst.tokenStats.CacheCreated = cc
+					}
+					if cr, ok2 := toInt64(event["cache_read"]); ok2 {
+						inst.tokenStats.CacheRead = cr
+					}
+					inst.tokenStats.mu.Unlock()
+				}
+			}
+			if req, ok := toInt64(event["requests"]); ok {
+				inst.mu.Lock()
+				inst.totalTurns = int(req)
+				inst.mu.Unlock()
+			}
 			m.broadcast(inst, line)
 
 		default:
@@ -621,6 +643,19 @@ func (m *InstanceManager) readBridgeOutput(inst *managedInstance, stdout io.Read
 }
 
 // svcLog writes debug info to ws_debug.log (same file as handlers for easy reading)
+// toInt64 converts a JSON number (float64) to int64 safely.
+func toInt64(v interface{}) (int64, bool) {
+	switch n := v.(type) {
+	case float64:
+		return int64(n), true
+	case int64:
+		return n, true
+	case int:
+		return int64(n), true
+	}
+	return 0, false
+}
+
 func svcLog(format string, args ...interface{}) {
 	f, _ := os.OpenFile("ws_debug.log", os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if f != nil {

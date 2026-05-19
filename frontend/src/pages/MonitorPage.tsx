@@ -75,23 +75,23 @@ function MonitorPage() {
             </div>
             <div className="token-stat-item">
               <span className="token-stat-label">Input</span>
-              <span className="token-stat-value">{tokenStats?.input_tokens ? `${(tokenStats.input_tokens / 1000).toFixed(1)}K` : '-'}</span>
+              <span className="token-stat-value">{costStats?.input ? `${(costStats.input / 1000).toFixed(1)}K` : (tokenStats?.input_tokens ? `${(tokenStats.input_tokens / 1000).toFixed(1)}K` : '-')}</span>
             </div>
             <div className="token-stat-item">
               <span className="token-stat-label">Output</span>
-              <span className="token-stat-value">{tokenStats?.output_tokens ? `${(tokenStats.output_tokens / 1000).toFixed(1)}K` : '-'}</span>
+              <span className="token-stat-value">{costStats?.output ? `${(costStats.output / 1000).toFixed(1)}K` : (tokenStats?.output_tokens ? `${(tokenStats.output_tokens / 1000).toFixed(1)}K` : '-')}</span>
             </div>
             <div className="token-stat-item">
               <span className="token-stat-label">{lang === 'zh' ? '缓存命中' : 'Cache Hit'}</span>
-              <span className="token-stat-value">{tokenStats?.cache_hit_rate ? `${tokenStats.cache_hit_rate.toFixed(1)}%` : '-'}</span>
+              <span className="token-stat-value">{costStats?.cache_hit_rate ? `${costStats.cache_hit_rate}%` : (tokenStats?.cache_hit_rate ? `${tokenStats.cache_hit_rate.toFixed(1)}%` : '-')}</span>
             </div>
             <div className="token-stat-item">
               <span className="token-stat-label">Cache Read</span>
-              <span className="token-stat-value">{tokenStats?.cache_read ? `${(tokenStats.cache_read / 1000).toFixed(1)}K` : '-'}</span>
+              <span className="token-stat-value">{costStats?.cache_read ? `${(costStats.cache_read / 1000).toFixed(1)}K` : (tokenStats?.cache_read ? `${(tokenStats.cache_read / 1000).toFixed(1)}K` : '-')}</span>
             </div>
             <div className="token-stat-item">
               <span className="token-stat-label">Turns</span>
-              <span className="token-stat-value">{tokenStats?.total_turns || 0}</span>
+              <span className="token-stat-value">{tokenStats?.total_turns || costStats?.requests || 0}</span>
             </div>
             <div className="token-stat-item">
               <span className="token-stat-label">{lang === 'zh' ? '会话时长' : 'Duration'}</span>
@@ -99,7 +99,7 @@ function MonitorPage() {
             </div>
             <div className="token-stat-item">
               <span className="token-stat-label">{lang === 'zh' ? '总计' : 'Total'}</span>
-              <span className="token-stat-value">{tokenStats ? `${(((tokenStats.input_tokens || 0) + (tokenStats.output_tokens || 0) + (tokenStats.cache_read || 0)) / 1000).toFixed(1)}K` : '-'}</span>
+              <span className="token-stat-value">{costStats?.total_tokens ? `${(costStats.total_tokens / 1000).toFixed(1)}K` : (tokenStats ? `${(((tokenStats.input_tokens || 0) + (tokenStats.output_tokens || 0) + (tokenStats.cache_read || 0)) / 1000).toFixed(1)}K` : '-')}</span>
             </div>
           </div>
         </div>
