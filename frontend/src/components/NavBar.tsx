@@ -53,6 +53,8 @@ function NavBar() {
   const [sessions, setSessions] = useState<{ name: string; modified: string; size: number; preview?: string; display_name?: string }[]>([]);
   const [showSessions, setShowSessions] = useState(true);
   const [sessionSearch, setSessionSearch] = useState('');
+  const [renamingSession, setRenamingSession] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   useEffect(() => {
     if (inst && showSessions) {
@@ -119,6 +121,19 @@ function NavBar() {
         }
       }
     } catch { /* ignore */ }
+  };
+
+  const handleRename = async (filename: string) => {
+    if (!inst || !renameValue.trim()) { setRenamingSession(null); return; }
+    try {
+      await fetch(`/api/instances/${inst.id}/sessions/rename`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file: filename, name: renameValue.trim() }),
+      });
+      setSessions(prev => prev.map(s => s.name === filename ? { ...s, display_name: renameValue.trim() } : s));
+    } catch {}
+    setRenamingSession(null);
   };
 
   const featurePills: { key: 'autonomous' | 'reflect' | 'scheduler' | 'dev_mode'; label: string; labelZh: string }[] = [
@@ -231,8 +246,22 @@ function NavBar() {
                   .slice(0, sessionSearch.trim() ? 20 : 10)
                   .map(s => {
                   const label = s.display_name || s.preview || s.name.replace('model_responses_', '').replace('.txt', '');
+                  if (renamingSession === s.name) {
+                    return (
+                      <div key={s.name} className="nav-session-item">
+                        <input className="nav-session-search" style={{ marginBottom: 0 }}
+                          autoFocus value={renameValue}
+                          onChange={e => setRenameValue(e.target.value)}
+                          onKeyDown={e => { if (e.key === 'Enter') handleRename(s.name); if (e.key === 'Escape') setRenamingSession(null); }}
+                          onBlur={() => handleRename(s.name)} />
+                      </div>
+                    );
+                  }
                   return (
-                  <div key={s.name} className="nav-session-item" onClick={() => restoreSession(s.name)} title={label}>
+                  <div key={s.name} className="nav-session-item"
+                    onClick={() => restoreSession(s.name)}
+                    onDoubleClick={(e) => { e.stopPropagation(); setRenamingSession(s.name); setRenameValue(s.display_name || ''); }}
+                    title={`${label}\n(${lang === 'zh' ? '双击重命名' : 'Double-click to rename'})`}>
                     <span className="nav-session-preview">{label}</span>
                     <span className="nav-session-meta">{s.modified}</span>
                   </div>
