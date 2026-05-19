@@ -43,10 +43,11 @@ func (sb *safeBuffer) String() string {
 
 // InstanceManager manages the lifecycle of all GA bridge instances.
 type InstanceManager struct {
-	mu        sync.RWMutex
-	instances map[string]*managedInstance
-	config    *models.AppConfig
-	persist   *persistenceStore
+	mu          sync.RWMutex
+	instances   map[string]*managedInstance
+	config      *models.AppConfig
+	persist     *persistenceStore
+	costPersist *costPersistence
 }
 
 // managedInstance is internal state for a running bridge subprocess.
@@ -114,13 +115,14 @@ func (inst *managedInstance) toDTO() models.Instance {
 // NewInstanceManager creates a new manager.
 func NewInstanceManager(cfg *models.AppConfig) *InstanceManager {
 	return &InstanceManager{
-		instances: make(map[string]*managedInstance),
-		config:    cfg,
-		persist:   newPersistenceStore(),
+		instances:   make(map[string]*managedInstance),
+		config:      cfg,
+		persist:     newPersistenceStore(),
+		costPersist: newCostPersistence(),
 	}
 }
 
-// persistAll saves all instance configs to disk.
+// persistAll saves all instance configs and cost data to disk.
 func (m *InstanceManager) persistAll() {
 	m.mu.RLock()
 	list := make([]*managedInstance, 0, len(m.instances))
@@ -129,6 +131,7 @@ func (m *InstanceManager) persistAll() {
 	}
 	m.mu.RUnlock()
 	m.persist.Save(list)
+	m.costPersist.Save(list)
 }
 
 // RestoreInstances loads persisted instance configs and adds them as stopped instances.
@@ -138,6 +141,9 @@ func (m *InstanceManager) RestoreInstances() {
 	if len(records) == 0 {
 		return
 	}
+
+	// Load persisted cost data
+	costData := m.costPersist.Load()
 
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -157,9 +163,21 @@ func (m *InstanceManager) RestoreInstances() {
 			reflect:     rec.Reflect,
 			gaRoot:      rec.GARoot,
 			createdAt:   time.Now(),
+			tokenStats:  newTokenStats(),
 			subscribers: make(map[string]chan []byte),
 			logs:        newLogBuffer(),
 			chat:        newChatHistory(),
+		}
+		// Restore cost data if available
+		if costData != nil {
+			if pc, ok := costData[rec.ID]; ok {
+				inst.tokenStats.InputTokens = pc.InputTokens
+				inst.tokenStats.OutputTokens = pc.OutputTokens
+				inst.tokenStats.CacheCreated = pc.CacheCreated
+				inst.tokenStats.CacheRead = pc.CacheRead
+				inst.tokenStats.History = pc.History
+				inst.totalTurns = pc.TotalTurns
+			}
 		}
 		m.instances[rec.ID] = inst
 	}
@@ -663,6 +681,7 @@ func (m *InstanceManager) waitForExit(inst *managedInstance) {
 	}
 	inst.mu.Unlock()
 
+	m.persistCosts()
 	log.Printf("[InstanceManager] Instance %s process exited", inst.id)
 }
 
@@ -911,7 +930,21 @@ func (m *InstanceManager) Stop(id string) error {
 		}
 	}
 
+	// Persist cost data on stop
+	m.persistCosts()
+
 	return nil
+}
+
+// persistCosts saves only cost data (lighter than persistAll).
+func (m *InstanceManager) persistCosts() {
+	m.mu.RLock()
+	list := make([]*managedInstance, 0, len(m.instances))
+	for _, inst := range m.instances {
+		list = append(list, inst)
+	}
+	m.mu.RUnlock()
+	m.costPersist.Save(list)
 }
 
 // Remove stops and removes an instance from the registry.
