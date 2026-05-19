@@ -109,6 +109,8 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .nav-session-preview { display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden; font-size: 12px; font-weight: 500; color: var(--text-1); line-height: 2.0; }
 .nav-session-meta { display: none; }
 .nav-session-empty { font-size: 11px; color: var(--text-3); text-align: center; padding: 12px; }
+.nav-session-search { width: 100%; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-1); font-size: 11px; outline: none; margin-bottom: 6px; }
+.nav-session-search:focus { border-color: var(--accent); }
 
 /* NavBar Instance List */
 .nav-instances { display: flex; flex-direction: column; border-top: 1px solid var(--border); }

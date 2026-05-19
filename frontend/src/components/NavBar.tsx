@@ -52,6 +52,7 @@ function NavBar() {
   // Session history
   const [sessions, setSessions] = useState<{ name: string; modified: string; size: number; preview?: string; display_name?: string }[]>([]);
   const [showSessions, setShowSessions] = useState(true);
+  const [sessionSearch, setSessionSearch] = useState('');
 
   useEffect(() => {
     if (inst && showSessions) {
@@ -211,10 +212,23 @@ function NavBar() {
           </div>
           {showSessions && (
             <div className="nav-sessions-list">
+              <input
+                className="nav-session-search"
+                placeholder={lang === 'zh' ? '搜索会话...' : 'Search...'}
+                value={sessionSearch}
+                onChange={e => setSessionSearch(e.target.value)}
+              />
               {sessions.length === 0 ? (
                 <div className="nav-session-empty">{lang === 'zh' ? '暂无记录' : 'No sessions'}</div>
               ) : (
-                sessions.slice(0, 10).map(s => (
+                sessions
+                  .filter(s => {
+                    if (!sessionSearch.trim()) return true;
+                    const q = sessionSearch.toLowerCase();
+                    return (s.display_name || '').toLowerCase().includes(q) || (s.preview || '').toLowerCase().includes(q);
+                  })
+                  .slice(0, sessionSearch.trim() ? 20 : 10)
+                  .map(s => (
                   <div key={s.name} className="nav-session-item" onClick={() => restoreSession(s.name)} title={s.display_name || s.preview || s.name}>
                     <span className="nav-session-preview">{s.display_name || s.preview || s.name.replace('model_responses_', '').replace('.txt', '')}</span>
                     <span className="nav-session-meta">{s.modified}</span>
