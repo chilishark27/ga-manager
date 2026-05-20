@@ -272,6 +272,31 @@ func main() {
 		json.NewEncoder(w).Encode(result)
 	})
 
+	// TODO persistence
+	todosFile := filepath.Join(getConfigDir(), "todos.json")
+	mux.HandleFunc("GET /api/todos", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		data, err := os.ReadFile(todosFile)
+		if err != nil {
+			w.Write([]byte("[]"))
+			return
+		}
+		w.Write(data)
+	})
+	mux.HandleFunc("PUT /api/todos", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		data, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, `{"error":"bad request"}`, http.StatusBadRequest)
+			return
+		}
+		if err := os.WriteFile(todosFile, data, 0644); err != nil {
+			http.Error(w, `{"error":"write failed"}`, http.StatusInternalServerError)
+			return
+		}
+		w.Write([]byte(`{"ok":true}`))
+	})
+
 	// Health check
 	mux.HandleFunc("GET /api/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")

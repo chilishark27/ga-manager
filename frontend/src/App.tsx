@@ -3,6 +3,7 @@ import './styles/global.css';
 import NavBar from './components/NavBar';
 import TopBar from './components/TopBar';
 import SetupPage from './components/SetupPage';
+import TodoPanel from './components/TodoPanel';
 import ChatPage from './pages/ChatPage';
 import ConductorPage from './pages/ConductorPage';
 import MonitorPage from './pages/MonitorPage';
@@ -61,6 +62,7 @@ function AppInner() {
           Backend disconnected — retrying...
         </div>
       )}
+      <TodoPanel />
       <UpdateNotifier />
     </div>
   );

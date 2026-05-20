@@ -162,6 +162,16 @@ interface AppState {
   createSop: (name: string, content: string) => Promise<boolean>;
   deleteSop: (name: string) => Promise<boolean>;
 
+  // TODO Panel
+  todos: { id: string; text: string; done: boolean; createdAt: number; source: 'manual' | 'agent' }[];
+  showTodoPanel: boolean;
+  addTodo: (text: string, source?: 'manual' | 'agent') => void;
+  toggleTodo: (id: string) => void;
+  deleteTodo: (id: string) => void;
+  toggleTodoPanel: () => void;
+  fetchTodos: () => Promise<void>;
+  archiveDone: () => void;
+
   // Hive (managed locally in HivePage, no store needed)
 }
 
@@ -1078,6 +1088,56 @@ export const useStore = create<AppState>((set, get) => ({
       get().showToast('删除失败');
       return false;
     }
+  },
+
+  // TODO Panel
+  todos: JSON.parse(localStorage.getItem('ga_todos') || '[]'),
+  showTodoPanel: false,
+  toggleTodoPanel: () => set(state => ({ showTodoPanel: !state.showTodoPanel })),
+  fetchTodos: async () => {
+    try {
+      const res = await fetch(`${API_BASE}/todos`);
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          set({ todos: data });
+          localStorage.setItem('ga_todos', JSON.stringify(data));
+        }
+      }
+    } catch {}
+  },
+  addTodo: (text: string, source: 'manual' | 'agent' = 'manual') => {
+    const todo = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), text, done: false, createdAt: Date.now(), source };
+    set(state => {
+      const todos = [...state.todos, todo];
+      localStorage.setItem('ga_todos', JSON.stringify(todos));
+      fetch(`${API_BASE}/todos`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(todos) }).catch(() => {});
+      return { todos };
+    });
+  },
+  toggleTodo: (id: string) => {
+    set(state => {
+      const todos = state.todos.map(t => t.id === id ? { ...t, done: !t.done } : t);
+      localStorage.setItem('ga_todos', JSON.stringify(todos));
+      fetch(`${API_BASE}/todos`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(todos) }).catch(() => {});
+      return { todos };
+    });
+  },
+  deleteTodo: (id: string) => {
+    set(state => {
+      const todos = state.todos.filter(t => t.id !== id);
+      localStorage.setItem('ga_todos', JSON.stringify(todos));
+      fetch(`${API_BASE}/todos`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(todos) }).catch(() => {});
+      return { todos };
+    });
+  },
+  archiveDone: () => {
+    set(state => {
+      const todos = state.todos.filter(t => !t.done);
+      localStorage.setItem('ga_todos', JSON.stringify(todos));
+      fetch(`${API_BASE}/todos`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(todos) }).catch(() => {});
+      return { todos };
+    });
   },
 
 }));

@@ -85,7 +85,24 @@ function NavBar() {
 
   const handleCreate = async () => {
     const name = newName.trim() || `GA-${instances.length + 1}`;
-    await createInstance({ name, llm_no: selectedLLM, ga_root: gaRoot || undefined });
+    const root = gaRoot.trim();
+    if (!root) {
+      try {
+        const res = await fetch('/api/config/app');
+        if (res.ok) {
+          const cfg = await res.json();
+          if (cfg.ga_root) {
+            setGaRoot(cfg.ga_root);
+            await createInstance({ name, llm_no: selectedLLM, ga_root: cfg.ga_root });
+            setNewName('');
+            setSelectedLLM(1);
+            setShowCreate(false);
+            return;
+          }
+        }
+      } catch {}
+    }
+    await createInstance({ name, llm_no: selectedLLM, ga_root: root || undefined });
     setNewName('');
     setSelectedLLM(1);
     setShowCreate(false);
@@ -319,7 +336,7 @@ function NavBar() {
           </div>
         </div>
         <div className="nav-actions">
-          <button className="nav-action-btn create" onClick={() => { fetchLLMs(); setShowCreate(true); }} title={lang === 'zh' ? '创建新的 Agent 实例' : 'Create new Agent instance'}>{lang === 'zh' ? '+ 新建实例' : '+ New'}</button>
+          <button className="nav-action-btn create" onClick={() => { fetchLLMs(); if (!gaRoot) { fetch('/api/config/app').then(r => r.ok ? r.json() : {}).then((d: any) => { if (d.ga_root) setGaRoot(d.ga_root); }).catch(() => {}); } setShowCreate(true); }} title={lang === 'zh' ? '创建新的 Agent 实例' : 'Create new Agent instance'}>{lang === 'zh' ? '+ 新建实例' : '+ New'}</button>
           <button className="nav-action-btn scan" onClick={() => discoverInstances()} title={lang === 'zh' ? '扫描本机已运行的 GA 实例' : 'Scan for running GA instances'}>
             {discoverLoading ? '...' : (lang === 'zh' ? '扫描' : 'Scan')}
           </button>

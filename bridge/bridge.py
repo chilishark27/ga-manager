@@ -258,9 +258,9 @@ def main():
         send({"event": "log", "msg": "Importing agentmain..."})
         import agentmain
 
-        send({"event": "log", "msg": "Creating GeneraticAgent instance..."})
+        send({"event": "log", "msg": "Creating GenericAgent instance..."})
         try:
-            agent = agentmain.GeneraticAgent()
+            agent = agentmain.GenericAgent()
         except IndexError:
             send({
                 "event": "error",
