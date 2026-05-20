@@ -105,8 +105,12 @@ function ConductorPage() {
     setErrorMsg('');
     try {
       const r = await fetch(`${API}/start`, { method: 'POST' });
-      if (!r.ok) throw new Error(`HTTP ${r.status}`);
-      const d = await r.json();
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) {
+        setStatus('error');
+        setErrorMsg(d.error || `HTTP ${r.status}`);
+        return;
+      }
       if (d.status === 'running') {
         setStatus('running');
         connectWs();
