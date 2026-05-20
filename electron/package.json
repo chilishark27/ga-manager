@@ -1,6 +1,6 @@
 {
   "name": "ga-manager",
-  "version": "2.4.7",
+  "version": "2.4.8",
   "description": "GA Manager - Multi-instance GenericAgent Desktop Manager",
   "main": "main.js",
   "scripts": {
@@ -69,7 +69,7 @@
       "allowElevation": true
     },
     "mac": {
-      "target": ["dmg"],
+      "target": ["dmg", "zip"],
       "icon": "icon.png",
       "category": "public.app-category.developer-tools",
       "identity": "-",

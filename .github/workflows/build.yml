@@ -76,6 +76,7 @@ jobs:
           files: |
             build/electron/*.exe
             build/electron/*.dmg
+            build/electron/*.zip
             build/electron/*.blockmap
             build/electron/*.AppImage
             build/electron/*.yml
