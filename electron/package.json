@@ -1,6 +1,6 @@
 {
   "name": "ga-manager",
-  "version": "2.5.7",
+  "version": "2.5.8",
   "description": "GA Manager - Multi-instance GenericAgent Desktop Manager",
   "main": "main.js",
   "scripts": {
@@ -64,9 +64,9 @@
       ]
     },
     "nsis": {
-      "oneClick": false,
-      "allowToChangeInstallationDirectory": true,
-      "allowElevation": true
+      "oneClick": true,
+      "allowElevation": true,
+      "runAfterFinish": true
     },
     "mac": {
       "target": ["dmg", "zip"],
