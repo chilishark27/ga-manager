@@ -1,6 +1,6 @@
 {
   "name": "ga-manager",
-  "version": "2.4.5",
+  "version": "2.4.6",
   "description": "GA Manager - Multi-instance GenericAgent Desktop Manager",
   "main": "main.js",
   "scripts": {
@@ -23,6 +23,7 @@
   "build": {
     "appId": "com.gamanager.app",
     "productName": "GA Manager",
+    "artifactName": "GA-Manager-${version}-${arch}.${ext}",
     "publish": {
       "provider": "github",
       "owner": "chilishark27",
