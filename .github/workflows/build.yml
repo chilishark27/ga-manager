@@ -62,29 +62,21 @@ jobs:
           CGO_ENABLED: '0'
         run: go build -o ../build/${{ matrix.goos }}-${{ matrix.goarch }}/ga-manager${{ matrix.ext }} .
 
-      - name: Build & Publish Electron
+      - name: Build Electron
         working-directory: electron
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           npm install
-          npx electron-builder --${{ matrix.goos == 'windows' && 'win' || matrix.goos == 'darwin' && 'mac' || 'linux' }} --publish always
+          npx electron-builder --${{ matrix.goos == 'windows' && 'win' || matrix.goos == 'darwin' && 'mac' || 'linux' }} --publish never
 
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v4
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
         with:
-          name: electron-${{ matrix.goos }}
-          path: |
+          files: |
             build/electron/*.exe
             build/electron/*.dmg
+            build/electron/*.blockmap
             build/electron/*.AppImage
             build/electron/*.yml
-
-  publish:
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Publish release (remove draft)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release edit ${{ github.ref_name }} --repo ${{ github.repository }} --draft=false
+          draft: false
