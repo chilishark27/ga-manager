@@ -24,3 +24,11 @@ __pycache__/
 
 # Temp files
 *.exe~
+
+# Local config (user-specific, never commit)
+backend/ga_manager_config.json
+backend/static/
+frontend/tsconfig.tsbuildinfo
+instances.json
+costs.json
+todos.json
