@@ -125,10 +125,10 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Check dependencies
-	depCheck := exec.Command(h.python, "-c", "import fastapi, uvicorn")
+	depCheck := exec.Command(h.python, "-c", "import fastapi, uvicorn, pydantic")
 	depCheck.Dir = h.gaRoot
 	if err := depCheck.Run(); err != nil {
-		install := exec.Command(h.python, "-m", "pip", "install", "fastapi", "uvicorn", "--quiet")
+		install := exec.Command(h.python, "-m", "pip", "install", "fastapi", "uvicorn", "pydantic", "--quiet")
 		install.Dir = h.gaRoot
 		if out, installErr := install.CombinedOutput(); installErr != nil {
 			writeError(w, http.StatusInternalServerError, "Failed to install dependencies: "+string(out))
