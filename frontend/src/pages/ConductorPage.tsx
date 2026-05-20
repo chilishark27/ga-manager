@@ -327,6 +327,7 @@ function ConductorPage() {
                   onKeyDown={e => { if (e.key === 'Enter') { doAction(sa.id, 'input', actionInput[sa.id]); setActionInput(prev => ({ ...prev, [sa.id]: '' })); } }}
                 />
                 <button className="conductor-action-btn" onClick={() => doAction(sa.id, 'abort')}>Abort</button>
+                <button className="conductor-action-btn" style={{ borderColor: 'rgba(255,77,79,0.3)', color: 'var(--red)' }} onClick={() => setSubagents(prev => prev.filter(s => s.id !== sa.id))}>Del</button>
               </div>
             </div>
             );

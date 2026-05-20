@@ -483,6 +483,24 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .todo-archive-btn { padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg3); color: var(--text-2); font-size: 11px; cursor: pointer; margin-left: auto; }
 .todo-archive-btn:hover { border-color: var(--accent); color: var(--accent); }
 
+/* ===== Morphling Page ===== */
+.morphling-page { height: 100%; overflow-y: auto; }
+.morphling-type-card { flex: 1; min-width: 140px; padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--bg3); cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; gap: 4px; }
+.morphling-type-card:hover { border-color: var(--accent); }
+.morphling-type-card.active { border-color: var(--accent); background: rgba(59, 130, 246, 0.1); box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15); }
+.morphling-type-name { font-size: 13px; font-weight: 600; color: var(--text-1); }
+.morphling-type-desc { font-size: 11px; color: var(--text-3); }
+
+/* ===== Rewind Mode ===== */
+.rewind-target { cursor: pointer; position: relative; transition: all 0.15s; }
+.rewind-target:hover { opacity: 0.7; box-shadow: 0 0 0 2px var(--accent); border-radius: 16px; }
+.rewind-target:hover::after { content: '⏪'; position: absolute; top: 4px; right: 8px; font-size: 12px; background: var(--accent); color: #fff; padding: 2px 6px; border-radius: 4px; }
+.rewind-dimmed { opacity: 0.3; pointer-events: none; }
+.rewind-bar { display: flex; align-items: center; gap: 8px; padding: 6px 16px; border-bottom: 1px solid var(--border); background: rgba(59, 130, 246, 0.05); flex-shrink: 0; }
+.rewind-info { font-size: 12px; font-weight: 600; color: var(--accent); min-width: 60px; text-align: center; }
+.rewind-slider { flex: 1; height: 4px; accent-color: var(--accent); cursor: pointer; }
+.rewind-branch-select { padding: 4px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-1); font-size: 11px; outline: none; }
+
 /* ===== Action Buttons ===== */
 .action-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
 .action-btn { padding: 8px 12px; border-radius: 10px; border: 1px solid rgba(59, 130, 246, 0.15); background: rgba(59, 130, 246, 0.04); color: var(--text-1); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.25s; white-space: nowrap; text-align: center; }

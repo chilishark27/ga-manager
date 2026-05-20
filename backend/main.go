@@ -744,8 +744,8 @@ func detectGAPath() []string {
 		for _, d := range drives {
 			candidates = append(candidates,
 				filepath.Join(d, "GenericAgent"),
-				filepath.Join(d, "python3_project", "GenericAgent"),
 				filepath.Join(d, "projects", "GenericAgent"),
+				filepath.Join(d, "dev", "GenericAgent"),
 			)
 		}
 	}

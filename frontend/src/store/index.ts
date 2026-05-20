@@ -40,8 +40,8 @@ function getWsUrl(instanceId: string): string {
 
 interface AppState {
   // Page navigation
-  currentPage: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive';
-  setPage: (page: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive') => void;
+  currentPage: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling';
+  setPage: (page: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling') => void;
 
   // Setup / Configuration
   configured: boolean;

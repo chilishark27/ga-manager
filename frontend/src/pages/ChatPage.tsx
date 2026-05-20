@@ -37,6 +37,9 @@ function ChatPage() {
   const [expandedTurns, setExpandedTurns] = useState<Set<string>>(new Set());
   const [showSessionRestore, setShowSessionRestore] = useState(false);
   const [sessions, setSessions] = useState<SessionFile[]>([]);
+  const [rewindMode, setRewindMode] = useState(false);
+  const [rewindIndex, setRewindIndex] = useState<number | null>(null);
+  const [branches, setBranches] = useState<{ id: string; label: string; messages: any[] }[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -216,7 +219,87 @@ function ChatPage() {
         <button className="ch-btn" onClick={() => sendMessage('/review')} title="Run code review on uncommitted changes">
           Review
         </button>
+        <button className={`ch-btn ${rewindMode ? 'active' : ''}`} onClick={() => {
+          if (!rewindMode) { setRewindMode(true); setRewindIndex(messages.length - 1); }
+          else { setRewindMode(false); setRewindIndex(null); }
+        }}>
+          Rewind
+        </button>
+        {branches.length > 0 && (
+          <select className="rewind-branch-select" onChange={e => {
+            const branch = branches.find(b => b.id === e.target.value);
+            if (branch) {
+              useStore.setState({ messages: [...branch.messages] });
+              setRewindIndex(null);
+              setRewindMode(false);
+              setToast(`Switched to: ${branch.label}`);
+              setTimeout(() => setToast(''), 2000);
+            }
+            e.target.value = '';
+          }}>
+            <option value="">Branches ({branches.length})</option>
+            {branches.map(b => {
+              const extractText = (m: any) => {
+                const c = m.content;
+                if (!c) return '';
+                if (typeof c === 'string') {
+                  // Try to extract text from JSON-like content
+                  if (c.startsWith('[') || c.startsWith('{')) {
+                    const textMatch = c.match(/"text":\s*"([^"]{1,60})/);
+                    if (textMatch) return textMatch[1];
+                    const thinkMatch = c.match(/'text':\s*'([^']{1,60})/);
+                    if (thinkMatch) return thinkMatch[1];
+                    return c.replace(/[{}\[\]"']/g, '').slice(0, 40);
+                  }
+                  return c.slice(0, 60);
+                }
+                return '';
+              };
+              const userMsgs = b.messages.filter(m => m.role === 'user').slice(0, 3);
+              const tooltip = userMsgs.map(m => '👤 ' + extractText(m)).filter(t => t.length > 3).join('\n');
+              return <option key={b.id} value={b.id} title={tooltip || `${b.messages.length} messages`}>{b.label}</option>;
+            })}
+          </select>
+        )}
       </div>
+
+      {/* Rewind Controls */}
+      {rewindMode && messages.length > 0 && (
+        <div className="rewind-bar">
+          <span className="rewind-info">{(rewindIndex ?? messages.length - 1) + 1} / {messages.length}</span>
+          <input type="range" min={0} max={messages.length - 1} value={rewindIndex ?? messages.length - 1}
+            onChange={e => setRewindIndex(Number(e.target.value))}
+            className="rewind-slider" />
+          <button className="ch-btn" onClick={() => setRewindIndex(Math.max(0, (rewindIndex ?? 0) - 1))}>◀</button>
+          <button className="ch-btn" onClick={() => setRewindIndex(Math.min(messages.length - 1, (rewindIndex ?? 0) + 1))}>▶</button>
+          <button className="ch-btn" onClick={() => setRewindIndex(messages.length - 1)}>Latest</button>
+          <button className="ch-btn danger" onClick={() => {
+            const idx = rewindIndex ?? messages.length - 1;
+            const branchId = Date.now().toString(36);
+            let preview = '';
+            for (const m of messages) {
+              if (m.role === 'user' && m.content) {
+                const c = String(m.content);
+                if (c.startsWith('[') || c.startsWith('{')) {
+                  const match = c.match(/"text":\s*"([^"]{1,20})/) || c.match(/'text':\s*'([^']{1,20})/);
+                  if (match) { preview = match[1] + '...'; break; }
+                } else if (c.length > 0) {
+                  preview = c.slice(0, 20) + (c.length > 20 ? '...' : '');
+                  break;
+                }
+              }
+            }
+            if (!preview) preview = `${messages.length} msgs`;
+            const label = `${preview} (${messages.length})`;
+            setBranches(prev => [...prev, { id: branchId, label, messages: [...messages] }]);
+            useStore.setState({ messages: messages.slice(0, idx + 1) });
+            setRewindIndex(null);
+            setRewindMode(false);
+            setToast('Forked — original saved as branch');
+            setTimeout(() => setToast(''), 2000);
+          }}>Fork</button>
+        </div>
+      )}
 
       {/* Tools & Commands Info Panel */}
       {showInfoPanel && (
@@ -292,11 +375,18 @@ function ChatPage() {
                 </div>
               )}
               {visibleMessages.map((msg, idx) => {
+                const globalIdx = startIdx + idx;
+                const rewindClick = rewindMode ? () => {
+                  setRewindIndex(globalIdx);
+                  setToast(`Viewing message ${globalIdx + 1}/${messages.length}`);
+                  setTimeout(() => setToast(''), 2000);
+                } : undefined;
+                const rewindClass = rewindMode ? (rewindIndex !== null && globalIdx > rewindIndex ? ' rewind-dimmed' : ' rewind-target') : '';
                 if (msg.role === 'agent') {
                   const turns = foldTurns(msg.content);
                   if (turns && turns.length > 1) {
                     return (
-                      <div key={startIdx + idx} className="msg agent">
+                      <div key={startIdx + idx} className={`msg agent${rewindClass}`} onClick={rewindClick}>
                         <div className="msg-bubble msg-folded-container">
                           {turns.map((turn, ti) => {
                             const turnKey = `${startIdx + idx}-${ti}`;
@@ -324,7 +414,7 @@ function ChatPage() {
                     );
                   }
                   return (
-                    <div key={startIdx + idx} className="msg agent">
+                    <div key={startIdx + idx} className={`msg agent${rewindClass}`} onClick={rewindClick}>
                       <div className="msg-bubble">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanReply(msg.content)}</ReactMarkdown>
                       </div>
@@ -333,7 +423,7 @@ function ChatPage() {
                   );
                 }
                 return (
-                  <div key={startIdx + idx} className="msg user">
+                  <div key={startIdx + idx} className={`msg user${rewindClass}`} onClick={rewindClick}>
                     <div className="msg-bubble">
                       {msg.images && msg.images.length > 0 && (
                         <div className="msg-images">

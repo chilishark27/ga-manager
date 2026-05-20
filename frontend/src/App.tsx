@@ -10,6 +10,7 @@ import MonitorPage from './pages/MonitorPage';
 import SkillsPage from './pages/SkillsPage';
 import SettingsPage from './pages/SettingsPage';
 import HivePage from './pages/HivePage';
+import MorphlingPage from './pages/MorphlingPage';
 import UpdateNotifier from './components/UpdateNotifier';
 import { useStore } from './store';
 import { I18nProvider } from './i18n';
@@ -45,6 +46,7 @@ function AppInner() {
       case 'skills': return <SkillsPage />;
       case 'settings': return <SettingsPage />;
       case 'hive': return <HivePage />;
+      case 'morphling': return <MorphlingPage />;
       default: return <ChatPage />;
     }
   };
