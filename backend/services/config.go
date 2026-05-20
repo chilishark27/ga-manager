@@ -74,10 +74,21 @@ func (s *ConfigService) HasMyKey() bool {
 
 // GetLLMList calls list_llms.py to extract real LLM configurations from mykey.py
 func (s *ConfigService) GetLLMList() ([]models.LLMConfig, error) {
-	bridgeDir := filepath.Join(filepath.Dir(s.gaRoot), "ga_manager", "bridge")
+	bridgeDir := getBridgeDir()
 	scriptPath := filepath.Join(bridgeDir, "list_llms.py")
+	if _, err := os.Stat(scriptPath); err != nil {
+		return nil, fmt.Errorf("list_llms.py not found at %s", scriptPath)
+	}
 
-	cmd := exec.Command("python", scriptPath, "--ga-root", s.gaRoot)
+	// Detect python executable
+	python := "python"
+	if p, err := exec.LookPath("python3"); err == nil {
+		python = p
+	} else if p, err := exec.LookPath("python"); err == nil {
+		python = p
+	}
+
+	cmd := exec.Command(python, scriptPath, "--ga-root", s.gaRoot)
 	cmd.Dir = bridgeDir
 	hideWindow(cmd)
 	output, err := cmd.Output()
