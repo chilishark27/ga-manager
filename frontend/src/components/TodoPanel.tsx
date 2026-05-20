@@ -47,6 +47,22 @@ export default function TodoPanel() {
   const pending = todos.filter(t => !t.done);
   const done = todos.filter(t => t.done);
 
+  // Auto-mark tasks as done when Agent reports completion
+  useEffect(() => {
+    if (messages.length === 0 || pending.length === 0) return;
+    const last = messages[messages.length - 1];
+    if (last.role !== 'agent' || !last.content) return;
+    const content = last.content.toLowerCase();
+    const doneKeywords = ['已完成', '完成了', '已执行', '任务完成', 'done', 'completed', 'finished', 'task complete'];
+    if (!doneKeywords.some(k => content.includes(k))) return;
+    for (const t of pending) {
+      const words = t.text.toLowerCase().split(/\s+/).filter(w => w.length > 1);
+      if (content.includes(t.text.toLowerCase()) || (words.length > 0 && words.every(w => content.includes(w)))) {
+        toggleTodo(t.id);
+      }
+    }
+  }, [messages.length]);
+
   const handleAdd = () => {
     const text = input.trim();
     if (!text) return;
