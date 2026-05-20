@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -144,8 +145,9 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 	cmd := exec.Command(h.python, "-u", "-c", script)
 	cmd.Dir = frontendsDir
 	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "PYTHONPATH="+h.gaRoot)
+	var stderrBuf bytes.Buffer
 	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = &stderrBuf
 
 	if err := cmd.Start(); err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to start conductor: "+err.Error())
@@ -161,6 +163,9 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 		h.running = false
 		h.cmd = nil
 		h.mu.Unlock()
+		if errOut := stderrBuf.String(); errOut != "" {
+			log.Printf("[Conductor] stderr: %s", errOut)
+		}
 		log.Println("[Conductor] Process exited")
 	}()
 
@@ -179,7 +184,12 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if !ready {
-		writeJSON(w, http.StatusOK, map[string]string{"status": "started_but_not_ready"})
+		errOut := stderrBuf.String()
+		if errOut != "" {
+			writeError(w, http.StatusInternalServerError, "conductor failed: "+errOut)
+		} else {
+			writeError(w, http.StatusInternalServerError, "conductor timeout — check if port 8900 is available and GA frontends/conductor.py exists")
+		}
 		return
 	}
 
