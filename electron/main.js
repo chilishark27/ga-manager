@@ -10,6 +10,7 @@ const BACKEND_URL = `http://localhost:${PORT}`;
 let mainWindow = null;
 let tray = null;
 let backendProcess = null;
+let isQuitting = false;
 
 function getBackendPath() {
   const isPackaged = app.isPackaged;
@@ -112,7 +113,7 @@ function createWindow() {
   });
 
   mainWindow.on('close', (e) => {
-    if (tray) {
+    if (!isQuitting && tray) {
       e.preventDefault();
       mainWindow.hide();
     }
@@ -131,7 +132,7 @@ function createTray() {
   const contextMenu = Menu.buildFromTemplate([
     { label: '打开管理面板', click: () => { if (mainWindow) mainWindow.show(); else createWindow(); } },
     { type: 'separator' },
-    { label: '退出', click: () => { tray = null; app.quit(); } },
+    { label: '退出', click: () => { isQuitting = true; tray = null; app.quit(); } },
   ]);
 
   tray.setToolTip('GA Manager');
@@ -192,7 +193,10 @@ function setupAutoUpdater() {
 
   ipcMain.handle('check-for-update', () => autoUpdater.checkForUpdates());
   ipcMain.handle('download-update', () => autoUpdater.downloadUpdate());
-  ipcMain.handle('install-update', () => autoUpdater.quitAndInstall(true, true));
+  ipcMain.handle('install-update', () => {
+    isQuitting = true;
+    autoUpdater.quitAndInstall(false, true);
+  });
 
   setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 15000);
   setInterval(() => autoUpdater.checkForUpdates().catch(() => {}), 60 * 60 * 1000);
@@ -225,6 +229,7 @@ app.on('activate', () => {
 });
 
 app.on('before-quit', () => {
+  isQuitting = true;
   if (backendProcess) {
     backendProcess.kill();
     backendProcess = null;
