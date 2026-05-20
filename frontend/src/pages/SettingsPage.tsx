@@ -3,7 +3,7 @@ import { useStore } from '../store';
 import { useI18n } from '../i18n';
 
 function SettingsPage() {
-  const { theme, toggleTheme, showToast, llmConfigs, fetchLLMs } = useStore();
+  const { theme, toggleTheme, showToast, llmConfigs, fetchLLMs, setConfigured } = useStore();
   const { t, lang, setLang } = useI18n();
 
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
@@ -166,6 +166,7 @@ function SettingsPage() {
                 <input className="rp-input" value={port} onChange={e => setPort(e.target.value)} style={{ width: '70px' }} />
               </div>
               <button className="btn-primary btn-sm" onClick={saveAppConfig}>Save</button>
+              <button className="btn-danger btn-sm" onClick={() => setConfigured(false)} title={lang === 'zh' ? '重新进入配置引导' : 'Re-run setup wizard'}>{lang === 'zh' ? '重新配置' : 'Reconfigure'}</button>
             </div>
           </div>
         </div>

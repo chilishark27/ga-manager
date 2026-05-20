@@ -281,8 +281,29 @@ func (m *InstanceManager) Create(req models.CreateInstanceRequest) (*models.Inst
 
 	bridgePath := filepath.Join(getBridgeDir(), "bridge.py")
 	pythonPath := m.config.PythonPath
+	if pythonPath != "" {
+		if info, err := os.Stat(pythonPath); err == nil && info.IsDir() {
+			found := false
+			for _, name := range []string{"python.exe", "python3", "python"} {
+				if _, err := os.Stat(filepath.Join(pythonPath, name)); err == nil {
+					pythonPath = filepath.Join(pythonPath, name)
+					found = true
+					break
+				}
+			}
+			if !found {
+				return nil, fmt.Errorf("python not found in directory: %s — configure the full path to python executable", pythonPath)
+			}
+		}
+	}
 	if pythonPath == "" {
-		pythonPath = "python"
+		if p, err := exec.LookPath("python3"); err == nil {
+			pythonPath = p
+		} else if p, err := exec.LookPath("python"); err == nil {
+			pythonPath = p
+		} else {
+			pythonPath = "python"
+		}
 	}
 
 	// Verify bridge exists
@@ -429,8 +450,29 @@ func (m *InstanceManager) Adopt(req models.AdoptInstanceRequest) (*models.Instan
 
 	bridgePath := filepath.Join(getBridgeDir(), "bridge.py")
 	pythonPath := m.config.PythonPath
+	if pythonPath != "" {
+		if info, err := os.Stat(pythonPath); err == nil && info.IsDir() {
+			found := false
+			for _, name := range []string{"python.exe", "python3", "python"} {
+				if _, err := os.Stat(filepath.Join(pythonPath, name)); err == nil {
+					pythonPath = filepath.Join(pythonPath, name)
+					found = true
+					break
+				}
+			}
+			if !found {
+				return nil, fmt.Errorf("python not found in directory: %s — configure the full path to python executable", pythonPath)
+			}
+		}
+	}
 	if pythonPath == "" {
-		pythonPath = "python"
+		if p, err := exec.LookPath("python3"); err == nil {
+			pythonPath = p
+		} else if p, err := exec.LookPath("python"); err == nil {
+			pythonPath = p
+		} else {
+			pythonPath = "python"
+		}
 	}
 
 	gaRoot := req.GARoot
@@ -843,8 +885,30 @@ func (m *InstanceManager) Start(id string) error {
 
 	bridgePath := filepath.Join(getBridgeDir(), "bridge.py")
 	pythonPath := m.config.PythonPath
+	if pythonPath != "" {
+		if info, err := os.Stat(pythonPath); err == nil && info.IsDir() {
+			found := false
+			for _, name := range []string{"python.exe", "python3", "python"} {
+				if _, err := os.Stat(filepath.Join(pythonPath, name)); err == nil {
+					pythonPath = filepath.Join(pythonPath, name)
+					found = true
+					break
+				}
+			}
+			if !found {
+				cancel()
+				return fmt.Errorf("python not found in directory: %s", pythonPath)
+			}
+		}
+	}
 	if pythonPath == "" {
-		pythonPath = "python"
+		if p, err := exec.LookPath("python3"); err == nil {
+			pythonPath = p
+		} else if p, err := exec.LookPath("python"); err == nil {
+			pythonPath = p
+		} else {
+			pythonPath = "python"
+		}
 	}
 
 	if _, err := os.Stat(bridgePath); err != nil {

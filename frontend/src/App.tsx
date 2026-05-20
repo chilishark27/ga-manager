@@ -28,6 +28,7 @@ function AppInner() {
   useEffect(() => {
     if (!configured) return;
     fetchInstances();
+    useStore.getState().fetchTodos();
     const interval = setInterval(fetchInstances, 2000);
     return () => clearInterval(interval);
   }, [configured, fetchInstances]);

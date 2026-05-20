@@ -51,7 +51,9 @@ export default function SetupPage() {
       if (!data.ga_valid) {
         setError(lang === 'zh' ? `路径无效: ${path} 中未找到 agentmain.py` : `Invalid path: agentmain.py not found in ${path}`);
       } else if (!data.python_valid) {
-        setError(lang === 'zh' ? 'Python 不可用，请配置 Python 路径' : 'Python not available, please configure Python path');
+        setError(lang === 'zh' ? 'Python 不可用，请配置正确的 Python 可执行文件路径（不是目录）' : 'Python not available. Configure the full path to python executable (not directory)');
+      } else if (!data.bridge_valid) {
+        setError(lang === 'zh' ? 'Bridge 未找到，请检查安装是否完整' : 'Bridge not found, check if installation is complete');
       }
     } catch {
       setError(lang === 'zh' ? '验证失败，请检查后端是否运行' : 'Validation failed, check if backend is running');

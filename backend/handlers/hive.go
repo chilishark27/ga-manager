@@ -72,10 +72,29 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 
 	gaRoot := h.cfg.GARoot
 	python := h.cfg.PythonPath
+	if python != "" {
+		if info, err := os.Stat(python); err == nil && info.IsDir() {
+			found := false
+			for _, name := range []string{"python.exe", "python3", "python"} {
+				if _, err := os.Stat(filepath.Join(python, name)); err == nil {
+					python = filepath.Join(python, name)
+					found = true
+					break
+				}
+			}
+			if !found {
+				h.logs = nil
+				h.addLog("ERROR: python not found in directory: " + python)
+				writeError(w, http.StatusInternalServerError, "python not found in directory: "+python)
+				return
+			}
+		}
+	}
 	if python == "" {
-		// Try python3 first, then python
-		if _, err := exec.LookPath("python3"); err == nil {
-			python = "python3"
+		if p, err := exec.LookPath("python3"); err == nil {
+			python = p
+		} else if p, err := exec.LookPath("python"); err == nil {
+			python = p
 		} else {
 			python = "python"
 		}

@@ -242,6 +242,16 @@ func main() {
 		if pythonCmd == "" {
 			pythonCmd = detectPython()
 		}
+		// Handle directory path — append executable name
+		if info, err := os.Stat(pythonCmd); err == nil && info.IsDir() {
+			if _, err := os.Stat(filepath.Join(pythonCmd, "python.exe")); err == nil {
+				pythonCmd = filepath.Join(pythonCmd, "python.exe")
+			} else if _, err := os.Stat(filepath.Join(pythonCmd, "python3")); err == nil {
+				pythonCmd = filepath.Join(pythonCmd, "python3")
+			} else if _, err := os.Stat(filepath.Join(pythonCmd, "python")); err == nil {
+				pythonCmd = filepath.Join(pythonCmd, "python")
+			}
+		}
 		if out, err := exec.Command(pythonCmd, "--version").Output(); err == nil {
 			result["python_valid"] = true
 			result["python_version"] = strings.TrimSpace(string(out))
