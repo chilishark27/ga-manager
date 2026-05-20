@@ -184,25 +184,22 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 		log.Println("[Conductor] Process exited")
 	}()
 
-	// Wait for conductor to be ready, detect actual port from stderr
+	// Wait for conductor to be ready, detect actual port from stdout/stderr
 	ready := false
 	for i := 0; i < 20; i++ {
 		time.Sleep(500 * time.Millisecond)
-		// Check stderr for actual port (uvicorn prints to stderr)
-		errOutput := stderrBuf.String()
-		if strings.Contains(errOutput, "Uvicorn running on") {
-			// Parse: "Uvicorn running on http://127.0.0.1:XXXX"
-			if idx := strings.Index(errOutput, "http://127.0.0.1:"); idx >= 0 {
-				portStr := errOutput[idx+len("http://127.0.0.1:"):]
-				if spaceIdx := strings.IndexAny(portStr, " \n\r"); spaceIdx > 0 {
-					portStr = portStr[:spaceIdx]
-				}
-				if p, err := fmt.Sscanf(portStr, "%d", new(int)); p == 1 && err == nil {
-					var port int
-					fmt.Sscanf(portStr, "%d", &port)
-					h.actualURL = fmt.Sprintf("http://127.0.0.1:%d", port)
-					log.Printf("[Conductor] Detected actual port: %d", port)
-				}
+		// Check both stdout and stderr for actual port
+		allOutput := stdoutBuf.String() + "\n" + stderrBuf.String()
+		// Find the LAST occurrence of http://127.0.0.1:PORT (the actual running port)
+		lastIdx := strings.LastIndex(allOutput, "http://127.0.0.1:")
+		if lastIdx >= 0 {
+			portStr := allOutput[lastIdx+len("http://127.0.0.1:"):]
+			if spaceIdx := strings.IndexAny(portStr, " \n\r()"); spaceIdx > 0 {
+				portStr = portStr[:spaceIdx]
+			}
+			var port int
+			if _, err := fmt.Sscanf(portStr, "%d", &port); err == nil && port > 0 {
+				h.actualURL = fmt.Sprintf("http://127.0.0.1:%d", port)
 			}
 		}
 		resp, err := http.Get(h.conductorURL() + "/readme")
