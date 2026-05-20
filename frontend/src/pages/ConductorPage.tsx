@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useStore } from '../store';
+import { useI18n } from '../i18n';
 
 const DEV_PREFIX = '[DEV] 分步交付，先设计后实现，模块化。\n';
 
@@ -26,6 +27,7 @@ interface ChatMsg {
 
 function ConductorPage() {
   const { activeInstance: getActiveInstance } = useStore();
+  const { lang } = useI18n();
   const inst = getActiveInstance();
   const devMode = !!(inst as any)?.dev_mode;
 
@@ -238,18 +240,19 @@ function ConductorPage() {
         <div className="conductor-center">
           <div style={{ fontSize: '48px', marginBottom: '16px', opacity: 0.6 }}>&#9881;</div>
           <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-1)', marginBottom: '8px' }}>
-            Conductor
+            {lang === 'zh' ? '编排模式' : 'Conductor'}
           </h2>
           <p style={{ fontSize: '14px', color: 'var(--text-3)', marginBottom: '24px', maxWidth: '360px', textAlign: 'center', lineHeight: 1.6 }}>
-            Multi-agent orchestrator. Start the conductor to manage subagents and coordinate tasks.
+            {lang === 'zh'
+              ? '创建多个子 Agent 并行工作，由 Conductor 统一调度分配任务。适合需要拆分的复杂任务。'
+              : 'Create multiple sub-agents working in parallel, coordinated by a conductor. Best for complex tasks that can be split.'}
           </p>
           {errorMsg && (
             <p style={{ fontSize: '12px', color: 'var(--red)', marginBottom: '12px' }}>{errorMsg}</p>
           )}
           <button className="conductor-start-btn" onClick={startConductor}>
-            Start Conductor
+            {lang === 'zh' ? '启动编排' : 'Start Conductor'}
           </button>
-          <p className="conductor-hint" style={{ marginTop: '12px' }}>Runs on port 8900</p>
         </div>
       </div>
     );
