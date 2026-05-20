@@ -10,23 +10,31 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-const conductorPort = 8900
-const conductorURL = "http://127.0.0.1:8900"
+const defaultConductorPort = 8900
 
 type ConductorHandler struct {
 	mu              sync.Mutex
 	cmd             *exec.Cmd
 	running         bool
+	actualURL       string
 	gaRoot          string
 	python          string
 	cachedSubagents []interface{}
 	cachedChat      []interface{}
+}
+
+func (h *ConductorHandler) conductorURL() string {
+	if h.actualURL != "" {
+		return h.actualURL
+	}
+	return fmt.Sprintf("http://127.0.0.1:%d", defaultConductorPort)
 }
 
 func NewConductorHandler(gaRoot, pythonPath string) *ConductorHandler {
@@ -151,7 +159,8 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 	cmd.Dir = frontendsDir
 	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "PYTHONPATH="+h.gaRoot)
 	var stderrBuf bytes.Buffer
-	cmd.Stdout = os.Stdout
+	var stdoutBuf bytes.Buffer
+	cmd.Stdout = &stdoutBuf
 	cmd.Stderr = &stderrBuf
 
 	if err := cmd.Start(); err != nil {
@@ -161,6 +170,7 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 
 	h.cmd = cmd
 	h.running = true
+	h.actualURL = fmt.Sprintf("http://127.0.0.1:%d", defaultConductorPort)
 
 	go func() {
 		cmd.Wait()
@@ -174,11 +184,28 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 		log.Println("[Conductor] Process exited")
 	}()
 
-	// Wait for conductor to be ready
+	// Wait for conductor to be ready, detect actual port from stderr
 	ready := false
 	for i := 0; i < 20; i++ {
 		time.Sleep(500 * time.Millisecond)
-		resp, err := http.Get(conductorURL + "/readme")
+		// Check stderr for actual port (uvicorn prints to stderr)
+		errOutput := stderrBuf.String()
+		if strings.Contains(errOutput, "Uvicorn running on") {
+			// Parse: "Uvicorn running on http://127.0.0.1:XXXX"
+			if idx := strings.Index(errOutput, "http://127.0.0.1:"); idx >= 0 {
+				portStr := errOutput[idx+len("http://127.0.0.1:"):]
+				if spaceIdx := strings.IndexAny(portStr, " \n\r"); spaceIdx > 0 {
+					portStr = portStr[:spaceIdx]
+				}
+				if p, err := fmt.Sscanf(portStr, "%d", new(int)); p == 1 && err == nil {
+					var port int
+					fmt.Sscanf(portStr, "%d", &port)
+					h.actualURL = fmt.Sprintf("http://127.0.0.1:%d", port)
+					log.Printf("[Conductor] Detected actual port: %d", port)
+				}
+			}
+		}
+		resp, err := http.Get(h.conductorURL() + "/readme")
 		if err == nil {
 			resp.Body.Close()
 			if resp.StatusCode == 200 {
@@ -193,7 +220,7 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 		if errOut != "" {
 			writeError(w, http.StatusInternalServerError, "conductor failed: "+errOut)
 		} else {
-			writeError(w, http.StatusInternalServerError, "conductor timeout — check if port 8900 is available and GA frontends/conductor.py exists")
+			writeError(w, http.StatusInternalServerError, "conductor timeout — check if the port is available and GA frontends/conductor.py exists")
 		}
 		return
 	}
@@ -234,7 +261,7 @@ func (h *ConductorHandler) ProxyGet(w http.ResponseWriter, r *http.Request) {
 	if target == "" {
 		target = "/subagent"
 	}
-	resp, err := http.Get(conductorURL + target)
+	resp, err := http.Get(h.conductorURL() + target)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "conductor not reachable")
 		return
@@ -251,7 +278,7 @@ func (h *ConductorHandler) ProxyPost(w http.ResponseWriter, r *http.Request) {
 	if target == "" {
 		target = "/subagent"
 	}
-	resp, err := http.Post(conductorURL+target, "application/json", r.Body)
+	resp, err := http.Post(h.conductorURL()+target, "application/json", r.Body)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "conductor not reachable")
 		return
@@ -264,7 +291,7 @@ func (h *ConductorHandler) ProxyPost(w http.ResponseWriter, r *http.Request) {
 
 // GetSubagents proxies GET /subagent, caches result for persistence
 func (h *ConductorHandler) GetSubagents(w http.ResponseWriter, r *http.Request) {
-	resp, err := http.Get(conductorURL + "/subagent")
+	resp, err := http.Get(h.conductorURL() + "/subagent")
 	if err != nil {
 		// Return cached state if conductor is down
 		h.mu.Lock()
@@ -299,7 +326,7 @@ func (h *ConductorHandler) GetSubagents(w http.ResponseWriter, r *http.Request) 
 
 // CreateSubagent proxies POST /subagent
 func (h *ConductorHandler) CreateSubagent(w http.ResponseWriter, r *http.Request) {
-	resp, err := http.Post(conductorURL+"/subagent", "application/json", r.Body)
+	resp, err := http.Post(h.conductorURL()+"/subagent", "application/json", r.Body)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "conductor not reachable")
 		return
@@ -313,7 +340,7 @@ func (h *ConductorHandler) CreateSubagent(w http.ResponseWriter, r *http.Request
 // SubagentAction proxies POST /subagent/{id}
 func (h *ConductorHandler) SubagentAction(w http.ResponseWriter, r *http.Request) {
 	sid := r.PathValue("sid")
-	resp, err := http.Post(conductorURL+"/subagent/"+sid, "application/json", r.Body)
+	resp, err := http.Post(h.conductorURL()+"/subagent/"+sid, "application/json", r.Body)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "conductor not reachable")
 		return
@@ -327,7 +354,7 @@ func (h *ConductorHandler) SubagentAction(w http.ResponseWriter, r *http.Request
 // GetChat proxies GET /chat, caches result for persistence
 func (h *ConductorHandler) GetChat(w http.ResponseWriter, r *http.Request) {
 	last := r.URL.Query().Get("last")
-	url := conductorURL + "/chat"
+	url := h.conductorURL() + "/chat"
 	if last != "" {
 		url += "?last=" + last
 	}
@@ -365,7 +392,7 @@ func (h *ConductorHandler) GetChat(w http.ResponseWriter, r *http.Request) {
 
 // PostChat proxies POST /chat
 func (h *ConductorHandler) PostChat(w http.ResponseWriter, r *http.Request) {
-	resp, err := http.Post(conductorURL+"/chat", "application/json", r.Body)
+	resp, err := http.Post(h.conductorURL()+"/chat", "application/json", r.Body)
 	if err != nil {
 		writeError(w, http.StatusBadGateway, "conductor not reachable")
 		return
@@ -387,7 +414,7 @@ func (h *ConductorHandler) WebSocketProxy(w http.ResponseWriter, r *http.Request
 	defer clientConn.Close()
 
 	// Connect to conductor's WebSocket
-	backendURL := fmt.Sprintf("ws://127.0.0.1:%d/ws", conductorPort)
+	backendURL := strings.Replace(h.conductorURL(), "http://", "ws://", 1) + "/ws"
 	backendConn, _, err := websocket.DefaultDialer.Dial(backendURL, nil)
 	if err != nil {
 		clientConn.WriteMessage(websocket.TextMessage, []byte(`{"error":"conductor ws not available"}`))
