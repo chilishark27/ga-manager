@@ -32,11 +32,16 @@ type ConductorHandler struct {
 func NewConductorHandler(gaRoot, pythonPath string) *ConductorHandler {
 	if pythonPath != "" {
 		if info, err := os.Stat(pythonPath); err == nil && info.IsDir() {
+			found := false
 			for _, name := range []string{"python.exe", "python3", "python"} {
 				if _, err := os.Stat(filepath.Join(pythonPath, name)); err == nil {
 					pythonPath = filepath.Join(pythonPath, name)
+					found = true
 					break
 				}
+			}
+			if !found {
+				pythonPath = ""
 			}
 		}
 	}
