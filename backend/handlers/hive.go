@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -72,19 +73,39 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	gaRoot := h.cfg.GARoot
 	python := h.cfg.PythonPath
 	if python == "" {
-		python = "python"
+		// Try python3 first, then python
+		if _, err := exec.LookPath("python3"); err == nil {
+			python = "python3"
+		} else {
+			python = "python"
+		}
 	}
 
 	h.logs = nil
+
+	// Verify BBS script exists
+	bbsScript := filepath.Join(gaRoot, "assets", "agent_bbs.py")
+	if _, err := os.Stat(bbsScript); err != nil {
+		h.addLog("ERROR: agent_bbs.py not found at " + bbsScript)
+		writeError(w, http.StatusInternalServerError, "agent_bbs.py not found — check GA Root path")
+		return
+	}
+
 	h.addLog("Checking dependencies...")
 
 	depCheck := exec.Command(python, "-c", "import fastapi, uvicorn, multipart")
 	depCheck.Dir = gaRoot
 	if err := depCheck.Run(); err != nil {
-		h.addLog("Installing dependencies...")
+		h.addLog("Installing dependencies (fastapi, uvicorn, python-multipart)...")
 		install := exec.Command(python, "-m", "pip", "install", "fastapi", "uvicorn", "python-multipart", "--quiet")
 		install.Dir = gaRoot
-		install.Run()
+		out, installErr := install.CombinedOutput()
+		if installErr != nil {
+			h.addLog("ERROR: pip install failed: " + installErr.Error() + " " + string(out))
+			writeError(w, http.StatusInternalServerError, "Failed to install dependencies: "+installErr.Error())
+			return
+		}
+		h.addLog("Dependencies installed")
 	}
 
 	h.port = 58800 + rand.Intn(100)
@@ -97,12 +118,12 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	os.MkdirAll(bbsCwd, 0755)
 
 	h.addLog(fmt.Sprintf("Starting BBS on port %d...", h.port))
-	bbsScript := filepath.Join(gaRoot, "assets", "agent_bbs.py")
 	h.bbsCmd = exec.Command(python, "-u", bbsScript,
 		"--cwd", bbsCwd, "--port", fmt.Sprintf("%d", h.port), "--key", h.boardKey)
 	h.bbsCmd.Dir = gaRoot
+	var bbsStderr bytes.Buffer
 	h.bbsCmd.Stdout = os.Stdout
-	h.bbsCmd.Stderr = os.Stderr
+	h.bbsCmd.Stderr = &bbsStderr
 	if err := h.bbsCmd.Start(); err != nil {
 		h.addLog("ERROR: " + err.Error())
 		writeError(w, http.StatusInternalServerError, "failed to start BBS: "+err.Error())
@@ -124,8 +145,12 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	}
 	if !ready {
 		h.bbsCmd.Process.Kill()
-		h.addLog("ERROR: BBS timeout")
-		writeError(w, http.StatusInternalServerError, "BBS failed to start")
+		errMsg := bbsStderr.String()
+		if errMsg != "" {
+			h.addLog("ERROR: BBS stderr: " + errMsg)
+		}
+		h.addLog("ERROR: BBS timeout (6s)")
+		writeError(w, http.StatusInternalServerError, "BBS failed to start: "+errMsg)
 		return
 	}
 	h.addLog("BBS ready")
