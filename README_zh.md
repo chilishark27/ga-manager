@@ -1,4 +1,4 @@
-﻿<p align="center">
+<p align="center">
   <img src="frontend/public/app.png" width="120" alt="GA Manager" />
 </p>
 
