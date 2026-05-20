@@ -29,8 +29,24 @@ type ConductorHandler struct {
 }
 
 func NewConductorHandler(gaRoot, pythonPath string) *ConductorHandler {
+	if pythonPath != "" {
+		if info, err := os.Stat(pythonPath); err == nil && info.IsDir() {
+			for _, name := range []string{"python.exe", "python3", "python"} {
+				if _, err := os.Stat(filepath.Join(pythonPath, name)); err == nil {
+					pythonPath = filepath.Join(pythonPath, name)
+					break
+				}
+			}
+		}
+	}
 	if pythonPath == "" {
-		pythonPath = "python"
+		if p, err := exec.LookPath("python3"); err == nil {
+			pythonPath = p
+		} else if p, err := exec.LookPath("python"); err == nil {
+			pythonPath = p
+		} else {
+			pythonPath = "python"
+		}
 	}
 	h := &ConductorHandler{gaRoot: gaRoot, python: pythonPath}
 	h.loadCachedState()
@@ -103,8 +119,20 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 
 	scriptPath := filepath.Join(h.gaRoot, "frontends", "conductor.py")
 	if _, err := os.Stat(scriptPath); err != nil {
-		writeError(w, http.StatusNotFound, "conductor.py not found in GA project")
+		writeError(w, http.StatusNotFound, "conductor.py not found in GA project — check GA Root path")
 		return
+	}
+
+	// Check dependencies
+	depCheck := exec.Command(h.python, "-c", "import fastapi, uvicorn")
+	depCheck.Dir = h.gaRoot
+	if err := depCheck.Run(); err != nil {
+		install := exec.Command(h.python, "-m", "pip", "install", "fastapi", "uvicorn", "--quiet")
+		install.Dir = h.gaRoot
+		if out, installErr := install.CombinedOutput(); installErr != nil {
+			writeError(w, http.StatusInternalServerError, "Failed to install dependencies: "+string(out))
+			return
+		}
 	}
 
 	// conductor.py uses uvicorn.run("conductor:app"), so cwd must be frontends/

@@ -336,7 +336,7 @@ function NavBar() {
           </div>
         </div>
         <div className="nav-actions">
-          <button className="nav-action-btn create" onClick={() => { fetchLLMs(); if (!gaRoot) { fetch('/api/config/app').then(r => r.ok ? r.json() : {}).then((d: any) => { if (d.ga_root) setGaRoot(d.ga_root); }).catch(() => {}); } setShowCreate(true); }} title={lang === 'zh' ? '创建新的 Agent 实例' : 'Create new Agent instance'}>{lang === 'zh' ? '+ 新建实例' : '+ New'}</button>
+          <button className="nav-action-btn create" onClick={() => { fetchLLMs(); fetch('/api/config/app').then(r => r.ok ? r.json() : {}).then((d: any) => { if (d.ga_root) setGaRoot(d.ga_root); }).catch(() => {}); setShowCreate(true); }} title={lang === 'zh' ? '创建新的 Agent 实例' : 'Create new Agent instance'}>{lang === 'zh' ? '+ 新建实例' : '+ New'}</button>
           <button className="nav-action-btn scan" onClick={() => discoverInstances()} title={lang === 'zh' ? '扫描本机已运行的 GA 实例' : 'Scan for running GA instances'}>
             {discoverLoading ? '...' : (lang === 'zh' ? '扫描' : 'Scan')}
           </button>
