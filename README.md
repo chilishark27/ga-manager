@@ -43,9 +43,11 @@
 | **Chat** | Real-time conversation with Agent, markdown rendering, image paste, session history |
 | **Conductor** | Multi-agent orchestration — create subagents, coordinate complex tasks |
 | **Hive** | Goal-based multi-agent collaboration via BBS message board |
+| **Morphling** | Project capability absorption/replacement via Hive |
 | **Monitor** | Token cost tracking, system resources (CPU/Memory) |
 | **Skills** | Skill tree visualization + SOP file editor |
 | **TODO Widget** | Floating task list — manual add, auto-detect from Agent replies, execute via Agent/Hive |
+| **Rewind** | Time-travel through conversation history, fork branches, switch between timelines |
 | **Auto Update** | Automatic update detection, download, and silent install |
 
 ---
@@ -122,7 +124,39 @@ Click to enable/disable for the active instance:
 
 **Requirements**: `pip install fastapi uvicorn python-multipart` (auto-installed on first use)
 
-### 7. TODO Widget
+### 7. Morphling (Project Absorption)
+
+**What**: Structured workflow for absorbing or replacing external project capabilities. Uses Hive for parallel execution.
+
+**How to use**:
+1. Go to **Morph** page
+2. Enter target project (GitHub URL, product name, or description)
+3. Select mode:
+   - **Call**: Integrate target into your toolchain
+   - **Rewrite**: Understand core, implement better version from scratch
+   - **Hybrid**: Call some components, rewrite others, discard the rest
+4. Optionally fill in test criteria and known components
+5. Set time budget and worker count
+6. Click **Start Morphling** — launches Hive with structured objective
+
+**Best for**: Analyzing competitor projects, absorbing open-source capabilities, building replacements
+
+### 8. Rewind (Time Travel)
+
+**What**: Navigate through conversation history like a timeline. Fork at any point to explore alternative paths.
+
+**How to use**:
+1. Click **Rewind** in the chat toolbar
+2. Use the **slider** to browse any point in the conversation
+3. Messages after the current point are dimmed
+4. Click **◀ ▶** for step-by-step navigation, **Latest** to jump to present
+5. Click **Fork** to branch from the current point:
+   - Original conversation is saved as a branch
+   - You continue from the fork point with a clean slate
+6. Use **Branches (N)** dropdown to switch between saved branches
+7. Hover over branch options to preview their content
+
+### 9. TODO Widget
 
 A floating task card that stays visible on all pages:
 
@@ -141,19 +175,19 @@ A floating task card that stays visible on all pages:
 
 **Persistence**: Tasks saved to backend (`~/.ga-manager/todos.json`), survives restarts
 
-### 8. Monitor
+### 10. Monitor
 
 - **Cost Tracking**: Requests, Input/Output tokens, Cache hit rate, Duration, Total
 - **System Resources**: CPU and Memory usage bars
 - Data refreshes every 5 seconds
 
-### 9. Skills & SOP
+### 11. Skills & SOP
 
 - **Left panel**: Browse SOP files from GA's `memory/` directory
 - **Right panel**: View/edit SOP content, or view the Skill Tree visualization
 - **Create**: Click "+ New" to create a new SOP file
 
-### 10. Settings
+### 12. Settings
 
 - **Theme**: Dark / Light
 - **Language**: English / Chinese
@@ -162,7 +196,7 @@ A floating task card that stays visible on all pages:
 - **Check Updates**: Manual update check
 - **Reconfigure**: Re-enter Setup Wizard
 
-### 11. Auto Update
+### 13. Auto Update
 
 - App checks for updates on startup (after 15s) and every hour
 - When a new version is found, a notification appears at bottom-right
