@@ -17,6 +17,7 @@ import base64
 import tempfile
 import uuid
 import urllib.request
+import urllib.error
 
 # --- Fix stdin pipe inheritance ---
 # When bridge.py is spawned by Go backend, its stdin is a pipe.
@@ -55,10 +56,9 @@ def vision_preprocess(images_b64: list, user_text: str, ga_root: str = "") -> st
     spec.loader.exec_module(mykey)
     
     # Try multiple config names in priority order (vision-capable models)
-    # native_claude_config_* = Claude native format (/messages + x-api-key)
-    # native_oai_config_* = OpenAI-compatible format (/chat/completions + Bearer)
     _cfg_names = [
         "native_claude_config_opus47",
+        "native_claude_config_opus46",
         "native_oai_config_opus46_thinking",
         "native_oai_config_opus47",
         "native_oai_config_opus46",
@@ -71,13 +71,27 @@ def vision_preprocess(images_b64: list, user_text: str, ga_root: str = "") -> st
         if cfg:
             cfg_name = _name
             break
+    # Fallback: find any config dict with apikey and apibase
     if not cfg:
-        return f"[图片预处理失败: mykey.py中未找到vision配置({','.join(_cfg_names)})]\n\n{user_text}"
+        for attr in dir(mykey):
+            val = getattr(mykey, attr, None)
+            if isinstance(val, dict) and val.get("apikey") and val.get("apibase"):
+                cfg = val
+                cfg_name = attr
+                break
+    if not cfg:
+        return f"[图片预处理失败: mykey.py中未找到可用的LLM配置]\n\n{user_text}"
     
     apikey = cfg.get("apikey", "")
     apibase = cfg.get("apibase", "").rstrip("/")
     model = cfg.get("model", "claude-sonnet-4-20250514")
     is_claude_native = cfg_name.startswith("native_claude_config_")
+
+    # Normalize apibase - avoid double /v1
+    if apibase.endswith("/v1"):
+        apibase_root = apibase
+    else:
+        apibase_root = apibase + "/v1"
     
     # Detect media type from base64 data
     def _detect_media_type(img_b64: str) -> tuple:
@@ -118,7 +132,7 @@ def vision_preprocess(images_b64: list, user_text: str, ga_root: str = "") -> st
             "messages": [{"role": "user", "content": content_blocks}]
         }).encode("utf-8")
         
-        url = f"{apibase}/v1/messages"
+        url = f"{apibase_root}/messages"
         req = urllib.request.Request(url, data=payload, method="POST")
         req.add_header("Content-Type", "application/json")
         req.add_header("x-api-key", apikey)
@@ -141,7 +155,7 @@ def vision_preprocess(images_b64: list, user_text: str, ga_root: str = "") -> st
             "messages": [{"role": "user", "content": content_blocks}]
         }).encode("utf-8")
         
-        url = f"{apibase}/v1/chat/completions"
+        url = f"{apibase_root}/chat/completions"
         req = urllib.request.Request(url, data=payload, method="POST")
         req.add_header("Content-Type", "application/json")
         req.add_header("Authorization", f"Bearer {apikey}")
@@ -161,6 +175,11 @@ def vision_preprocess(images_b64: list, user_text: str, ga_root: str = "") -> st
                 return f"[用户发送了图片，以下是图片内容描述]\n{description}\n\n[用户附言] {user_text}"
             else:
                 return f"[用户发送了图片，以下是图片内容描述]\n{description}\n\n请根据图片内容回复用户。"
+    except urllib.error.HTTPError as e:
+        err_body = ""
+        try: err_body = e.read().decode("utf-8", errors="replace")[:200]
+        except: pass
+        return f"[图片预处理失败: HTTP {e.code} - {err_body or e.reason}]\n\n{user_text}"
     except Exception as e:
         return f"[图片预处理失败: {e}]\n\n{user_text}"
 
