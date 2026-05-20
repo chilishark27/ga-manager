@@ -195,7 +195,11 @@ function setupAutoUpdater() {
   ipcMain.handle('download-update', () => autoUpdater.downloadUpdate());
   ipcMain.handle('install-update', () => {
     isQuitting = true;
-    autoUpdater.quitAndInstall(false, true);
+    if (backendProcess) {
+      try { backendProcess.kill(); } catch {}
+      backendProcess = null;
+    }
+    setTimeout(() => { autoUpdater.quitAndInstall(false, true); }, 500);
   });
 
   setTimeout(() => autoUpdater.checkForUpdates().catch(() => {}), 15000);
@@ -228,10 +232,12 @@ app.on('activate', () => {
   else mainWindow.show();
 });
 
-app.on('before-quit', () => {
+app.on('before-quit', (e) => {
   isQuitting = true;
   if (backendProcess) {
-    backendProcess.kill();
+    try { backendProcess.kill(); } catch {}
     backendProcess = null;
   }
+  // Force quit after 3 seconds if something hangs
+  setTimeout(() => { process.exit(0); }, 3000);
 });
