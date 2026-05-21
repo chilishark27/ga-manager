@@ -57,6 +57,7 @@ function UpdateNotifier() {
   return (
     <div className="update-notifier">
       <div className="update-notifier-content">
+        <button className="update-notifier-close" onClick={() => setDismissed(true)} title={lang === 'zh' ? '关闭' : 'Close'}>×</button>
         <div className="update-notifier-text">
           {state === 'available' && (
             <span>{lang === 'zh' ? `新版本 v${info?.version} 可用` : `v${info?.version} available`}</span>

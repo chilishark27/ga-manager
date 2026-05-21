@@ -28,6 +28,7 @@ type ConductorHandler struct {
 	python          string
 	cachedSubagents []interface{}
 	cachedChat      []interface{}
+	deletedIDs      map[string]bool
 }
 
 func (h *ConductorHandler) conductorURL() string {
@@ -62,7 +63,7 @@ func NewConductorHandler(gaRoot, pythonPath string) *ConductorHandler {
 			pythonPath = "python"
 		}
 	}
-	h := &ConductorHandler{gaRoot: gaRoot, python: pythonPath}
+	h := &ConductorHandler{gaRoot: gaRoot, python: pythonPath, deletedIDs: make(map[string]bool)}
 	h.loadCachedState()
 	return h
 }
@@ -130,6 +131,13 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{"status": "already_running"})
 		return
 	}
+
+	// Clear cached state and deleted IDs for fresh session
+	h.cachedSubagents = nil
+	h.cachedChat = nil
+	h.deletedIDs = make(map[string]bool)
+	os.Remove(h.cacheFilePath())
+	os.Remove(h.chatCacheFilePath())
 
 	scriptPath := filepath.Join(h.gaRoot, "frontends", "conductor.py")
 	if _, err := os.Stat(scriptPath); err != nil {
@@ -305,16 +313,29 @@ func (h *ConductorHandler) GetSubagents(w http.ResponseWriter, r *http.Request) 
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
-	// Cache the subagent state
 	var result struct {
 		Items []interface{} `json:"items"`
 	}
-	if json.Unmarshal(body, &result) == nil && len(result.Items) > 0 {
+	if json.Unmarshal(body, &result) == nil {
+		// Filter out deleted IDs
 		h.mu.Lock()
-		h.cachedSubagents = result.Items
+		var filtered []interface{}
+		for _, item := range result.Items {
+			if m, ok := item.(map[string]interface{}); ok {
+				id := fmt.Sprintf("%v", m["id"])
+				if !h.deletedIDs[id] {
+					filtered = append(filtered, item)
+				}
+			} else {
+				filtered = append(filtered, item)
+			}
+		}
+		h.cachedSubagents = filtered
 		h.mu.Unlock()
-		// Persist to file
 		go h.saveCachedState()
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]interface{}{"items": filtered})
+		return
 	}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.StatusCode)
@@ -346,6 +367,35 @@ func (h *ConductorHandler) SubagentAction(w http.ResponseWriter, r *http.Request
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
+}
+
+// DeleteSubagent removes a subagent from cache (conductor doesn't support DELETE natively)
+func (h *ConductorHandler) DeleteSubagent(w http.ResponseWriter, r *http.Request) {
+	sid := r.PathValue("sid")
+	h.mu.Lock()
+	// Mark as deleted so it won't reappear from conductor polls
+	h.deletedIDs[sid] = true
+	// Remove from cache
+	if h.cachedSubagents != nil {
+		var filtered []interface{}
+		for _, item := range h.cachedSubagents {
+			if m, ok := item.(map[string]interface{}); ok {
+				if fmt.Sprintf("%v", m["id"]) != sid {
+					filtered = append(filtered, item)
+				}
+			} else {
+				filtered = append(filtered, item)
+			}
+		}
+		h.cachedSubagents = filtered
+	}
+	h.mu.Unlock()
+	go h.saveCachedState()
+	// Try to abort the subagent on conductor (best effort)
+	body := strings.NewReader(`{"action":"abort"}`)
+	http.Post(h.conductorURL()+"/subagent/"+sid, "application/json", body)
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(map[string]string{"status": "deleted", "id": sid})
 }
 
 // GetChat proxies GET /chat, caches result for persistence

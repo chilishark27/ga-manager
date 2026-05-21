@@ -47,6 +47,13 @@ export default function TodoPanel() {
   const pending = todos.filter(t => !t.done);
   const done = todos.filter(t => t.done);
 
+  // Auto-archive completed tasks after 10 seconds
+  useEffect(() => {
+    if (done.length === 0 || pending.length > 0) return;
+    const timer = setTimeout(() => { archiveDone(); }, 10000);
+    return () => clearTimeout(timer);
+  }, [done.length, pending.length]);
+
   // Auto-mark tasks as done when Agent reports completion
   useEffect(() => {
     if (messages.length === 0 || pending.length === 0) return;

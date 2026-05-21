@@ -16,7 +16,7 @@ import { useStore } from './store';
 import { I18nProvider } from './i18n';
 
 function AppInner() {
-  const { theme, fetchInstances, currentPage, configured, checkConfigured, backendAlive } = useStore();
+  const { theme, fetchInstances, currentPage, configured, checkConfigured, backendAlive, showTodoPanel } = useStore();
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -65,7 +65,7 @@ function AppInner() {
           Backend disconnected — retrying...
         </div>
       )}
-      <TodoPanel />
+      {showTodoPanel && <TodoPanel />}
       <UpdateNotifier />
     </div>
   );

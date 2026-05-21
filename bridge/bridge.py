@@ -35,153 +35,234 @@ _subprocess.Popen.__init__ = _popen_init_no_stdin
 _stdout_lock = threading.Lock()
 
 
-def vision_preprocess(images_b64: list, user_text: str, ga_root: str = "") -> str:
+def vision_preprocess(images_b64: list, user_text: str, ga_root: str = "", llm_client=None) -> str:
     """
-    Call Claude API directly to describe images, return text description.
-    This avoids GA's multi-turn tool-call approach which causes timeouts.
-    Uses OpenAI-compatible endpoint with image_url format.
+    Use GA's own LLM client (raw_ask) to describe images.
+    This ensures proxy, auth, and URL are all consistent with normal chat.
+    Falls back to urllib if no client available.
     """
-    # Import mykey config from GA root
-    import importlib.util
-    mykey_path = os.path.join(ga_root, "mykey.py") if ga_root else ""
-    if not mykey_path or not os.path.exists(mykey_path):
-        mykey_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "GenericAgent", "mykey.py")
-    if not os.path.exists(mykey_path):
-        mykey_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "mykey.py")
-    if not os.path.exists(mykey_path):
-        return f"[图片预处理失败: 找不到mykey.py]\n\n{user_text}"
-    
-    spec = importlib.util.spec_from_file_location("mykey", mykey_path)
-    mykey = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(mykey)
-    
-    # Try multiple config names in priority order (vision-capable models)
-    _cfg_names = [
-        "native_claude_config_opus47",
-        "native_claude_config_opus46",
-        "native_oai_config_opus46_thinking",
-        "native_oai_config_opus47",
-        "native_oai_config_opus46",
-        "native_oai_config_dsv4pro",
-    ]
-    cfg = None
-    cfg_name = ""
-    for _name in _cfg_names:
-        cfg = getattr(mykey, _name, None)
-        if cfg:
-            cfg_name = _name
-            break
-    # Fallback: find any config dict with apikey and apibase
-    if not cfg:
-        for attr in dir(mykey):
-            val = getattr(mykey, attr, None)
-            if isinstance(val, dict) and val.get("apikey") and val.get("apibase"):
-                cfg = val
-                cfg_name = attr
-                break
-    if not cfg:
-        return f"[图片预处理失败: mykey.py中未找到可用的LLM配置]\n\n{user_text}"
-    
-    apikey = cfg.get("apikey", "")
-    apibase = cfg.get("apibase", "").rstrip("/")
-    model = cfg.get("model", "claude-sonnet-4-20250514")
-    is_claude_native = cfg_name.startswith("native_claude_config_")
+    import time as _time
+    _vlog = os.path.join(os.path.dirname(os.path.abspath(__file__)), "bridge_debug.log")
 
-    # Normalize apibase - avoid double /v1
-    if apibase.endswith("/v1"):
-        apibase_root = apibase
-    else:
-        apibase_root = apibase + "/v1"
-    
-    # Detect media type from base64 data
     def _detect_media_type(img_b64: str) -> tuple:
-        """Returns (media_type, raw_base64)"""
         if "," in img_b64:
-            # Has data URL prefix like "data:image/png;base64,xxxx"
             parts = img_b64.split(",", 1)
             mt = parts[0].split(":")[1].split(";")[0] if ":" in parts[0] else "image/png"
             return mt, parts[1]
         try:
             header = base64.b64decode(img_b64[:16])
-            if header[:2] == b'\xff\xd8':
-                return "image/jpeg", img_b64
-            elif header[:4] == b'\x89PNG':
-                return "image/png", img_b64
-            elif header[:4] == b'GIF8':
-                return "image/gif", img_b64
-            elif header[:4] == b'RIFF':
-                return "image/webp", img_b64
+            if header[:2] == b'\xff\xd8': return "image/jpeg", img_b64
+            elif header[:4] == b'\x89PNG': return "image/png", img_b64
+            elif header[:4] == b'GIF8': return "image/gif", img_b64
+            elif header[:4] == b'RIFF': return "image/webp", img_b64
         except Exception:
             pass
         return "image/png", img_b64
-    
-    if is_claude_native:
-        # Claude native Messages API format
-        content_blocks = []
-        for img_b64 in images_b64:
-            media_type, raw_b64 = _detect_media_type(img_b64)
-            content_blocks.append({
-                "type": "image",
-                "source": {"type": "base64", "media_type": media_type, "data": raw_b64}
-            })
-        content_blocks.append({"type": "text", "text": user_text or "请详细描述这张图片的内容"})
-        
-        payload = json.dumps({
-            "model": model,
-            "max_tokens": 2048,
-            "messages": [{"role": "user", "content": content_blocks}]
-        }).encode("utf-8")
-        
-        url = f"{apibase_root}/messages"
-        req = urllib.request.Request(url, data=payload, method="POST")
-        req.add_header("Content-Type", "application/json")
-        req.add_header("x-api-key", apikey)
-        req.add_header("anthropic-version", "2023-06-01")
-    else:
-        # OpenAI-compatible format
-        content_blocks = []
-        for img_b64 in images_b64:
-            media_type, raw_b64 = _detect_media_type(img_b64)
-            data_url = f"data:{media_type};base64,{raw_b64}"
-            content_blocks.append({
-                "type": "image_url",
-                "image_url": {"url": data_url}
-            })
-        content_blocks.append({"type": "text", "text": user_text or "请详细描述这张图片的内容"})
-        
-        payload = json.dumps({
-            "model": model,
-            "max_tokens": 2048,
-            "messages": [{"role": "user", "content": content_blocks}]
-        }).encode("utf-8")
-        
-        url = f"{apibase_root}/chat/completions"
-        req = urllib.request.Request(url, data=payload, method="POST")
-        req.add_header("Content-Type", "application/json")
-        req.add_header("Authorization", f"Bearer {apikey}")
-    
+
+    # Compress images to reduce payload size (proxies often have size/timeout limits)
+    def _compress_image(img_b64: str, max_size: int = 800) -> str:
+        """Resize image if too large, convert to JPEG for smaller payload."""
+        try:
+            from PIL import Image
+            import io
+            # Decode
+            if "," in img_b64:
+                raw = img_b64.split(",", 1)[1]
+            else:
+                raw = img_b64
+            img_data = base64.b64decode(raw)
+            img = Image.open(io.BytesIO(img_data))
+            # Resize if larger than max_size
+            w, h = img.size
+            if w > max_size or h > max_size:
+                ratio = min(max_size / w, max_size / h)
+                img = img.resize((int(w * ratio), int(h * ratio)), Image.LANCZOS)
+            # Convert to JPEG (much smaller than PNG for screenshots)
+            if img.mode == 'RGBA':
+                bg = Image.new('RGB', img.size, (255, 255, 255))
+                bg.paste(img, mask=img.split()[3])
+                img = bg
+            elif img.mode != 'RGB':
+                img = img.convert('RGB')
+            buf = io.BytesIO()
+            img.save(buf, format='JPEG', quality=75)
+            return base64.b64encode(buf.getvalue()).decode('ascii')
+        except ImportError:
+            return img_b64.split(",", 1)[1] if "," in img_b64 else img_b64
+        except Exception:
+            return img_b64.split(",", 1)[1] if "," in img_b64 else img_b64
+
+    # Build multimodal message content
+    content_blocks = []
+    for img_b64 in images_b64:
+        compressed = _compress_image(img_b64)
+        content_blocks.append({
+            "type": "image",
+            "source": {"type": "base64", "media_type": "image/jpeg", "data": compressed}
+        })
+    content_blocks.append({"type": "text", "text": user_text or "请详细描述这张图片的内容"})
+    messages = [{"role": "user", "content": content_blocks}]
+
+    # Method 1: Use GA's LLM client raw_ask (preferred - handles proxy/auth correctly)
+    if llm_client and hasattr(llm_client, 'raw_ask'):
+        try:
+            with open(_vlog, "a", encoding="utf-8") as _f:
+                _f.write(f"[{_time.strftime('%H:%M:%S')}] vision: using llm_client.raw_ask()\n")
+            result = llm_client.raw_ask(messages)
+            if result:
+                description = result if isinstance(result, str) else str(result)
+                if user_text:
+                    return f"[用户发送了图片，以下是图片内容描述]\n{description}\n\n[用户附言] {user_text}"
+                else:
+                    return f"[用户发送了图片，以下是图片内容描述]\n{description}\n\n请根据图片内容回复用户。"
+        except Exception as e:
+            with open(_vlog, "a", encoding="utf-8") as _f:
+                _f.write(f"[{_time.strftime('%H:%M:%S')}] vision: raw_ask failed: {e}, falling back to urllib\n")
+
+    # Method 2: Fallback - use requests library with proxy from config
     try:
-        with urllib.request.urlopen(req, timeout=120) as resp:
-            result = json.loads(resp.read().decode("utf-8"))
-            # Parse response based on API format
+        import requests as _requests
+    except ImportError:
+        _requests = None
+
+    # Get config from llm_client or mykey.py
+    apikey = ""
+    apibase = ""
+    model = ""
+    proxy = None
+    if llm_client:
+        apikey = getattr(llm_client, "api_key", "") or getattr(llm_client, "apikey", "")
+        apibase = getattr(llm_client, "base_url", "") or getattr(llm_client, "apibase", "")
+        model = getattr(llm_client, "model_name", "") or getattr(llm_client, "model", "")
+        proxy = getattr(llm_client, "proxy", None)
+        proxies_dict = getattr(llm_client, "proxies", None)
+        if proxies_dict and isinstance(proxies_dict, dict):
+            proxy = proxies_dict.get("https") or proxies_dict.get("http")
+        if isinstance(apibase, object) and not isinstance(apibase, str):
+            apibase = str(apibase)
+
+    if not apikey or not apibase:
+        import importlib.util
+        mykey_path = os.path.join(ga_root, "mykey.py") if ga_root else ""
+        if not mykey_path or not os.path.exists(mykey_path):
+            mykey_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "GenericAgent", "mykey.py")
+        if not os.path.exists(mykey_path):
+            mykey_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "mykey.py")
+        if not os.path.exists(mykey_path):
+            return f"[图片预处理失败: 找不到mykey.py]\n\n{user_text}"
+        spec = importlib.util.spec_from_file_location("mykey", mykey_path)
+        mykey = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mykey)
+        _cfg_names = ["native_oai_config_opus47", "native_oai_config_opus46",
+                      "native_oai_config_opus46_thinking", "native_oai_config_dsv4pro",
+                      "native_claude_config_opus47", "native_claude_config_opus46"]
+        cfg = None
+        for _name in _cfg_names:
+            cfg = getattr(mykey, _name, None)
+            if cfg: break
+        if not cfg:
+            for attr in dir(mykey):
+                val = getattr(mykey, attr, None)
+                if isinstance(val, dict) and val.get("apikey") and val.get("apibase"):
+                    cfg = val
+                    break
+        if not cfg:
+            return f"[图片预处理失败: mykey.py中未找到可用的LLM配置]\n\n{user_text}"
+        apikey = cfg.get("apikey", "")
+        apibase = cfg.get("apibase", "").rstrip("/")
+        model = cfg.get("model", "claude-sonnet-4-20250514")
+        proxy = cfg.get("proxy")
+
+    apibase = apibase.rstrip("/")
+    if not model:
+        model = "claude-sonnet-4-20250514"
+    is_claude_native = "api.anthropic.com" in apibase
+
+    import re as _re
+    def _make_url(base, path):
+        b, p = base.rstrip('/'), path.strip('/')
+        if b.endswith(p): return b
+        return f"{b}/{p}" if _re.search(r'/v\d+(/|$)', b) else f"{b}/v1/{p}"
+
+    with open(_vlog, "a", encoding="utf-8") as _f:
+        _f.write(f"[{_time.strftime('%H:%M:%S')}] vision fallback: apibase={apibase}, model={model}, proxy={proxy}, is_native={is_claude_native}\n")
+
+    if is_claude_native:
+        url = _make_url(apibase, "messages")
+        headers = {"Content-Type": "application/json", "x-api-key": apikey,
+                   "anthropic-version": "2023-06-01", "Accept": "text/event-stream"}
+        payload = {"model": model, "max_tokens": 2048, "messages": messages, "stream": True}
+    else:
+        url = _make_url(apibase, "chat/completions")
+        headers = {"Content-Type": "application/json", "Authorization": f"Bearer {apikey}",
+                   "Accept": "text/event-stream"}
+        # Convert to OpenAI image format (use already-compressed images)
+        oai_content = []
+        for img_b64 in images_b64:
+            compressed = _compress_image(img_b64)
+            oai_content.append({"type": "image_url", "image_url": {"url": f"data:image/jpeg;base64,{compressed}"}})
+        oai_content.append({"type": "text", "text": user_text or "请详细描述这张图片的内容"})
+        payload = {"model": model, "max_tokens": 2048, "stream": True,
+                   "messages": [{"role": "user", "content": oai_content}]}
+
+    proxies = {"http": proxy, "https": proxy} if proxy else None
+
+    try:
+        if _requests:
+            r = _requests.post(url, headers=headers, json=payload, timeout=120, proxies=proxies, stream=True, verify=False)
+            r.raise_for_status()
+            # Parse SSE stream to collect full response
+            description = ""
+            for line in r.iter_lines(decode_unicode=True):
+                if not line or not line.startswith("data: "):
+                    continue
+                data_str = line[6:]
+                if data_str.strip() == "[DONE]":
+                    break
+                try:
+                    chunk = json.loads(data_str)
+                    if is_claude_native:
+                        # Claude streaming: {"type":"content_block_delta","delta":{"type":"text_delta","text":"..."}}
+                        if chunk.get("type") == "content_block_delta":
+                            delta = chunk.get("delta", {})
+                            description += delta.get("text", "")
+                    else:
+                        # OpenAI streaming: {"choices":[{"delta":{"content":"..."}}]}
+                        choices = chunk.get("choices", [])
+                        if choices:
+                            delta = choices[0].get("delta", {})
+                            description += delta.get("content", "") or ""
+                except (json.JSONDecodeError, KeyError, IndexError):
+                    continue
+            r.close()
+        else:
+            # urllib fallback (non-streaming, may not work with all proxies)
+            payload["stream"] = False
+            data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(url, data=data, method="POST")
+            for k, v in headers.items():
+                req.add_header(k, v)
+            with urllib.request.urlopen(req, timeout=120) as resp:
+                result = json.loads(resp.read().decode("utf-8"))
             if is_claude_native:
-                # Claude Messages API: {"content": [{"type": "text", "text": "..."}]}
                 description = result["content"][0]["text"]
             else:
-                # OpenAI format: {"choices": [{"message": {"content": "..."}}]}
                 description = result["choices"][0]["message"]["content"]
-            # Combine: image description + user's original text
-            if user_text:
-                return f"[用户发送了图片，以下是图片内容描述]\n{description}\n\n[用户附言] {user_text}"
-            else:
-                return f"[用户发送了图片，以下是图片内容描述]\n{description}\n\n请根据图片内容回复用户。"
-    except urllib.error.HTTPError as e:
-        err_body = ""
-        try: err_body = e.read().decode("utf-8", errors="replace")[:200]
-        except: pass
-        return f"[图片预处理失败: HTTP {e.code} - {err_body or e.reason}]\n\n{user_text}"
+
+        if not description:
+            return f"[图片预处理失败: 未获取到图片描述]\n\n{user_text}"
+
+        if user_text:
+            return f"[用户发送了图片，以下是图片内容描述]\n{description}\n\n[用户附言] {user_text}"
+        else:
+            return f"[用户发送了图片，以下是图片内容描述]\n{description}\n\n请根据图片内容回复用户。"
     except Exception as e:
-        return f"[图片预处理失败: {e}]\n\n{user_text}"
+        err_msg = str(e)
+        if hasattr(e, 'response') and e.response is not None:
+            err_msg = f"HTTP {e.response.status_code} - {e.response.text[:200]}"
+        with open(_vlog, "a", encoding="utf-8") as _f:
+            _f.write(f"[{_time.strftime('%H:%M:%S')}] vision ERROR: {err_msg}\n")
+        return f"[图片预处理失败: {err_msg}]\n\n{user_text}"
 
 
 def send(obj: dict):
@@ -698,7 +779,15 @@ def main():
                 _dbg(f"Vision preprocess: {len(images)} images, calling Claude API...")
                 send({"event": "log", "msg": f"正在分析 {len(images)} 张图片..."})
                 try:
-                    query = vision_preprocess(images, text, ga_root=agent_dir)
+                    # Pass current LLM client so vision uses same API config as the instance
+                    cur_client = None
+                    try:
+                        llm_no = getattr(agent, "llm_no", 0)
+                        if hasattr(agent, "llmclients") and len(agent.llmclients) > llm_no:
+                            cur_client = agent.llmclients[llm_no]
+                    except Exception:
+                        pass
+                    query = vision_preprocess(images, text, ga_root=agent_dir, llm_client=cur_client)
                     _dbg(f"Vision preprocess done, result length={len(query)}")
                 except Exception as e:
                     _dbg(f"Vision preprocess failed: {e}")

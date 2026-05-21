@@ -10,6 +10,7 @@ import (
 	"os/exec"
 	"os/signal"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -153,6 +154,7 @@ func main() {
 	mux.HandleFunc("GET /api/conductor/subagents", conductorHandler.GetSubagents)
 	mux.HandleFunc("POST /api/conductor/subagents", conductorHandler.CreateSubagent)
 	mux.HandleFunc("POST /api/conductor/subagents/{sid}", conductorHandler.SubagentAction)
+	mux.HandleFunc("DELETE /api/conductor/subagents/{sid}", conductorHandler.DeleteSubagent)
 	mux.HandleFunc("GET /api/conductor/chat", conductorHandler.GetChat)
 	mux.HandleFunc("POST /api/conductor/chat", conductorHandler.PostChat)
 	mux.HandleFunc("GET /api/conductor/ws", conductorHandler.WebSocketProxy)
@@ -306,6 +308,112 @@ func main() {
 			return
 		}
 		w.Write([]byte(`{"ok":true}`))
+	})
+
+	// Project context - scan directory structure
+	mux.HandleFunc("POST /api/project/scan", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		var req struct {
+			Path string `json:"path"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.Path == "" {
+			json.NewEncoder(w).Encode(map[string]interface{}{"error": "path is required"})
+			return
+		}
+		info, err := os.Stat(req.Path)
+		if err != nil || !info.IsDir() {
+			json.NewEncoder(w).Encode(map[string]interface{}{"error": "directory not found"})
+			return
+		}
+
+		// Scan directory tree (max 3 levels, skip hidden/node_modules/venv)
+		type FileEntry struct {
+			Name string      `json:"name"`
+			Type string      `json:"type"`
+			Children []FileEntry `json:"children,omitempty"`
+		}
+		var scanDir func(dir string, depth int) []FileEntry
+		scanDir = func(dir string, depth int) []FileEntry {
+			if depth > 3 { return nil }
+			entries, _ := os.ReadDir(dir)
+			var result []FileEntry
+			skip := map[string]bool{"node_modules": true, ".git": true, "__pycache__": true, "venv": true, ".venv": true, "dist": true, "build": true, ".next": true}
+			for _, e := range entries {
+				name := e.Name()
+				if strings.HasPrefix(name, ".") && name != ".env.example" { continue }
+				if skip[name] { continue }
+				entry := FileEntry{Name: name}
+				if e.IsDir() {
+					entry.Type = "dir"
+					entry.Children = scanDir(filepath.Join(dir, name), depth+1)
+				} else {
+					entry.Type = "file"
+				}
+				result = append(result, entry)
+			}
+			return result
+		}
+
+		tree := scanDir(req.Path, 0)
+
+		// Read key files for context (README, package.json, etc.)
+		keyFiles := []string{"README.md", "readme.md", "package.json", "Cargo.toml", "go.mod", "pyproject.toml", "requirements.txt", "Makefile"}
+		summaries := map[string]string{}
+		for _, kf := range keyFiles {
+			fp := filepath.Join(req.Path, kf)
+			if data, err := os.ReadFile(fp); err == nil {
+				content := string(data)
+				if len(content) > 500 { content = content[:500] + "..." }
+				summaries[kf] = content
+			}
+		}
+
+		json.NewEncoder(w).Encode(map[string]interface{}{
+			"path": req.Path,
+			"name": filepath.Base(req.Path),
+			"tree": tree,
+			"summaries": summaries,
+		})
+	})
+
+	// Project context - open native folder picker dialog
+	mux.HandleFunc("POST /api/project/browse", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		var selectedPath string
+		var err error
+
+		switch runtime.GOOS {
+		case "windows":
+			cmd := exec.Command("powershell", "-NoProfile", "-STA", "-Command",
+				`Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = 'Select Project Folder'; $f.ShowNewFolderButton = $true; $f.RootFolder = 'MyComputer'; if ($f.ShowDialog() -eq 'OK') { Write-Output $f.SelectedPath } else { Write-Output '' }`)
+			out, e := cmd.Output()
+			err = e
+			selectedPath = strings.TrimSpace(string(out))
+		case "darwin":
+			cmd := exec.Command("osascript", "-e",
+				`set theFolder to choose folder with prompt "Select Project Folder"
+return POSIX path of theFolder`)
+			out, e := cmd.Output()
+			err = e
+			selectedPath = strings.TrimSpace(string(out))
+			selectedPath = strings.TrimSuffix(selectedPath, "/")
+		default:
+			// Linux: try zenity, then kdialog
+			cmd := exec.Command("zenity", "--file-selection", "--directory", "--title=Select Project Folder")
+			out, e := cmd.Output()
+			if e != nil {
+				cmd = exec.Command("kdialog", "--getexistingdirectory", ".")
+				out, e = cmd.Output()
+			}
+			err = e
+			selectedPath = strings.TrimSpace(string(out))
+		}
+
+		if err != nil || selectedPath == "" {
+			json.NewEncoder(w).Encode(map[string]interface{}{"path": "", "cancelled": true})
+			return
+		}
+		json.NewEncoder(w).Encode(map[string]interface{}{"path": selectedPath, "name": filepath.Base(selectedPath)})
 	})
 
 	// Health check
