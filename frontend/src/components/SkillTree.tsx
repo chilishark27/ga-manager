@@ -53,10 +53,14 @@ export default function SkillTree({ onNodeClick, highlightNode }: Props) {
       .then(data => {
         const rawNodes: SkillNode[] = data.nodes || [];
         const rawEdges: SkillEdge[] = data.edges || [];
+        const canvas = canvasRef.current;
+        const rect = canvas?.getBoundingClientRect();
+        const cx = (rect?.width || 600) / 2;
+        const cy = (rect?.height || 400) / 2;
         const simNodes: SimNode[] = rawNodes.map((n, i) => ({
           ...n,
-          x: 300 + Math.cos(i * 2.4) * 150 + Math.random() * 50,
-          y: 200 + Math.sin(i * 2.4) * 150 + Math.random() * 50,
+          x: cx + Math.cos(i * 2.4) * 150 + Math.random() * 50,
+          y: cy + Math.sin(i * 2.4) * 150 + Math.random() * 50,
           vx: 0,
           vy: 0,
           radius: Math.max(8, Math.min(24, 8 + (n.accessCount || 0) * 0.5)),
@@ -83,8 +87,10 @@ export default function SkillTree({ onNodeClick, highlightNode }: Props) {
       const repulsion = 2000;
       const springLen = 100;
       const springK = 0.01;
-      const centerX = 300;
-      const centerY = 200;
+      const canvas = canvasRef.current;
+      const rect = canvas?.getBoundingClientRect();
+      const centerX = (rect?.width || 600) / 2;
+      const centerY = (rect?.height || 400) / 2;
 
       for (let i = 0; i < ns.length; i++) {
         if (ns[i].id === dragNode) continue;
