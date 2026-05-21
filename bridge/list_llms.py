@@ -33,9 +33,11 @@ try:
         else:
             # Single model config
             model_name = ''
+            display_name = ''
             if isinstance(cfg, dict):
                 model_name = cfg.get('model', cfg.get('model_name', ''))
-            name = model_name or k.replace('native_', '').replace('_config', '').replace('_', ' ').title()
+                display_name = cfg.get('name', '')
+            name = display_name or model_name or k.replace('native_', '').replace('_config', '').replace('_', ' ').title()
             session_type = 'native_claude' if 'claude' in k else 'native_oai' if 'oai' in k else 'unknown'
             llm_configs.append({
                 'key': k,

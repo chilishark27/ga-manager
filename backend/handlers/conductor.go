@@ -504,3 +504,102 @@ func (h *ConductorHandler) WebSocketProxy(w http.ResponseWriter, r *http.Request
 
 // suppress unused import
 var _ = json.Marshal
+
+// ListReflects scans GA reflect/ directory for available subagent scripts
+func (h *ConductorHandler) ListReflects(w http.ResponseWriter, r *http.Request) {
+	reflectDir := filepath.Join(h.gaRoot, "reflect")
+	entries, err := os.ReadDir(reflectDir)
+	if err != nil {
+		writeJSON(w, http.StatusOK, []interface{}{})
+		return
+	}
+	var scripts []map[string]string
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".py") {
+			continue
+		}
+		name := e.Name()
+		desc := ""
+		// Read first few lines for docstring/comment
+		content, err := os.ReadFile(filepath.Join(reflectDir, name))
+		if err == nil {
+			lines := strings.SplitN(string(content), "\n", 10)
+			for _, line := range lines {
+				line = strings.TrimSpace(line)
+				if strings.HasPrefix(line, "#") && !strings.HasPrefix(line, "#!") {
+					desc = strings.TrimSpace(strings.TrimPrefix(line, "#"))
+					break
+				}
+				if strings.HasPrefix(line, `"""`) || strings.HasPrefix(line, `'''`) {
+					desc = strings.Trim(line, `"'`)
+					break
+				}
+			}
+		}
+		scripts = append(scripts, map[string]string{
+			"file": name,
+			"path": filepath.Join(reflectDir, name),
+			"desc": desc,
+		})
+	}
+	if scripts == nil {
+		scripts = []map[string]string{}
+	}
+	writeJSON(w, http.StatusOK, scripts)
+}
+
+// AutoCreate sends an autonomous creation instruction to the conductor
+func (h *ConductorHandler) AutoCreate(w http.ResponseWriter, r *http.Request) {
+	if !h.running {
+		writeError(w, http.StatusServiceUnavailable, "conductor not running")
+		return
+	}
+
+	var body struct {
+		Hint    string   `json:"hint"`
+		Scripts []string `json:"scripts"`
+	}
+	json.NewDecoder(r.Body).Decode(&body)
+
+	// Build the autonomous creation prompt
+	reflectDir := filepath.Join(h.gaRoot, "reflect")
+	var scriptInfo []string
+	if len(body.Scripts) > 0 {
+		for _, s := range body.Scripts {
+			scriptInfo = append(scriptInfo, s)
+		}
+	} else {
+		entries, _ := os.ReadDir(reflectDir)
+		for _, e := range entries {
+			if !e.IsDir() && strings.HasSuffix(e.Name(), ".py") {
+				scriptInfo = append(scriptInfo, e.Name())
+			}
+		}
+	}
+
+	prompt := fmt.Sprintf(`你是编排调度器。请根据以下可用的子代理脚本，自主决定需要创建哪些子代理来完成任务。
+
+可用脚本 (reflect/ 目录):
+%s
+
+%s
+
+请为每个你认为需要的子代理创建一个任务。直接创建，不需要确认。每个子代理应该有明确的职责分工。`,
+		strings.Join(scriptInfo, "\n"),
+		func() string {
+			if body.Hint != "" {
+				return "用户提示: " + body.Hint
+			}
+			return "请根据项目需要自主决定创建什么子代理。"
+		}())
+
+	// Send as a chat message to conductor (triggers conductor agent to act)
+	payload, _ := json.Marshal(map[string]string{"msg": prompt, "role": "user"})
+	resp, err := http.Post(h.conductorURL()+"/chat", "application/json", bytes.NewReader(payload))
+	if err != nil {
+		writeError(w, http.StatusBadGateway, "conductor not reachable")
+		return
+	}
+	defer resp.Body.Close()
+	writeJSON(w, http.StatusOK, map[string]string{"status": "sent", "prompt": prompt})
+}

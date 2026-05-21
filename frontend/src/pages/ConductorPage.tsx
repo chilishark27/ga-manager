@@ -40,6 +40,9 @@ function ConductorPage() {
   const [chatInput, setChatInput] = useState('');
   const [actionInput, setActionInput] = useState<Record<string, string>>({});
   const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set());
+  const [showAutoCreate, setShowAutoCreate] = useState(false);
+  const [autoHint, setAutoHint] = useState('');
+  const [reflects, setReflects] = useState<{ file: string; path: string; desc: string }[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const chatEndRef = useRef<HTMLDivElement | null>(null);
 
@@ -195,6 +198,25 @@ function ConductorPage() {
     } catch {}
   };
 
+  const fetchReflects = async () => {
+    try {
+      const res = await fetch(`${API}/reflects`);
+      if (res.ok) setReflects(await res.json());
+    } catch {}
+  };
+
+  const triggerAutoCreate = async () => {
+    try {
+      await fetch(`${API}/auto-create`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ hint: autoHint }),
+      });
+      setShowAutoCreate(false);
+      setAutoHint('');
+    } catch {}
+  };
+
   const doAction = async (sid: string, action: string, msg?: string) => {
     try {
       await fetch(`${API}/subagents/${sid}`, {
@@ -277,13 +299,45 @@ function ConductorPage() {
         <div className="conductor-create">
           <input
             className="conductor-input"
-            placeholder="New subagent task..."
+            placeholder={lang === 'zh' ? '新建子代理任务...' : 'New subagent task...'}
             value={newPrompt}
             onChange={e => setNewPrompt(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') createSubagent(); }}
           />
           <button className="conductor-create-btn" onClick={createSubagent}>+</button>
+          <button className="conductor-create-btn auto" onClick={() => { fetchReflects(); setShowAutoCreate(!showAutoCreate); }}
+            title={lang === 'zh' ? '让 GA 自主创建子代理' : 'Let GA auto-create subagents'}>
+            {lang === 'zh' ? '自主' : 'Auto'}
+          </button>
         </div>
+
+        {showAutoCreate && (
+          <div className="conductor-auto-create">
+            <div style={{ fontSize: '11px', color: 'var(--text-3)', marginBottom: '8px' }}>
+              {lang === 'zh' ? '让 GA 根据可用脚本自主决定创建哪些子代理' : 'Let GA autonomously decide which subagents to create'}
+            </div>
+            {reflects.length > 0 && (
+              <div className="conductor-reflects-list">
+                {reflects.map(r => (
+                  <div key={r.file} className="conductor-reflect-item">
+                    <span className="conductor-reflect-name">{r.file}</span>
+                    {r.desc && <span className="conductor-reflect-desc">{r.desc}</span>}
+                  </div>
+                ))}
+              </div>
+            )}
+            <input
+              className="conductor-input"
+              placeholder={lang === 'zh' ? '可选：给 GA 的提示（如目标、偏好）' : 'Optional: hint for GA (goal, preferences)'}
+              value={autoHint}
+              onChange={e => setAutoHint(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Enter') triggerAutoCreate(); }}
+            />
+            <button className="conductor-auto-btn" onClick={triggerAutoCreate}>
+              {lang === 'zh' ? '让 GA 自主创建' : 'Let GA Decide'}
+            </button>
+          </div>
+        )}
 
         <div className="conductor-agents">
           {subagents.length === 0 && (

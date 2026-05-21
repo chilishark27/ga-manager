@@ -175,7 +175,7 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	h.addLog("BBS ready")
 
 	// Post initial task
-	regBody := `{"name":"hive-master"}`
+	regBody := `{"name":"Coordinator"}`
 	regReq, _ := http.NewRequest("POST", baseURL+"/register", strings.NewReader(regBody))
 	regReq.Header.Set("Content-Type", "application/json")
 	regReq.Header.Set("X-API-Key", h.boardKey)
@@ -200,8 +200,10 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	h.addLog(fmt.Sprintf("Starting %d workers...", body.Workers))
 	workerReflect := filepath.Join(gaRoot, "reflect", "agent_team_worker.py")
 	h.workers = nil
+	workerNames := []string{"Alpha", "Beta", "Gamma", "Delta", "Epsilon"}
 	for i := 0; i < body.Workers; i++ {
-		name := fmt.Sprintf("hive-worker-%d", i+1)
+		suffix := workerNames[i%len(workerNames)]
+		name := fmt.Sprintf("Worker-%s", suffix)
 		cmd := exec.Command(python, "-u", filepath.Join(gaRoot, "agentmain.py"),
 			"--reflect", workerReflect,
 			"--base_url", baseURL, "--board_key", h.boardKey, "--name", name)

@@ -158,6 +158,8 @@ func main() {
 	mux.HandleFunc("GET /api/conductor/chat", conductorHandler.GetChat)
 	mux.HandleFunc("POST /api/conductor/chat", conductorHandler.PostChat)
 	mux.HandleFunc("GET /api/conductor/ws", conductorHandler.WebSocketProxy)
+	mux.HandleFunc("GET /api/conductor/reflects", conductorHandler.ListReflects)
+	mux.HandleFunc("POST /api/conductor/auto-create", conductorHandler.AutoCreate)
 
 	// Configuration
 	mux.HandleFunc("GET /api/config/mykey", cfgHandler.GetMasked)

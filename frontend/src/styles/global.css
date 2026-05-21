@@ -632,6 +632,15 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .conductor-input { flex: 1; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--input-bg); color: var(--text-1); font-size: 12px; }
 .conductor-input:focus { outline: none; border-color: var(--accent); }
 .conductor-create-btn { padding: 7px 14px; border-radius: 8px; border: none; background: var(--gradient); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; }
+.conductor-create-btn.auto { background: transparent; border: 1px solid var(--accent); color: var(--accent); font-size: 11px; padding: 6px 10px; }
+.conductor-create-btn.auto:hover { background: rgba(59, 130, 246, 0.1); }
+.conductor-auto-create { padding: 10px; margin-bottom: 8px; border-radius: 8px; border: 1px solid var(--border); background: var(--card); }
+.conductor-reflects-list { display: flex; flex-wrap: wrap; gap: 4px; margin-bottom: 8px; }
+.conductor-reflect-item { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 4px; background: rgba(59, 130, 246, 0.08); font-size: 11px; }
+.conductor-reflect-name { color: var(--accent); font-weight: 500; }
+.conductor-reflect-desc { color: var(--text-3); }
+.conductor-auto-btn { margin-top: 8px; width: 100%; padding: 7px; border-radius: 8px; border: 1px solid var(--accent); background: rgba(59, 130, 246, 0.1); color: var(--accent); font-size: 12px; font-weight: 600; cursor: pointer; }
+.conductor-auto-btn:hover { background: rgba(59, 130, 246, 0.2); }
 .conductor-agents { display: flex; flex-direction: column; gap: 8px; flex: 1; overflow-y: auto; }
 .conductor-agent-card { padding: 12px; border-radius: 10px; border: 1px solid var(--border); background: var(--card); transition: all 0.2s; cursor: pointer; }
 .conductor-agent-card:hover { border-color: var(--text-3); }
