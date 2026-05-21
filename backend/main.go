@@ -41,7 +41,7 @@ func main() {
 	instanceMgr.RestoreInstances()
 	instanceMgr.StartHealthMonitor(30*time.Second, true)
 	instanceMgr.StartMemoryWatcher(cfg.GARoot)
-	configSvc := services.NewConfigService(cfg.GARoot)
+	configSvc := services.NewConfigService(cfg.GARoot, cfg.PythonPath)
 
 	// Initialize handlers
 	instHandler := handlers.NewInstanceHandler(instanceMgr)
@@ -204,6 +204,7 @@ func main() {
 		// Update services
 		instanceMgr.UpdateConfig(cfg)
 		configSvc.UpdateRoot(cfg.GARoot)
+		configSvc.UpdatePython(cfg.PythonPath)
 		json.NewEncoder(w).Encode(cfg)
 	})
 	mux.HandleFunc("GET /api/config/detect-ga", func(w http.ResponseWriter, r *http.Request) {

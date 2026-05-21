@@ -14,17 +14,23 @@ import (
 
 // ConfigService handles mykey.py configuration
 type ConfigService struct {
-	gaRoot string
+	gaRoot     string
+	pythonPath string
 }
 
 // NewConfigService creates a new config service
-func NewConfigService(gaRoot string) *ConfigService {
-	return &ConfigService{gaRoot: gaRoot}
+func NewConfigService(gaRoot, pythonPath string) *ConfigService {
+	return &ConfigService{gaRoot: gaRoot, pythonPath: pythonPath}
 }
 
 // UpdateRoot updates the GA root path
 func (s *ConfigService) UpdateRoot(newRoot string) {
 	s.gaRoot = newRoot
+}
+
+// UpdatePython updates the python path
+func (s *ConfigService) UpdatePython(newPath string) {
+	s.pythonPath = newPath
 }
 
 // GetMyKeyRaw returns the raw source of mykey.py
@@ -80,12 +86,31 @@ func (s *ConfigService) GetLLMList() ([]models.LLMConfig, error) {
 		return nil, fmt.Errorf("list_llms.py not found at %s", scriptPath)
 	}
 
-	// Detect python executable
-	python := "python"
-	if p, err := exec.LookPath("python3"); err == nil {
-		python = p
-	} else if p, err := exec.LookPath("python"); err == nil {
-		python = p
+	// Detect python executable (same logic as instance/hive/conductor)
+	python := s.pythonPath
+	if python != "" {
+		if info, err := os.Stat(python); err == nil && info.IsDir() {
+			found := false
+			for _, name := range []string{"python.exe", "python3", "python"} {
+				if _, err := os.Stat(filepath.Join(python, name)); err == nil {
+					python = filepath.Join(python, name)
+					found = true
+					break
+				}
+			}
+			if !found {
+				python = ""
+			}
+		}
+	}
+	if python == "" {
+		if p, err := exec.LookPath("python3"); err == nil {
+			python = p
+		} else if p, err := exec.LookPath("python"); err == nil {
+			python = p
+		} else {
+			python = "python"
+		}
 	}
 
 	cmd := exec.Command(python, scriptPath, "--ga-root", s.gaRoot)
