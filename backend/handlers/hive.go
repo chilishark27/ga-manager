@@ -215,6 +215,19 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		}
 		h.workers = append(h.workers, cmd)
 		h.addLog(fmt.Sprintf("Worker %s started (PID %d)", name, cmd.Process.Pid))
+		// Monitor worker exit
+		go func(c *exec.Cmd, wname string) {
+			err := c.Wait()
+			h.mu.Lock()
+			if h.running {
+				if err != nil {
+					h.addLog(fmt.Sprintf("Worker %s exited with error: %v", wname, err))
+				} else {
+					h.addLog(fmt.Sprintf("Worker %s finished", wname))
+				}
+			}
+			h.mu.Unlock()
+		}(cmd, name)
 	}
 
 	// Start master
@@ -236,6 +249,18 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		h.addLog("Master failed: " + err.Error())
 	} else {
 		h.addLog(fmt.Sprintf("Master started (PID %d)", h.masterCmd.Process.Pid))
+		go func(c *exec.Cmd) {
+			err := c.Wait()
+			h.mu.Lock()
+			if h.running {
+				if err != nil {
+					h.addLog(fmt.Sprintf("Master exited with error: %v", err))
+				} else {
+					h.addLog("Master finished")
+				}
+			}
+			h.mu.Unlock()
+		}(h.masterCmd)
 	}
 
 	h.cfg.BBSBaseURL = baseURL
