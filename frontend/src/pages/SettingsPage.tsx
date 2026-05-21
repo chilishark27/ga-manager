@@ -13,11 +13,13 @@ function SettingsPage() {
   const [mykeyContent, setMykeyContent] = useState('');
   const [mykeyLoading, setMykeyLoading] = useState(false);
   const [updateStatus, setUpdateStatus] = useState('');
+  const [plugins, setPlugins] = useState<{ name: string; file: string; desc: string }[]>([]);
 
   useEffect(() => {
     fetchLLMs();
     loadMykey();
     loadAppConfig();
+    loadPlugins();
     const updater = (window as any).electronUpdater;
     if (updater) {
       updater.onUpdateAvailable((info: any) => setUpdateStatus(`v${info.version} ${lang === 'zh' ? '可更新' : 'available'}`));
@@ -81,6 +83,13 @@ function SettingsPage() {
     } catch {
       showToast(lang === 'zh' ? '保存失败' : 'Save failed');
     }
+  };
+
+  const loadPlugins = async () => {
+    try {
+      const res = await fetch('/api/plugins');
+      if (res.ok) setPlugins(await res.json());
+    } catch {}
   };
 
   return (
@@ -195,7 +204,7 @@ function SettingsPage() {
 
         {/* LLM Configs Overview */}
         {llmConfigs.length > 0 && (
-          <div className="page-card">
+          <div className="page-card" style={{ marginBottom: '16px' }}>
             <div className="page-card-title">LLM Configurations</div>
             <div className="settings-llm-list">
               {llmConfigs.map(cfg => (
@@ -208,6 +217,25 @@ function SettingsPage() {
             </div>
           </div>
         )}
+
+        {/* Plugins */}
+        <div className="page-card">
+          <div className="page-card-title">{lang === 'zh' ? '插件 (Hooks)' : 'Plugins (Hooks)'}</div>
+          {plugins.length === 0 ? (
+            <p style={{ fontSize: '12px', color: 'var(--text-3)' }}>
+              {lang === 'zh' ? '未检测到插件。将 .py 文件放入 GA 项目的 plugins/ 目录即可自动加载。' : 'No plugins found. Place .py files in the plugins/ directory of your GA project.'}
+            </p>
+          ) : (
+            <div className="settings-plugins-list">
+              {plugins.map(p => (
+                <div key={p.file} className="settings-plugin-item">
+                  <span className="settings-plugin-name">{p.name}</span>
+                  {p.desc && <span className="settings-plugin-desc">{p.desc}</span>}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

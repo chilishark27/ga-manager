@@ -270,6 +270,10 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .settings-llm-idx { font-size: 11px; color: var(--text-3); font-weight: 600; }
 .settings-llm-name { font-size: 13px; font-weight: 500; color: var(--text-1); }
 .settings-llm-type { font-size: 11px; color: var(--text-3); margin-left: auto; }
+.settings-plugins-list { display: flex; flex-direction: column; gap: 6px; }
+.settings-plugin-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); }
+.settings-plugin-name { font-size: 13px; font-weight: 500; color: var(--accent); }
+.settings-plugin-desc { font-size: 11px; color: var(--text-3); }
 
 /* ===== Modal ===== */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 9999; animation: fadeIn 0.2s ease; }

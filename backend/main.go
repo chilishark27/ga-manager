@@ -169,6 +169,51 @@ func main() {
 	mux.HandleFunc("GET /api/config/status", cfgHandler.Status)
 	mux.HandleFunc("GET /api/config/llms", cfgHandler.GetLLMs)
 
+	// Plugins list
+	mux.HandleFunc("GET /api/plugins", func(w http.ResponseWriter, r *http.Request) {
+		pluginsDir := filepath.Join(cfg.GARoot, "plugins")
+		entries, err := os.ReadDir(pluginsDir)
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			json.NewEncoder(w).Encode([]interface{}{})
+			return
+		}
+		type PluginInfo struct {
+			Name string `json:"name"`
+			File string `json:"file"`
+			Desc string `json:"desc"`
+		}
+		var plugins []PluginInfo
+		for _, e := range entries {
+			if e.IsDir() || !strings.HasSuffix(e.Name(), ".py") || e.Name() == "__init__.py" {
+				continue
+			}
+			desc := ""
+			content, err := os.ReadFile(filepath.Join(pluginsDir, e.Name()))
+			if err == nil {
+				lines := strings.SplitN(string(content), "\n", 10)
+				for _, line := range lines {
+					line = strings.TrimSpace(line)
+					if strings.HasPrefix(line, "#") && !strings.HasPrefix(line, "#!") {
+						desc = strings.TrimSpace(strings.TrimPrefix(line, "#"))
+						break
+					}
+					if strings.HasPrefix(line, `"""`) || strings.HasPrefix(line, `'''`) {
+						desc = strings.Trim(line, `"' `)
+						break
+					}
+				}
+			}
+			name := strings.TrimSuffix(e.Name(), ".py")
+			plugins = append(plugins, PluginInfo{Name: name, File: e.Name(), Desc: desc})
+		}
+		if plugins == nil {
+			plugins = []PluginInfo{}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(plugins)
+	})
+
 	// App config (GA path, etc.)
 	mux.HandleFunc("GET /api/config/app", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
