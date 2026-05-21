@@ -548,7 +548,8 @@ func (h *ConductorHandler) ListReflects(w http.ResponseWriter, r *http.Request) 
 	writeJSON(w, http.StatusOK, scripts)
 }
 
-// AutoCreate sends an autonomous creation instruction to the conductor
+// AutoCreate sends an autonomous creation instruction to the conductor via WebSocket
+// The conductor event loop only wakes on WebSocket user_message events, not REST /chat posts.
 func (h *ConductorHandler) AutoCreate(w http.ResponseWriter, r *http.Request) {
 	if !h.running {
 		writeError(w, http.StatusServiceUnavailable, "conductor not running")
@@ -593,13 +594,20 @@ func (h *ConductorHandler) AutoCreate(w http.ResponseWriter, r *http.Request) {
 			return "请根据项目需要自主决定创建什么子代理。"
 		}())
 
-	// Send as a chat message to conductor (triggers conductor agent to act)
-	payload, _ := json.Marshal(map[string]string{"msg": prompt, "role": "user"})
-	resp, err := http.Post(h.conductorURL()+"/chat", "application/json", bytes.NewReader(payload))
+	// Send via WebSocket to trigger conductor's event loop (REST /chat only stores, doesn't wake conductor)
+	backendWsURL := strings.Replace(h.conductorURL(), "http://", "ws://", 1) + "/ws"
+	wsConn, _, err := websocket.DefaultDialer.Dial(backendWsURL, nil)
 	if err != nil {
-		writeError(w, http.StatusBadGateway, "conductor not reachable")
+		writeError(w, http.StatusBadGateway, "cannot connect to conductor ws: "+err.Error())
 		return
 	}
-	defer resp.Body.Close()
+	defer wsConn.Close()
+
+	payload, _ := json.Marshal(map[string]string{"msg": prompt})
+	if err := wsConn.WriteMessage(websocket.TextMessage, payload); err != nil {
+		writeError(w, http.StatusBadGateway, "ws send failed: "+err.Error())
+		return
+	}
+
 	writeJSON(w, http.StatusOK, map[string]string{"status": "sent", "prompt": prompt})
 }
