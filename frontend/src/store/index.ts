@@ -162,6 +162,14 @@ interface AppState {
   createSop: (name: string, content: string) => Promise<boolean>;
   deleteSop: (name: string) => Promise<boolean>;
 
+  // Project Context
+  projectPath: string | null;
+  projectName: string | null;
+  projectTree: any[] | null;
+  recentProjects: { path: string; name: string }[];
+  setProject: (path: string) => Promise<void>;
+  clearProject: () => void;
+
   // TODO Panel
   todos: { id: string; text: string; done: boolean; createdAt: number; source: 'manual' | 'agent' }[];
   showTodoPanel: boolean;
@@ -532,7 +540,13 @@ export const useStore = create<AppState>((set, get) => ({
 
     // Send via HTTP POST (reliable, not affected by state checks in WS path)
     try {
-      const body: Record<string, unknown> = { message: content };
+      // Inject project context if set
+      let message = content;
+      const projPath = get().projectPath;
+      if (projPath && !content.startsWith('/') && !content.startsWith('[Project:')) {
+        message = `[Project: ${projPath}]\n${content}`;
+      }
+      const body: Record<string, unknown> = { message };
       if (images && images.length > 0) {
         body.images = images;
       }
@@ -1088,6 +1102,39 @@ export const useStore = create<AppState>((set, get) => ({
       get().showToast('删除失败');
       return false;
     }
+  },
+
+  // Project Context
+  projectPath: localStorage.getItem('ga_project_path'),
+  projectName: localStorage.getItem('ga_project_name'),
+  projectTree: null,
+  recentProjects: JSON.parse(localStorage.getItem('ga_recent_projects') || '[]'),
+  setProject: async (path: string) => {
+    try {
+      const res = await fetch(`${API_BASE}/project/scan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const name = data.name || path.split(/[/\\]/).pop() || 'project';
+        localStorage.setItem('ga_project_path', path);
+        localStorage.setItem('ga_project_name', name);
+        // Add to recent projects (deduplicate, max 10)
+        const recent = [{ path, name }, ...get().recentProjects.filter(p => p.path !== path)].slice(0, 10);
+        localStorage.setItem('ga_recent_projects', JSON.stringify(recent));
+        set({ projectPath: path, projectName: name, projectTree: data.tree, recentProjects: recent });
+        // Clear chat for new project context
+        get().clearChat();
+        get().showToast(`Project: ${name}`);
+      }
+    } catch {}
+  },
+  clearProject: () => {
+    localStorage.removeItem('ga_project_path');
+    localStorage.removeItem('ga_project_name');
+    set({ projectPath: null, projectName: null, projectTree: null });
   },
 
   // TODO Panel
