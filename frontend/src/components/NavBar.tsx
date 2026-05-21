@@ -155,7 +155,7 @@ function NavBar() {
 
   const featurePills: { key: 'autonomous' | 'reflect' | 'scheduler' | 'dev_mode'; label: string; labelZh: string; tip: string; tipZh: string }[] = [
     { key: 'autonomous', label: 'Autonomous', labelZh: '自主行动', tip: 'Agent works independently after 30min idle', tipZh: '30分钟无操作后自动执行任务' },
-    { key: 'reflect', label: 'Reflect', labelZh: '反思', tip: 'Self-check after each action', tipZh: '每次行动后自我检查总结' },
+    { key: 'reflect', label: 'Reflect', labelZh: '反思', tip: 'Self-check + auto review every 5 turns', tipZh: '每次行动自检 + 每5轮自动复盘' },
     { key: 'scheduler', label: 'Scheduler', labelZh: '定时任务', tip: 'Cron-based task execution', tipZh: '按 cron 表达式定时执行任务' },
     { key: 'dev_mode', label: 'Dev Mode', labelZh: '开发模式', tip: 'Inject dev best practices', tipZh: '注入开发最佳实践到系统提示词' },
   ];

@@ -721,9 +721,16 @@ def main():
         if getattr(agent, 'goal', ''):
             parts.append(f"\n[当前目标] {agent.goal}")
         if getattr(agent, 'reflect', False):
+            reflect_interval = getattr(agent, 'reflect_interval', 5)
             parts.append(
-                "\n[反射模式] 每次行动后自我检查：结果是否符合预期？是否需要修正方向？"
+                f"\n[反思模式] 每次行动后自我检查：结果是否符合预期？是否需要修正方向？\n"
+                f"每 {reflect_interval} 轮对话后，进行一次完整复盘：\n"
+                f"1. 回顾目标完成进度\n2. 总结已完成的步骤和成果\n3. 识别遇到的问题和偏差\n4. 调整后续策略和优先级"
             )
+            if total_turns > 0 and total_turns % reflect_interval == 0:
+                parts.append(
+                    f"\n⚠️ [复盘触发: 已完成 {total_turns} 轮] 请先进行复盘总结再继续执行任务。"
+                )
         if getattr(agent, 'peer_hint', False):
             parts.append(
                 "\n[Peer] 用户提及其他会话/后台任务状态时: temp/model_responses/ (只找近期修改的文件尾部)\n"
@@ -848,7 +855,7 @@ def main():
         elif c == "set_config":
             key = cmd.get("key", "")
             value = cmd.get("value")
-            allowed = {"autonomous", "goal", "peer_hint", "reflect", "verbose", "scheduler", "dev_mode", "team_worker", "team_base_url", "team_board_key", "team_name"}
+            allowed = {"autonomous", "goal", "peer_hint", "reflect", "reflect_interval", "verbose", "scheduler", "dev_mode", "team_worker", "team_base_url", "team_board_key", "team_name"}
             if not key:
                 pass  # silently ignore empty key
             elif key in allowed:

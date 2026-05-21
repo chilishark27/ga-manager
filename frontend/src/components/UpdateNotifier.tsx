@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useI18n } from '../i18n';
 
 interface UpdateInfo {
@@ -10,7 +10,7 @@ interface ProgressInfo {
   percent: number;
 }
 
-type UpdateState = 'idle' | 'available' | 'downloading' | 'ready';
+type UpdateState = 'idle' | 'available' | 'downloading' | 'verifying' | 'ready';
 
 function UpdateNotifier() {
   const { lang } = useI18n();
@@ -18,6 +18,7 @@ function UpdateNotifier() {
   const [info, setInfo] = useState<UpdateInfo | null>(null);
   const [progress, setProgress] = useState<ProgressInfo | null>(null);
   const [dismissed, setDismissed] = useState(false);
+  const verifyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const updater = (window as any).electronUpdater;
@@ -31,10 +32,18 @@ function UpdateNotifier() {
 
     updater.onUpdateProgress((data: ProgressInfo) => {
       setProgress(data);
-      setState('downloading');
+      if (data.percent >= 100) {
+        setState('verifying');
+        // Safety timeout: if update-downloaded never fires, show ready anyway
+        if (verifyTimer.current) clearTimeout(verifyTimer.current);
+        verifyTimer.current = setTimeout(() => setState('ready'), 30000);
+      } else {
+        setState('downloading');
+      }
     });
 
     updater.onUpdateDownloaded((data: UpdateInfo) => {
+      if (verifyTimer.current) { clearTimeout(verifyTimer.current); verifyTimer.current = null; }
       setInfo(data);
       setState('ready');
     });
@@ -65,14 +74,17 @@ function UpdateNotifier() {
           {state === 'downloading' && (
             <span>{lang === 'zh' ? `下载中 ${progress?.percent || 0}%` : `Downloading ${progress?.percent || 0}%`}</span>
           )}
+          {state === 'verifying' && (
+            <span>{lang === 'zh' ? '验证安装包...' : 'Verifying...'}</span>
+          )}
           {state === 'ready' && (
             <span>{lang === 'zh' ? `v${info?.version} 已就绪` : `v${info?.version} ready`}</span>
           )}
         </div>
 
-        {state === 'downloading' && progress && (
+        {(state === 'downloading' || state === 'verifying') && progress && (
           <div className="update-progress-bar">
-            <div className="update-progress-fill" style={{ width: `${progress.percent}%` }} />
+            <div className="update-progress-fill" style={{ width: `${Math.min(progress.percent, 100)}%` }} />
           </div>
         )}
 
