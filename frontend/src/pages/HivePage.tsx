@@ -100,13 +100,16 @@ function HivePage() {
   };
 
   const isRunning = status?.running;
+  const statusLoaded = status !== null;
 
   return (
     <div className="hive-page">
       <div className="page-container">
         <h2 className="page-header">{lang === 'zh' ? '蜂巢模式' : 'Goal Hive'}</h2>
 
-        {!isRunning ? (
+        {!statusLoaded ? (
+          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-3)' }}>Loading...</div>
+        ) : !isRunning ? (
           <div style={{ display: 'flex', justifyContent: 'center', paddingTop: '40px' }}>
           <div className="page-card" style={{ maxWidth: '560px', width: '100%' }}>
             <div className="page-card-title">{lang === 'zh' ? '启动蜂巢' : 'Start Hive'}</div>

@@ -245,6 +245,20 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	h.mu.Unlock()
 	h.addLog("Hive session ready")
 
+	// Monitor child processes - if BBS dies, log but don't auto-stop
+	// (user can manually stop or it will stop on budget expiry)
+	go func() {
+		if h.bbsCmd != nil {
+			h.bbsCmd.Wait()
+			h.mu.Lock()
+			stillRunning := h.running
+			h.mu.Unlock()
+			if stillRunning {
+				h.addLog("WARNING: BBS process exited, posts may not update")
+			}
+		}
+	}()
+
 	// Auto-stop when budget expires
 	go func() {
 		timeout := time.Duration(body.Budget) * time.Minute
