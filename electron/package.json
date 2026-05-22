@@ -1,6 +1,6 @@
 ﻿{
   "name": "ga-manager",
-  "version": "2.10.2",
+  "version": "2.10.3",
   "description": "GA Manager - Multi-instance GenericAgent Desktop Manager",
   "main": "main.js",
   "scripts": {
@@ -101,4 +101,5 @@
     }
   }
 }
+
 

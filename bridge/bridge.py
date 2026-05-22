@@ -108,9 +108,19 @@ def vision_preprocess(images_b64: list, user_text: str, ga_root: str = "", llm_c
         try:
             with open(_vlog, "a", encoding="utf-8") as _f:
                 _f.write(f"[{_time.strftime('%H:%M:%S')}] vision: using llm_client.raw_ask()\n")
-            result = llm_client.raw_ask(messages)
-            if result:
-                description = result if isinstance(result, str) else str(result)
+            gen = llm_client.raw_ask(messages)
+            # raw_ask returns a generator - consume it to get the full response
+            import types
+            if isinstance(gen, types.GeneratorType):
+                description = ""
+                for chunk in gen:
+                    if isinstance(chunk, str):
+                        description += chunk
+                if not description:
+                    raise ValueError("empty response from raw_ask generator")
+            else:
+                description = gen if isinstance(gen, str) else str(gen)
+            if description:
                 if user_text:
                     return f"[用户发送了图片，以下是图片内容描述]\n{description}\n\n[用户附言] {user_text}"
                 else:
