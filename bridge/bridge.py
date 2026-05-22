@@ -104,7 +104,13 @@ def vision_preprocess(images_b64: list, user_text: str, ga_root: str = "", llm_c
     messages = [{"role": "user", "content": content_blocks}]
 
     # Method 1: Use GA's LLM client raw_ask (preferred - handles proxy/auth correctly)
-    if llm_client and hasattr(llm_client, 'raw_ask'):
+    # Skip NativeClaudeSession as it requires tools and uses Claude Code protocol
+    _skip_raw_ask = False
+    if llm_client:
+        _client_type = type(llm_client).__name__
+        if "NativeClaude" in _client_type:
+            _skip_raw_ask = True
+    if llm_client and hasattr(llm_client, 'raw_ask') and not _skip_raw_ask:
         try:
             with open(_vlog, "a", encoding="utf-8") as _f:
                 _f.write(f"[{_time.strftime('%H:%M:%S')}] vision: using llm_client.raw_ask()\n")
@@ -186,7 +192,7 @@ def vision_preprocess(images_b64: list, user_text: str, ga_root: str = "", llm_c
     apibase = apibase.rstrip("/")
     if not model:
         model = "claude-sonnet-4-20250514"
-    is_claude_native = "api.anthropic.com" in apibase
+    is_claude_native = "api.anthropic.com" in apibase or "claude" in model.lower()
 
     import re as _re
     def _make_url(base, path):
