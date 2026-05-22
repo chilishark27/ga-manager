@@ -211,6 +211,7 @@ function SettingsPage() {
                 <div key={cfg.index} className="settings-llm-item">
                   <span className="settings-llm-idx">#{cfg.index}</span>
                   <span className="settings-llm-name">{cfg.name}</span>
+                  {cfg.model && <span className="settings-llm-model">{cfg.model}</span>}
                   <span className="settings-llm-type">{cfg.type}</span>
                 </div>
               ))}

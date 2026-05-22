@@ -42,6 +42,7 @@ export interface LLMConfig {
   name: string;
   type: string;
   key: string;
+  model?: string;
 }
 
 export interface Schedule {

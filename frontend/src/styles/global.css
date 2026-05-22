@@ -172,7 +172,9 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .top-bar-llm-option:hover { background: var(--sidebar-hover); }
 .top-bar-llm-option.active { background: rgba(59, 130, 246, 0.12); }
 .top-bar-llm-name { font-size: 12px; font-weight: 500; color: var(--text-1); }
+.top-bar-llm-model { font-size: 10px; color: var(--text-2); opacity: 0.7; }
 .top-bar-llm-type { font-size: 10px; color: var(--text-3); }
+.llm-model { font-size: 10px; color: var(--text-2); opacity: 0.7; }
 .top-bar-ctrl-btn { padding: 6px 12px; height: 32px; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.15); background: rgba(59, 130, 246, 0.06); color: var(--text-2); font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; white-space: nowrap; }
 .top-bar-ctrl-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(59, 130, 246, 0.12); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15); }
 .top-bar-ctrl-btn.active { background: rgba(59, 130, 246, 0.15); color: var(--accent); border-color: var(--accent); }
@@ -269,6 +271,7 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .settings-llm-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); }
 .settings-llm-idx { font-size: 11px; color: var(--text-3); font-weight: 600; }
 .settings-llm-name { font-size: 13px; font-weight: 500; color: var(--text-1); }
+.settings-llm-model { font-size: 11px; color: var(--text-2); opacity: 0.7; }
 .settings-llm-type { font-size: 11px; color: var(--text-3); margin-left: auto; }
 .settings-plugins-list { display: flex; flex-direction: column; gap: 6px; }
 .settings-plugin-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); }

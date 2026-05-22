@@ -601,13 +601,22 @@ func (h *ConductorHandler) AutoCreate(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadGateway, "cannot connect to conductor ws: "+err.Error())
 		return
 	}
-	defer wsConn.Close()
+
+	// Read the hello message first (conductor sends it on connect)
+	wsConn.SetReadDeadline(time.Now().Add(5 * time.Second))
+	wsConn.ReadMessage()
 
 	payload, _ := json.Marshal(map[string]string{"msg": prompt})
 	if err := wsConn.WriteMessage(websocket.TextMessage, payload); err != nil {
+		wsConn.Close()
 		writeError(w, http.StatusBadGateway, "ws send failed: "+err.Error())
 		return
 	}
+
+	// Wait for the echo (conductor broadcasts the chat message back) to confirm delivery
+	wsConn.SetReadDeadline(time.Now().Add(3 * time.Second))
+	wsConn.ReadMessage()
+	wsConn.Close()
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "sent", "prompt": prompt})
 }

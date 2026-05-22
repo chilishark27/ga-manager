@@ -609,6 +609,7 @@ claude47_apibase = "https://your-proxy.com"
                   onClick={() => { switchLLM(inst.id, llm.index); }}>
                   <span className="llm-idx">#{llm.index}</span>
                   <span className="llm-name">{llm.name}</span>
+                  {llm.model && <span className="llm-model">{llm.model}</span>}
                   <span className="llm-type">{llm.type}</span>
                 </button>
               ))}

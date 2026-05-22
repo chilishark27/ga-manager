@@ -86,6 +86,7 @@ type LLMConfig struct {
 	Name  string `json:"name"`
 	Type  string `json:"type"`
 	Key   string `json:"key"`
+	Model string `json:"model,omitempty"`
 }
 
 // TokenRecord represents a single token usage entry.

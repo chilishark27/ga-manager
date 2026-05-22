@@ -49,7 +49,10 @@ try:
     # Output as JSON
     result = []
     for i, cfg in enumerate(llm_configs):
-        result.append({'index': i, 'name': cfg['name'], 'type': cfg['type'], 'key': cfg['key']})
+        entry = {'index': i, 'name': cfg['name'], 'type': cfg['type'], 'key': cfg['key']}
+        if cfg.get('model') and cfg['model'] != cfg['name']:
+            entry['model'] = cfg['model']
+        result.append(entry)
 
     print(json.dumps(result, ensure_ascii=False))
 except Exception as e:
