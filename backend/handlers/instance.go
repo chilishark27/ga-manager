@@ -88,6 +88,24 @@ func (h *InstanceHandler) Remove(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "removed"})
 }
 
+// Rename changes the display name of an instance
+// PUT /api/instances/{id}/name
+func (h *InstanceHandler) Rename(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	var body struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+		writeError(w, http.StatusBadRequest, "name is required")
+		return
+	}
+	if err := h.manager.RenameInstance(id, body.Name); err != nil {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "renamed", "name": body.Name})
+}
+
 // Logs returns recent log lines for an instance
 // GET /api/instances/{id}/logs
 func (h *InstanceHandler) Logs(w http.ResponseWriter, r *http.Request) {

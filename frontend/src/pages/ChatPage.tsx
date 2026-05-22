@@ -592,7 +592,7 @@ function ChatPage() {
               <div className="session-list">
                 {sessions.map(s => (
                   <div key={s.name} className="session-item" onClick={() => restoreSession(s.name)}>
-                    <span className="session-name">{s.name}</span>
+                    <span className="session-name">{(s as any).display_name || (s as any).preview || s.name.replace('model_responses_', '').replace('.txt', '')}</span>
                     <span className="session-meta">{s.modified} - {(s.size / 1024).toFixed(1)}KB</span>
                   </div>
                 ))}

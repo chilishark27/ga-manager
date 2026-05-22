@@ -56,6 +56,16 @@ function NavBar() {
   const [sessionSearch, setSessionSearch] = useState('');
   const [renamingSession, setRenamingSession] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
+  const [renamingInstance, setRenamingInstance] = useState<string | null>(null);
+  const [instRenameValue, setInstRenameValue] = useState('');
+
+  const handleInstRename = async (id: string) => {
+    if (!instRenameValue.trim()) { setRenamingInstance(null); return; }
+    try {
+      await fetch(`/api/instances/${id}/name`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name: instRenameValue.trim() }) });
+    } catch {}
+    setRenamingInstance(null);
+  };
 
   useEffect(() => {
     if (inst && showSessions) {
@@ -300,16 +310,26 @@ function NavBar() {
         </div>
         <div className="nav-instances-list">
           {instances.map(inst => (
+            renamingInstance === inst.id ? (
+              <div key={inst.id} className="nav-inst-item active">
+                <input className="nav-rename-input" autoFocus value={instRenameValue}
+                  onChange={e => setInstRenameValue(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') handleInstRename(inst.id); if (e.key === 'Escape') setRenamingInstance(null); }}
+                  onBlur={() => handleInstRename(inst.id)} />
+              </div>
+            ) : (
             <div
               key={inst.id}
               className={`nav-inst-item ${getInstClass(inst)} ${inst.id === activeInstanceId ? 'active' : ''}`}
               onClick={() => selectInstance(inst.id)}
+              onDoubleClick={(e) => { e.stopPropagation(); setRenamingInstance(inst.id); setInstRenameValue(inst.name); }}
               title={`${inst.name} (${inst.status})`}
             >
               <span className="nav-inst-name">{inst.name}</span>
               <span className="nav-inst-status">{getStatusText(inst.status)}</span>
               <span className="nav-inst-delete" onClick={(e) => { e.stopPropagation(); if (confirm(lang === 'zh' ? `确定删除实例 "${inst.name}"？` : `Delete instance "${inst.name}"?`)) deleteInstance(inst.id); }} title={lang === 'zh' ? '删除' : 'Delete'}>×</span>
             </div>
+            )
           ))}
         </div>
 

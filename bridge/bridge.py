@@ -780,32 +780,12 @@ def main():
                 send({"event": "interrupting", "msg": "正在打断当前回复，将结合补充内容重新回复..."})
                 continue
             images = cmd.get("images") or []
-            # Vision preprocess: call Claude API directly to describe images
-            # This avoids GA's multi-turn tool-call approach which causes timeouts
-            if images:
-                _dbg(f"Vision preprocess: {len(images)} images, calling Claude API...")
-                send({"event": "log", "msg": f"正在分析 {len(images)} 张图片..."})
-                try:
-                    # Pass current LLM client so vision uses same API config as the instance
-                    cur_client = None
-                    try:
-                        llm_no = getattr(agent, "llm_no", 0)
-                        if hasattr(agent, "llmclients") and len(agent.llmclients) > llm_no:
-                            cur_client = agent.llmclients[llm_no]
-                    except Exception:
-                        pass
-                    query = vision_preprocess(images, text, ga_root=agent_dir, llm_client=cur_client)
-                    _dbg(f"Vision preprocess done, result length={len(query)}")
-                except Exception as e:
-                    _dbg(f"Vision preprocess failed: {e}")
-                    query = f"[图片分析失败: {e}]\n\n{text}" if text else f"[图片分析失败: {e}]"
-            else:
-                query = text
+            query = text
             _update_activity()  # Reset idle timer on user message
             is_busy = True
             total_turns += 1
             try:
-                dq = agent.put_task(query)
+                dq = agent.put_task(query, images=images if images else None)
                 current_dq = dq  # Save reference for abort sentinel
                 threading.Thread(target=relay, args=(dq,), daemon=True).start()
             except Exception as e:

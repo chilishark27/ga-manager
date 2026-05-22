@@ -813,6 +813,23 @@ func (m *InstanceManager) UpdateLLMNo(id string, llmNo int) error {
 	return nil
 }
 
+// RenameInstance changes the display name of an instance.
+func (m *InstanceManager) RenameInstance(id string, newName string) error {
+	m.mu.RLock()
+	inst, ok := m.instances[id]
+	m.mu.RUnlock()
+	if !ok {
+		return fmt.Errorf("instance %s not found", id)
+	}
+
+	inst.mu.Lock()
+	inst.name = newName
+	inst.mu.Unlock()
+
+	m.persistAll()
+	return nil
+}
+
 // UpdateFeature updates a boolean or string feature on an instance in memory
 // and sends the change to the bridge process via set_config command.
 func (m *InstanceManager) UpdateFeature(id string, key string, value interface{}) error {
