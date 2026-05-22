@@ -26,6 +26,7 @@ export interface ChatMessage {
   timestamp?: number;
   status?: 'streaming' | 'done' | 'error' | 'pending';
   images?: string[];  // base64 data URLs for pasted images
+  files?: { name: string; type: string; content: string }[];
 }
 
 export interface CreateInstanceReq {

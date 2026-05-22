@@ -33,6 +33,9 @@ function ChatPage() {
   const activeInstance = getActiveInstance();
   const [input, setInput] = useState('');
   const [pastedImages, setPastedImages] = useState<string[]>([]);
+  const [attachedFiles, setAttachedFiles] = useState<{ name: string; type: string; content: string }[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState('');
   const [expandedTurns, setExpandedTurns] = useState<Set<string>>(new Set());
   const [showSessionRestore, setShowSessionRestore] = useState(false);
@@ -60,15 +63,22 @@ function ChatPage() {
   }, [messages]);
 
   const handleSend = () => {
-    if (!input.trim() && pastedImages.length === 0) return;
+    if (!input.trim() && pastedImages.length === 0 && attachedFiles.length === 0) return;
     if (input.trim()) {
       const newHistory = [input.trim(), ...inputHistory.filter(h => h !== input.trim())].slice(0, 50);
       setInputHistory(newHistory);
       localStorage.setItem('ga_input_history', JSON.stringify(newHistory));
     }
-    sendMessage(input, pastedImages);
+    // Prepend file paths to message so GA can see them
+    let message = input;
+    if (attachedFiles.length > 0) {
+      const filePaths = attachedFiles.map(f => `[File: ${f.content}]`).join('\n');
+      message = filePaths + (input ? '\n' + input : '');
+    }
+    sendMessage(message, pastedImages, attachedFiles.length > 0 ? attachedFiles : undefined);
     setInput('');
     setPastedImages([]);
+    setAttachedFiles([]);
     setHistoryIndex(-1);
     setDraftInput('');
   };
@@ -89,6 +99,44 @@ function ChatPage() {
       }
     }
   };
+
+  const processFiles = (fileList: FileList, dataTransfer?: DataTransfer) => {
+    const electronFile = (window as any).electronFile;
+    Array.from(fileList).forEach((file, idx) => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (ev) => setPastedImages(prev => [...prev, ev.target?.result as string]);
+        reader.readAsDataURL(file);
+      } else {
+        // Try multiple methods to get file path
+        let filePath = '';
+        // 1. Electron preload API
+        if (electronFile?.getPathForFile) filePath = electronFile.getPathForFile(file);
+        // 2. Electron file.path property
+        if (!filePath) filePath = (file as any).path || '';
+        // 3. Parse from dataTransfer URI list (Windows Explorer drag)
+        if (!filePath && dataTransfer) {
+          const uriList = dataTransfer.getData('text/uri-list') || dataTransfer.getData('text/plain') || '';
+          const lines = uriList.split(/\r?\n/).filter(l => l && !l.startsWith('#'));
+          if (lines[idx]) {
+            let uri = lines[idx];
+            if (uri.startsWith('file:///')) uri = decodeURIComponent(uri.slice(8));
+            else if (uri.startsWith('file://')) uri = decodeURIComponent(uri.slice(7));
+            if (uri) filePath = uri;
+          }
+        }
+        if (filePath) {
+          setAttachedFiles(prev => [...prev, { name: file.name, type: 'path', content: filePath }]);
+        } else {
+          showToast('File path unavailable (desktop app only)');
+        }
+      }
+    });
+  };
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); };
+  const handleDrop = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); if (e.dataTransfer.files.length > 0) processFiles(e.dataTransfer.files, e.dataTransfer); };
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => { if (e.target.files && e.target.files.length > 0) processFiles(e.target.files); e.target.value = ''; };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -432,7 +480,14 @@ function ChatPage() {
                           ))}
                         </div>
                       )}
-                      {msg.content}
+                      {msg.files && msg.files.length > 0 && (
+                        <div className="msg-files">
+                          {msg.files.map((f, i) => (
+                            <span key={i} className="msg-file-tag">{f.name}</span>
+                          ))}
+                        </div>
+                      )}
+                      {msg.content.replace(/\[File: [^\]]+\]\n?/g, '').trim() || null}
                     </div>
                     {msg.status === 'error' && <span className="msg-error">{t.sendFailed}</span>}
                   </div>
@@ -475,7 +530,7 @@ function ChatPage() {
       )}
 
       {/* Input Area */}
-      <div className="input-area chat-input-area">
+      <div className={`input-area chat-input-area ${isDragging ? 'chat-drop-active' : ''}`} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
         <div className="ga-status-bar">
           <span className={`ga-status-dot ${activeInstance.status === 'busy' ? 'busy' : activeInstance.status === 'running' ? 'idle' : 'off'}`} />
           <span className="ga-status-text">
@@ -492,17 +547,29 @@ function ChatPage() {
             ))}
           </div>
         )}
+        {attachedFiles.length > 0 && (
+          <div className="attached-files-row">
+            {attachedFiles.map((f, idx) => (
+              <div key={idx} className="attached-file-item">
+                <span className="attached-file-name">{f.name}</span>
+                <span className="attached-file-remove" onClick={() => setAttachedFiles(prev => prev.filter((_, i) => i !== idx))}>x</span>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="input-row">
+          <input type="file" ref={fileInputRef} style={{display:'none'}} multiple onChange={handleFileSelect} />
+          <button className="attach-btn" onClick={() => fileInputRef.current?.click()} title="Attach file">&#128206;</button>
           <textarea
             className="chat-input"
-            placeholder={t.inputPlaceholder}
+            placeholder={isDragging ? 'Drop files here...' : t.inputPlaceholder}
             value={input}
             onChange={e => setInput(e.target.value)}
             onPaste={handlePaste}
             onKeyDown={handleKeyDown}
             rows={2}
           />
-          <button className="send-btn" onClick={handleSend} disabled={!input.trim() && pastedImages.length === 0}>{t.send}</button>
+          <button className="send-btn" onClick={handleSend} disabled={!input.trim() && pastedImages.length === 0 && attachedFiles.length === 0}>{t.send}</button>
           {activeInstance.status === 'busy' && (
             <button className="interrupt-btn" onClick={() => interruptChat(activeInstance.id)}>Stop</button>
           )}

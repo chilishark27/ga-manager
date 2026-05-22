@@ -1,4 +1,4 @@
-const { contextBridge, ipcRenderer } = require('electron');
+const { contextBridge, ipcRenderer, webUtils } = require('electron');
 
 contextBridge.exposeInMainWorld('electronUpdater', {
   checkForUpdate: () => ipcRenderer.invoke('check-for-update'),
@@ -12,4 +12,14 @@ contextBridge.exposeInMainWorld('electronUpdater', {
 
 contextBridge.exposeInMainWorld('electronDialog', {
   selectFolder: () => ipcRenderer.invoke('select-folder'),
+});
+
+contextBridge.exposeInMainWorld('electronFile', {
+  getPathForFile: (file) => {
+    try {
+      return webUtils.getPathForFile(file);
+    } catch {
+      return '';
+    }
+  },
 });

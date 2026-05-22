@@ -29,26 +29,30 @@ func (h *ChatHandler) SendMessage(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 
 	var body struct {
-		Message string   `json:"message"`
-		Images  []string `json:"images,omitempty"`
+		Message string              `json:"message"`
+		Images  []string            `json:"images,omitempty"`
+		Files   []map[string]string `json:"files,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "invalid request body")
 		return
 	}
 
-	if body.Message == "" {
-		writeError(w, http.StatusBadRequest, "message is required")
+	if body.Message == "" && len(body.Files) == 0 {
+		writeError(w, http.StatusBadRequest, "message or files required")
 		return
 	}
 
-	// Send command to bridge stdin (include images if provided)
+	// Send command to bridge stdin (include images/files if provided)
 	cmd := map[string]interface{}{
 		"cmd":  "send",
 		"text": body.Message,
 	}
 	if len(body.Images) > 0 {
 		cmd["images"] = body.Images
+	}
+	if len(body.Files) > 0 {
+		cmd["files"] = body.Files
 	}
 
 	if err := h.manager.SendCommand(id, cmd); err != nil {

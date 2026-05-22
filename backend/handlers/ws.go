@@ -170,6 +170,10 @@ func convertToBridgeCommand(msg map[string]interface{}) map[string]interface{} {
 		if images, ok := msg["images"]; ok {
 			result["images"] = images
 		}
+		// Pass through files if provided
+		if files, ok := msg["files"]; ok {
+			result["files"] = files
+		}
 		return result
 
 	case "abort":

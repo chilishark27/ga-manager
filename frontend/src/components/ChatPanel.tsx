@@ -11,6 +11,9 @@ function ChatPanel() {
   const activeInstance = getActiveInstance();
   const [input, setInput] = useState('');
   const [pastedImages, setPastedImages] = useState<string[]>([]);
+  const [attachedFiles, setAttachedFiles] = useState<{ name: string; type: string; content: string }[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [toast, setToast] = useState('');
   const [showLLMSelect, setShowLLMSelect] = useState(false);
   const [showIMSelect, setShowIMSelect] = useState(false);
@@ -38,16 +41,16 @@ function ChatPanel() {
   }, [messages]);
 
   const handleSend = () => {
-    if (!input.trim() && pastedImages.length === 0) return;
-    // Save to input history
+    if (!input.trim() && pastedImages.length === 0 && attachedFiles.length === 0) return;
     if (input.trim()) {
       const newHistory = [input.trim(), ...inputHistory.filter(h => h !== input.trim())].slice(0, 50);
       setInputHistory(newHistory);
       localStorage.setItem('ga_input_history', JSON.stringify(newHistory));
     }
-    sendMessage(input, pastedImages);
+    sendMessage(input, pastedImages, attachedFiles.length > 0 ? attachedFiles : undefined);
     setInput('');
     setPastedImages([]);
+    setAttachedFiles([]);
     setHistoryIndex(-1);
     setDraftInput('');
   };
@@ -67,6 +70,47 @@ function ChatPanel() {
         }
       }
     }
+  };
+
+  const MAX_FILE_SIZE = 50 * 1024;
+
+  const processFiles = (fileList: FileList) => {
+    Array.from(fileList).forEach(file => {
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (ev) => setPastedImages(prev => [...prev, ev.target?.result as string]);
+        reader.readAsDataURL(file);
+      } else if (file.type.startsWith('text/') || /\.(py|js|ts|tsx|go|rs|c|cpp|h|java|json|yaml|yml|toml|md|txt|csv|sh|bat|sql|html|css|xml|ini|cfg|conf|log)$/i.test(file.name)) {
+        if (file.size > MAX_FILE_SIZE) {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            const text = (ev.target?.result as string).slice(0, MAX_FILE_SIZE);
+            setAttachedFiles(prev => [...prev, { name: file.name + ' (truncated)', type: file.type || 'text/plain', content: text }]);
+          };
+          reader.readAsText(file);
+        } else {
+          const reader = new FileReader();
+          reader.onload = (ev) => {
+            setAttachedFiles(prev => [...prev, { name: file.name, type: file.type || 'text/plain', content: ev.target?.result as string }]);
+          };
+          reader.readAsText(file);
+        }
+      } else {
+        showToast(`Unsupported: ${file.name}`);
+      }
+    });
+  };
+
+  const handleDragOver = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(true); };
+  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setIsDragging(false); };
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    if (e.dataTransfer.files.length > 0) processFiles(e.dataTransfer.files);
+  };
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files.length > 0) processFiles(e.target.files);
+    e.target.value = '';
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -386,7 +430,7 @@ function ChatPanel() {
       )}
 
       {/* Input Area */}
-      <div className="input-area">
+      <div className={`input-area ${isDragging ? 'chat-drop-active' : ''}`} onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop}>
         {/* Status Indicator */}
         <div className="ga-status-bar">
           <span className={`ga-status-dot ${activeInstance.status === 'busy' ? 'busy' : activeInstance.status === 'running' ? 'idle' : 'off'}`} />
@@ -406,23 +450,37 @@ function ChatPanel() {
             ))}
           </div>
         )}
+        {/* File Attachments Preview */}
+        {attachedFiles.length > 0 && (
+          <div className="attached-files-row">
+            {attachedFiles.map((f, idx) => (
+              <div key={idx} className="attached-file-item">
+                <span className="attached-file-name">{f.name}</span>
+                <span className="attached-file-size">{(f.content.length / 1024).toFixed(1)}KB</span>
+                <span className="attached-file-remove" onClick={() => setAttachedFiles(prev => prev.filter((_, i) => i !== idx))}>✕</span>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="input-row">
+          <input type="file" ref={fileInputRef} style={{display:'none'}} multiple onChange={handleFileSelect} />
+          <button className="attach-btn" onClick={() => fileInputRef.current?.click()} title="Attach file">&#128206;</button>
           <textarea
             className="chat-input"
-            placeholder={t.inputPlaceholder}
+            placeholder={isDragging ? 'Drop files here...' : t.inputPlaceholder}
             value={input}
             onChange={e => setInput(e.target.value)}
             onPaste={handlePaste}
             onKeyDown={handleKeyDown}
             rows={2}
           />
-          <button className="send-btn" onClick={handleSend} disabled={!input.trim() && pastedImages.length === 0}>{t.send}</button>
+          <button className="send-btn" onClick={handleSend} disabled={!input.trim() && pastedImages.length === 0 && attachedFiles.length === 0}>{t.send}</button>
           {activeInstance.status === 'busy' && (
             <button className="interrupt-btn" onClick={() => interruptChat(activeInstance.id)}>Stop {t.interrupt || '打断'}</button>
           )}
         </div>
         <div className="input-hints">
-          <span>{pastedImages.length > 0 ? tf('pastedCount', { n: pastedImages.length }) : t.supportPaste}</span>
+          <span>{attachedFiles.length > 0 ? `${attachedFiles.length} file(s) attached` : pastedImages.length > 0 ? tf('pastedCount', { n: pastedImages.length }) : t.supportPaste}</span>
         </div>
       </div>
 

@@ -80,7 +80,7 @@ interface AppState {
   wsConnected: boolean;
   connectWs: (instanceId: string) => void;
   disconnectWs: () => void;
-  sendMessage: (content: string, images?: string[]) => void;
+  sendMessage: (content: string, images?: string[], files?: { name: string; type: string; content: string }[]) => void;
   clearChat: () => void;
   interruptChat: (id: string) => Promise<void>;
   deleteInstance: (id: string) => Promise<void>;
@@ -521,12 +521,12 @@ export const useStore = create<AppState>((set, get) => ({
     set({ wsConnected: false });
   },
 
-  sendMessage: async (content: string, images?: string[]) => {
+  sendMessage: async (content: string, images?: string[], files?: { name: string; type: string; content: string }[]) => {
     const id = get().activeInstanceId;
     if (!id) return;
 
     // Add user message to UI (with images if any)
-    const userMsg: ChatMessage = { role: 'user', content, timestamp: Date.now(), images };
+    const userMsg: ChatMessage = { role: 'user', content, timestamp: Date.now(), images, files };
     set(state => {
       const msgs = [...state.messages, userMsg];
       saveMessages(id, msgs);
@@ -549,6 +549,9 @@ export const useStore = create<AppState>((set, get) => ({
       const body: Record<string, unknown> = { message };
       if (images && images.length > 0) {
         body.images = images;
+      }
+      if (files && files.length > 0) {
+        body.files = files;
       }
       const resp = await fetch(`${API_BASE}/instances/${id}/chat`, {
         method: 'POST',
