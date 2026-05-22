@@ -42,7 +42,7 @@ function SettingsPage() {
   const loadMykey = async () => {
     setMykeyLoading(true);
     try {
-      const res = await fetch('/api/config/mykey');
+      const res = await fetch('/api/config/mykey/raw');
       if (res.ok) {
         const data = await res.json();
         setMykeyContent(data.content || '');
@@ -53,7 +53,7 @@ function SettingsPage() {
 
   const saveMykey = async () => {
     try {
-      const res = await fetch('/api/config/mykey', {
+      const res = await fetch('/api/config/mykey/raw', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: mykeyContent }),
