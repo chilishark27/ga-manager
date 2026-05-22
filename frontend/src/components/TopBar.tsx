@@ -140,8 +140,7 @@ function TopBar() {
                   onClick={() => { switchLLM(inst.id, cfg.index); setShowLLMDropdown(false); }}
                 >
                   <span className="top-bar-llm-name">{cfg.name}</span>
-                  {cfg.model && <span className="top-bar-llm-model">{cfg.model}</span>}
-                  <span className="top-bar-llm-type">{cfg.type}</span>
+                  {cfg.model && <span className="top-bar-llm-type">{cfg.model}</span>}
                 </div>
               ))}
             </div>

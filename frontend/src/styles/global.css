@@ -167,13 +167,14 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .top-bar-llm-wrapper { position: relative; }
 .top-bar-llm-btn { padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); color: var(--text-1); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
 .top-bar-llm-btn:hover { border-color: var(--accent); }
-.top-bar-llm-dropdown { position: absolute; top: 100%; right: 0; margin-top: 4px; min-width: 200px; background: var(--card); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 10px; padding: 6px; box-shadow: var(--shadow); z-index: 100; animation: scaleIn 0.15s ease; }
-.top-bar-llm-option { display: flex; align-items: center; justify-content: space-between; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+.top-bar-llm-dropdown { position: absolute; top: 100%; right: 0; margin-top: 4px; min-width: 240px; background: var(--card); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 10px; padding: 6px; box-shadow: var(--shadow); z-index: 100; animation: scaleIn 0.15s ease; }
+.top-bar-llm-option { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
 .top-bar-llm-option:hover { background: var(--sidebar-hover); }
 .top-bar-llm-option.active { background: rgba(59, 130, 246, 0.12); }
+.top-bar-llm-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .top-bar-llm-name { font-size: 12px; font-weight: 500; color: var(--text-1); }
 .top-bar-llm-model { font-size: 10px; color: var(--text-2); opacity: 0.7; }
-.top-bar-llm-type { font-size: 10px; color: var(--text-3); }
+.top-bar-llm-type { font-size: 10px; color: var(--text-3); margin-left: auto; white-space: nowrap; }
 .llm-model { font-size: 10px; color: var(--text-2); opacity: 0.7; }
 .top-bar-ctrl-btn { padding: 6px 12px; height: 32px; border-radius: 8px; border: 1px solid rgba(59, 130, 246, 0.15); background: rgba(59, 130, 246, 0.06); color: var(--text-2); font-size: 11px; font-weight: 600; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.2s; white-space: nowrap; }
 .top-bar-ctrl-btn:hover { border-color: var(--accent); color: var(--accent); background: rgba(59, 130, 246, 0.12); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15); }
