@@ -780,12 +780,45 @@ def main():
                 send({"event": "interrupting", "msg": "正在打断当前回复，将结合补充内容重新回复..."})
                 continue
             images = cmd.get("images") or []
-            query = text
+            if images:
+                _dbg(f"Processing {len(images)} images...")
+                send({"event": "log", "msg": f"正在处理 {len(images)} 张图片..."})
+                try:
+                    cur_client = None
+                    try:
+                        llm_no = getattr(agent, "llm_no", 0)
+                        if hasattr(agent, "llmclients") and len(agent.llmclients) > llm_no:
+                            cur_client = agent.llmclients[llm_no]
+                    except Exception:
+                        pass
+                    query = vision_preprocess(images, text, ga_root=agent_dir, llm_client=cur_client)
+                except Exception as e:
+                    _dbg(f"Vision preprocess failed: {e}")
+                    # Fallback: save images as temp files and reference them
+                    import tempfile
+                    img_paths = []
+                    for i, img_b64 in enumerate(images):
+                        try:
+                            raw = img_b64.split(",", 1)[1] if "," in img_b64 else img_b64
+                            img_data = base64.b64decode(raw)
+                            tmp = tempfile.NamedTemporaryFile(suffix=".png", dir=os.path.join(agent_dir, "temp"), delete=False, prefix=f"img_{i}_")
+                            tmp.write(img_data)
+                            tmp.close()
+                            img_paths.append(tmp.name)
+                        except Exception:
+                            pass
+                    if img_paths:
+                        paths_str = "\n".join(f"  - {p}" for p in img_paths)
+                        query = f"[用户发送了{len(images)}张图片，已保存到以下路径，请用vision工具查看]\n{paths_str}\n\n{text}" if text else f"[用户发送了{len(images)}张图片，已保存到以下路径，请用vision工具查看]\n{paths_str}"
+                    else:
+                        query = f"[图片处理失败: {e}]\n\n{text}" if text else f"[图片处理失败: {e}]"
+            else:
+                query = text
             _update_activity()  # Reset idle timer on user message
             is_busy = True
             total_turns += 1
             try:
-                dq = agent.put_task(query, images=images if images else None)
+                dq = agent.put_task(query)
                 current_dq = dq  # Save reference for abort sentinel
                 threading.Thread(target=relay, args=(dq,), daemon=True).start()
             except Exception as e:
