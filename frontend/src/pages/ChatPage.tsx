@@ -46,6 +46,7 @@ function ChatPage() {
     toggleInstance, toggleFeature, fetchLLMs, attachedPort, detachInstance,
     replayMode, setReplayMode, replaySessions, replaySteps, replayIndex,
     fetchReplaySessions, loadReplaySession, setReplayIndex,
+    searchMessages, searchResults,
   } = useStore();
   const { t, tf } = useI18n();
   const activeInstance = getActiveInstance();
@@ -63,7 +64,18 @@ function ChatPage() {
   const [branches, setBranches] = useState<{ id: string; label: string; messages: any[] }[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [showCmdMenu, setShowCmdMenu] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onSearch = () => { setShowSearch(true); setTimeout(() => searchInputRef.current?.focus(), 50); };
+    const onEscape = () => { setShowSearch(false); };
+    document.addEventListener('ga-search-focus', onSearch);
+    document.addEventListener('ga-escape', onEscape);
+    return () => { document.removeEventListener('ga-search-focus', onSearch); document.removeEventListener('ga-escape', onEscape); };
+  }, []);
 
   const [inputHistory, setInputHistory] = useState<string[]>(() => {
     try { return JSON.parse(localStorage.getItem('ga_input_history') || '[]'); } catch { return []; }
@@ -420,6 +432,24 @@ function ChatPage() {
               </div>
             ))}
             {replaySteps.length === 0 && <p style={{ color: 'var(--text-3)', padding: '20px', textAlign: 'center' }}>Select a session to replay</p>}
+          </div>
+        </div>
+      )}
+
+      {/* Search Panel */}
+      {showSearch && (
+        <div className="search-panel">
+          <input ref={searchInputRef} className="search-panel-input" placeholder="Search messages... (Esc to close)"
+            value={searchQuery} onChange={e => { setSearchQuery(e.target.value); if (e.target.value.length >= 2) searchMessages(e.target.value); }}
+            onKeyDown={e => { if (e.key === 'Escape') setShowSearch(false); }} />
+          <div className="search-panel-results">
+            {searchResults.length === 0 && searchQuery.length >= 2 && <div className="search-no-results">No results</div>}
+            {searchResults.map((r: { file: string; line: number; context: string }, i: number) => (
+              <div key={i} className="search-result-item" onClick={() => { restoreSession(r.file); setShowSearch(false); }}>
+                <span className="search-result-file">{r.file.replace('model_responses_', '').replace('.txt', '')}</span>
+                <span className="search-result-ctx">{r.context}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}

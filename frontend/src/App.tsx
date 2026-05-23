@@ -11,12 +11,13 @@ import SkillsPage from './pages/SkillsPage';
 import SettingsPage from './pages/SettingsPage';
 import HivePage from './pages/HivePage';
 import MorphlingPage from './pages/MorphlingPage';
+import HelpPage from './pages/HelpPage';
 import UpdateNotifier from './components/UpdateNotifier';
 import { useStore } from './store';
 import { I18nProvider } from './i18n';
 
 function AppInner() {
-  const { theme, fetchInstances, currentPage, configured, checkConfigured, backendAlive, showTodoPanel } = useStore();
+  const { theme, fetchInstances, currentPage, configured, checkConfigured, backendAlive, showTodoPanel, setPage } = useStore();
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -34,6 +35,22 @@ function AppInner() {
     return () => clearInterval(interval);
   }, [configured, fetchInstances]);
 
+  // Global keyboard shortcuts
+  useEffect(() => {
+    const pages = ['chat', 'conductor', 'monitor', 'skills', 'settings', 'hive', 'morphling', 'help'] as const;
+    const handler = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey) {
+        const num = parseInt(e.key);
+        if (num >= 1 && num <= 7) { e.preventDefault(); setPage(pages[num - 1]); return; }
+        if (e.key === 'k' || e.key === 'K') { e.preventDefault(); document.dispatchEvent(new CustomEvent('ga-search-focus')); return; }
+        if (e.key === 'n' || e.key === 'N') { e.preventDefault(); document.dispatchEvent(new CustomEvent('ga-create-instance')); return; }
+      }
+      if (e.key === 'Escape') { document.dispatchEvent(new CustomEvent('ga-escape')); }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [setPage]);
+
   if (!configured) {
     return <SetupPage />;
   }
@@ -47,6 +64,7 @@ function AppInner() {
       case 'settings': return <SettingsPage />;
       case 'hive': return <HivePage />;
       case 'morphling': return <MorphlingPage />;
+      case 'help': return <HelpPage />;
       default: return <ChatPage />;
     }
   };

@@ -3,8 +3,9 @@ import { useStore } from '../store';
 import SkillTree from '../components/SkillTree';
 
 function SkillsPage() {
-  const { saveSop, createSop, deleteSop, showToast } = useStore();
+  const { saveSop, createSop, deleteSop, showToast, searchSophub, sophubResults, sophubLoading, sophubQuery } = useStore();
 
+  const [sophubSearch, setSophubSearch] = useState('');
   const [localSops, setLocalSops] = useState<{ name: string; type: string; size: number }[]>([]);
   const [expandedDirs, setExpandedDirs] = useState<Record<string, boolean>>({});
   const [dirContents, setDirContents] = useState<Record<string, { name: string; type: string; size: number }[]>>({});
@@ -15,7 +16,7 @@ function SkillsPage() {
   const [showNewSop, setShowNewSop] = useState(false);
   const [newSopName, setNewSopName] = useState('');
   const [newSopContent, setNewSopContent] = useState('');
-  const [viewMode, setViewMode] = useState<'tree' | 'editor'>('tree');
+  const [viewMode, setViewMode] = useState<'tree' | 'editor' | 'sophub'>('tree');
 
   useEffect(() => {
     fetch('/api/sops/local').then(r => r.json()).then(d => {
@@ -100,9 +101,19 @@ function SkillsPage() {
         <div className="skills-content-header">
           <button className={`ch-btn ${viewMode === 'tree' ? 'active' : ''}`} onClick={() => setViewMode('tree')}>Skill Tree</button>
           <button className={`ch-btn ${viewMode === 'editor' ? 'active' : ''}`} onClick={() => setViewMode('editor')}>SOP Editor</button>
+          <button className={`ch-btn ${viewMode === 'sophub' ? 'active' : ''}`} onClick={() => setViewMode('sophub')}>Sophub</button>
         </div>
         <div className="skills-content-body">
-          {viewMode === 'tree' ? (
+          {viewMode === 'sophub' ? (
+            <div className="sophub-panel">
+              <iframe
+                src="https://fudankw.cn/sophub/"
+                className="sophub-iframe"
+                title="Sophub"
+                sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+              />
+            </div>
+          ) : viewMode === 'tree' ? (
             <SkillTree onNodeClick={(nodeId) => viewSop(nodeId)} highlightNode={null} />
           ) : (
             sopViewer ? (

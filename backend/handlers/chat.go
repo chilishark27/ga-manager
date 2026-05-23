@@ -406,3 +406,64 @@ func (h *ChatHandler) RenameSession(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
+
+// SearchMessages searches session files for a keyword
+// GET /api/instances/{id}/chat/search?q=keyword
+func (h *ChatHandler) SearchMessages(w http.ResponseWriter, r *http.Request) {
+	query := r.URL.Query().Get("q")
+	if query == "" {
+		writeJSON(w, http.StatusOK, []interface{}{})
+		return
+	}
+
+	gaRoot := h.manager.GetGARoot()
+	sessDir := filepath.Join(gaRoot, "temp", "model_responses")
+	entries, err := os.ReadDir(sessDir)
+	if err != nil {
+		writeJSON(w, http.StatusOK, []interface{}{})
+		return
+	}
+
+	type SearchResult struct {
+		File    string `json:"file"`
+		Line    int    `json:"line"`
+		Context string `json:"context"`
+	}
+	var results []SearchResult
+	queryLower := strings.ToLower(query)
+
+	for _, e := range entries {
+		if e.IsDir() || (!strings.HasSuffix(e.Name(), ".txt") && !strings.HasSuffix(e.Name(), ".log")) {
+			continue
+		}
+		f, err := os.Open(filepath.Join(sessDir, e.Name()))
+		if err != nil {
+			continue
+		}
+		scanner := bufio.NewScanner(f)
+		scanner.Buffer(make([]byte, 1024*64), 1024*64)
+		lineNum := 0
+		for scanner.Scan() {
+			lineNum++
+			line := scanner.Text()
+			if strings.Contains(strings.ToLower(line), queryLower) {
+				ctx := line
+				if len(ctx) > 200 {
+					ctx = ctx[:200] + "..."
+				}
+				results = append(results, SearchResult{File: e.Name(), Line: lineNum, Context: ctx})
+				if len(results) >= 50 {
+					break
+				}
+			}
+		}
+		f.Close()
+		if len(results) >= 50 {
+			break
+		}
+	}
+	if results == nil {
+		results = []SearchResult{}
+	}
+	writeJSON(w, http.StatusOK, results)
+}

@@ -84,6 +84,7 @@ func main() {
 	mux.HandleFunc("GET /api/instances/{id}/sessions", chatHandler.ListSessions)
 	mux.HandleFunc("GET /api/instances/{id}/sessions/{file}", chatHandler.GetSessionContent)
 	mux.HandleFunc("POST /api/instances/{id}/sessions/rename", chatHandler.RenameSession)
+	mux.HandleFunc("GET /api/instances/{id}/chat/search", chatHandler.SearchMessages)
 
 	// WebSocket proxy
 	mux.HandleFunc("GET /api/instances/{id}/ws", wsHandler.Handle)
@@ -237,6 +238,28 @@ func main() {
 			return
 		}
 		http.ServeFile(w, r, cleanPath)
+	})
+
+	// GA Update - git pull in GA root directory
+	mux.HandleFunc("POST /api/ga/update", func(w http.ResponseWriter, r *http.Request) {
+		gaRoot := cfg.GARoot
+		if gaRoot == "" {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusBadRequest)
+			json.NewEncoder(w).Encode(map[string]string{"error": "GA Root not configured"})
+			return
+		}
+		cmd := exec.Command("git", "pull")
+		cmd.Dir = gaRoot
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusInternalServerError)
+			json.NewEncoder(w).Encode(map[string]string{"error": err.Error(), "output": string(out)})
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{"status": "ok", "output": string(out)})
 	})
 
 	// App config (GA path, etc.)

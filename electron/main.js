@@ -150,6 +150,13 @@ ipcMain.handle('select-folder', async () => {
   return result.filePaths[0];
 });
 
+ipcMain.handle('show-notification', (_, title, body) => {
+  const { Notification } = require('electron');
+  if (Notification.isSupported()) {
+    new Notification({ title, body }).show();
+  }
+});
+
 // --- Auto Updater ---
 function setupAutoUpdater() {
   autoUpdater.autoDownload = false;

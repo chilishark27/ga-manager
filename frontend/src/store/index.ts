@@ -40,8 +40,8 @@ function getWsUrl(instanceId: string): string {
 
 interface AppState {
   // Page navigation
-  currentPage: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling';
-  setPage: (page: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling') => void;
+  currentPage: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling' | 'help';
+  setPage: (page: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling' | 'help') => void;
 
   // Setup / Configuration
   configured: boolean;
@@ -180,6 +180,10 @@ interface AppState {
   fetchTodos: () => Promise<void>;
   archiveDone: () => void;
 
+  // Message search
+  searchResults: { file: string; line: number; context: string }[];
+  searchMessages: (query: string) => Promise<void>;
+
   // Hive (managed locally in HivePage, no store needed)
 }
 
@@ -235,7 +239,20 @@ export const useStore = create<AppState>((set, get) => ({
         }));
         // Auto-select first instance if none selected
         const currentId = get().activeInstanceId;
+        const prevInstances = get().instances;
         const shouldSelect = !currentId || !instances.find(i => i.id === currentId);
+        // Desktop notifications for status changes
+        const notify = (window as any).electronNotify;
+        if (notify && prevInstances.length > 0) {
+          for (const inst of instances) {
+            const prev = prevInstances.find(p => p.id === inst.id);
+            if (prev && prev.status === 'busy' && (inst.status === 'running' || inst.status === 'stopped')) {
+              notify.send('Task Complete', `${inst.name} finished`);
+            } else if (prev && prev.status !== 'error' && inst.status === 'error') {
+              notify.send('Instance Error', `${inst.name} crashed`);
+            }
+          }
+        }
         if (shouldSelect && instances.length > 0) {
           const newId = instances[0].id;
           const cached = loadMessages(newId);
@@ -1188,6 +1205,17 @@ export const useStore = create<AppState>((set, get) => ({
       fetch(`${API_BASE}/todos`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(todos) }).catch(() => {});
       return { todos };
     });
+  },
+
+  // Message search
+  searchResults: [] as { file: string; line: number; context: string }[],
+  searchMessages: async (query: string) => {
+    const id = get().activeInstanceId;
+    if (!id || !query.trim()) { set({ searchResults: [] }); return; }
+    try {
+      const res = await fetch(`${API_BASE}/instances/${id}/chat/search?q=${encodeURIComponent(query)}`);
+      if (res.ok) set({ searchResults: await res.json() });
+    } catch { set({ searchResults: [] }); }
   },
 
 }));

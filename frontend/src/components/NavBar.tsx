@@ -4,7 +4,7 @@ import { useStore } from '../store';
 import { useI18n } from '../i18n';
 import { parseSessionLog } from '../utils/chatUtils';
 
-const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling'; label: string; labelZh: string; tip: string; tipZh: string }[] = [
+const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling' | 'help'; label: string; labelZh: string; tip: string; tipZh: string }[] = [
   { key: 'chat', label: 'Chat', labelZh: '聊天', tip: 'Chat with Agent', tipZh: '与 Agent 对话' },
   { key: 'conductor', label: 'Orch', labelZh: '编排', tip: 'Multi-agent orchestration', tipZh: '多 Agent 编排协作' },
   { key: 'monitor', label: 'Monitor', labelZh: '监控', tip: 'Token usage & system resources', tipZh: '费用追踪与系统资源' },
@@ -12,6 +12,7 @@ const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings'
   { key: 'hive', label: 'Hive', labelZh: '蜂巢', tip: 'Multi-agent goal collaboration', tipZh: '多 Agent 目标协作' },
   { key: 'morphling', label: 'Morph', labelZh: '吸收', tip: 'Project capability absorption', tipZh: '项目能力吸收/替代' },
   { key: 'settings', label: 'Settings', labelZh: '设置', tip: 'App configuration', tipZh: '应用配置' },
+  { key: 'help', label: 'Help', labelZh: '帮助', tip: 'User guide & shortcuts', tipZh: '使用说明与快捷键' },
 ];
 
 function NavBar() {
@@ -19,7 +20,7 @@ function NavBar() {
     instances, activeInstanceId, selectInstance, currentPage, setPage,
     createInstance, deleteInstance, llmConfigs, fetchLLMs, toggleInstance,
     discoveredInstances, discoverLoading, discoverInstances, adoptInstance,
-    toggleFeature, theme, toggleTheme,
+    toggleFeature, theme, toggleTheme, moveInstance,
   } = useStore();
   const { t, tf, lang, setLang } = useI18n();
   const inst = instances.find(i => i.id === activeInstanceId) || null;
@@ -58,6 +59,8 @@ function NavBar() {
   const [renameValue, setRenameValue] = useState('');
   const [renamingInstance, setRenamingInstance] = useState<string | null>(null);
   const [instRenameValue, setInstRenameValue] = useState('');
+  const [dragIdx, setDragIdx] = useState<number | null>(null);
+  const [dragOverIdx, setDragOverIdx] = useState<number | null>(null);
 
   const handleInstRename = async (id: string) => {
     if (!instRenameValue.trim()) { setRenamingInstance(null); return; }
@@ -320,7 +323,13 @@ function NavBar() {
             ) : (
             <div
               key={inst.id}
-              className={`nav-inst-item ${getInstClass(inst)} ${inst.id === activeInstanceId ? 'active' : ''}`}
+              className={`nav-inst-item ${getInstClass(inst)} ${inst.id === activeInstanceId ? 'active' : ''} ${dragOverIdx === instances.indexOf(inst) ? 'drag-over' : ''}`}
+              draggable
+              onDragStart={() => setDragIdx(instances.indexOf(inst))}
+              onDragOver={(e) => { e.preventDefault(); setDragOverIdx(instances.indexOf(inst)); }}
+              onDragLeave={() => setDragOverIdx(null)}
+              onDrop={() => { if (dragIdx !== null && dragIdx !== instances.indexOf(inst)) { const dir = instances.indexOf(inst) - dragIdx; for (let i = 0; i < Math.abs(dir); i++) moveInstance(inst.id, dir > 0 ? -1 : 1); } setDragIdx(null); setDragOverIdx(null); }}
+              onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
               onClick={() => selectInstance(inst.id)}
               onDoubleClick={(e) => { e.stopPropagation(); setRenamingInstance(inst.id); setInstRenameValue(inst.name); }}
               title={`${inst.name} (${inst.status})`}

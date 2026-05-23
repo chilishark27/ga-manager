@@ -13,6 +13,7 @@ function SettingsPage() {
   const [mykeyContent, setMykeyContent] = useState('');
   const [mykeyLoading, setMykeyLoading] = useState(false);
   const [updateStatus, setUpdateStatus] = useState('');
+  const [gaUpdateStatus, setGaUpdateStatus] = useState('');
   const [plugins, setPlugins] = useState<{ name: string; file: string; desc: string }[]>([]);
 
   useEffect(() => {
@@ -156,6 +157,29 @@ function SettingsPage() {
               {lang === 'zh' ? '检查更新' : 'Check for Updates'}
             </button>
             {updateStatus && <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '6px' }}>{updateStatus}</div>}
+          </div>
+
+          {/* GA Update card */}
+          <div className="page-card" style={{ flex: '1', minWidth: '160px' }}>
+            <div className="page-card-title">{lang === 'zh' ? 'GA 更新' : 'GA Update'}</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-2)', marginBottom: '8px' }}>GenericAgent</div>
+            <button className="ch-btn" onClick={async () => {
+              setGaUpdateStatus(lang === 'zh' ? '更新中...' : 'Updating...');
+              try {
+                const res = await fetch('/api/ga/update', { method: 'POST' });
+                const data = await res.json();
+                if (res.ok) {
+                  setGaUpdateStatus(data.output || (lang === 'zh' ? '更新完成' : 'Updated'));
+                } else {
+                  setGaUpdateStatus(data.error || (lang === 'zh' ? '更新失败' : 'Update failed'));
+                }
+              } catch {
+                setGaUpdateStatus(lang === 'zh' ? '网络错误' : 'Network error');
+              }
+            }}>
+              {lang === 'zh' ? '更新 GA' : 'Update GA'}
+            </button>
+            {gaUpdateStatus && <div style={{ fontSize: '11px', color: 'var(--text-3)', marginTop: '6px', whiteSpace: 'pre-wrap', maxHeight: '60px', overflow: 'auto' }}>{gaUpdateStatus}</div>}
           </div>
 
           {/* App Config card */}

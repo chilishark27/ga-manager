@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../store';
 import { useI18n } from '../i18n';
+import LogViewer from '../components/LogViewer';
 
 interface SysResources {
   cpu_percent: number;
@@ -181,6 +182,12 @@ function MonitorPage() {
             )}
           </div>
         )}
+
+        {/* Log Viewer */}
+        <div className="page-card" style={{ marginTop: '16px' }}>
+          <div className="page-card-title">Instance Logs</div>
+          <LogViewer />
+        </div>
       </div>
     </div>
   );
