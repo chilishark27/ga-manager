@@ -157,6 +157,11 @@ ipcMain.handle('show-notification', (_, title, body) => {
   }
 });
 
+ipcMain.handle('open-external', (_, url) => {
+  const { shell } = require('electron');
+  shell.openExternal(url);
+});
+
 // --- Auto Updater ---
 function setupAutoUpdater() {
   autoUpdater.autoDownload = false;

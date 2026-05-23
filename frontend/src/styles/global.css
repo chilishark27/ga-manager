@@ -477,6 +477,7 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .sophub-panel { padding: 0; height: 100%; display: flex; flex-direction: column; }
 .sophub-iframe { width: 100%; flex: 1; border: none; border-radius: 8px; min-height: 500px; }
 .sophub-page { width: 100%; height: 100%; display: flex; flex-direction: column; }
+.sophub-toolbar { display: flex; align-items: center; gap: 12px; padding: 8px 16px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
 .sophub-page-iframe { width: 100%; flex: 1; border: none; }
 .sophub-search-row { display: flex; gap: 8px; margin-bottom: 16px; }
 .sophub-search-input { flex: 1; padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--bg3); color: var(--text-1); font-size: 13px; outline: none; }

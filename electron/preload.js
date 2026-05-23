@@ -27,3 +27,7 @@ contextBridge.exposeInMainWorld('electronFile', {
 contextBridge.exposeInMainWorld('electronNotify', {
   send: (title, body) => ipcRenderer.invoke('show-notification', title, body),
 });
+
+contextBridge.exposeInMainWorld('electronShell', {
+  openExternal: (url) => ipcRenderer.invoke('open-external', url),
+});
