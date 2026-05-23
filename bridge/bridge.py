@@ -830,6 +830,20 @@ def main():
                         query = f"[图片处理失败: {e}]\n\n{text}" if text else f"[图片处理失败: {e}]"
             else:
                 query = text
+            # Handle slash commands locally
+            if query.startswith('/'):
+                cmd_handled = False
+                if query.strip() == '/clear':
+                    if hasattr(agent, 'llmclient') and hasattr(agent.llmclient, 'backend'):
+                        agent.llmclient.backend.history = []
+                    send({"event": "done", "text": "Context cleared.", "tokens": 0})
+                    cmd_handled = True
+                elif query.strip() == '/status':
+                    info = f"Status: {'busy' if is_busy else 'idle'}\nTurns: {total_turns}\nTokens: {tokens_used}"
+                    send({"event": "done", "text": info, "tokens": 0})
+                    cmd_handled = True
+                if cmd_handled:
+                    continue
             _update_activity()  # Reset idle timer on user message
             is_busy = True
             total_turns += 1

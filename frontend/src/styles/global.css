@@ -441,6 +441,11 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .msg-file-tag::before { content: '\1F4CE'; font-size: 10px; }
 .attach-btn { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; cursor: pointer; font-size: 16px; color: var(--text-2); transition: all 0.15s; flex-shrink: 0; }
 .attach-btn:hover { border-color: var(--accent); color: var(--accent); }
+.cmd-menu { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 4px; margin-bottom: 8px; box-shadow: var(--shadow); }
+.cmd-menu-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: background 0.15s; }
+.cmd-menu-item:hover { background: var(--sidebar-hover); }
+.cmd-menu-cmd { font-size: 13px; font-weight: 600; color: var(--accent); font-family: monospace; }
+.cmd-menu-desc { font-size: 12px; color: var(--text-3); }
 .input-row { display: flex; gap: 10px; align-items: stretch; }
 .input-row .chat-input { flex: 1; min-height: 50px; }
 .chat-input { width: 100%; min-height: 60px; max-height: 150px; resize: vertical; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; color: var(--text-1); font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }

@@ -5,6 +5,14 @@ import { useStore } from '../store';
 import { useI18n } from '../i18n';
 import { cleanReply, foldTurns, SessionFile, parseSessionLog } from '../utils/chatUtils';
 
+const IMG_PATH_RE = /(?:^|\s)((?:[A-Z]:\\|\/)[^\s"'<>]+\.(?:png|jpg|jpeg|gif|webp|bmp|svg))(?:\s|$|[)\].,])/gim;
+function injectImagePreviews(text: string): string {
+  return text.replace(IMG_PATH_RE, (match, path) => {
+    const url = `/api/file?path=${encodeURIComponent(path)}`;
+    return match.replace(path, `[${path.split(/[/\\]/).pop()}](${url})\n\n![](${url})`);
+  });
+}
+
 const GA_TOOLS = [
   { name: 'web_search', desc: 'Search the web' },
   { name: 'browse', desc: 'Browse URL' },
@@ -44,6 +52,7 @@ function ChatPage() {
   const [rewindIndex, setRewindIndex] = useState<number | null>(null);
   const [branches, setBranches] = useState<{ id: string; label: string; messages: any[] }[]>([]);
   const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [showCmdMenu, setShowCmdMenu] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const [inputHistory, setInputHistory] = useState<string[]>(() => {
@@ -450,7 +459,7 @@ function ChatPage() {
                                 )}
                                 {isExpanded && (
                                   <div className="turn-content">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{turn.content}</ReactMarkdown>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{injectImagePreviews(turn.content)}</ReactMarkdown>
                                   </div>
                                 )}
                               </div>
@@ -464,7 +473,7 @@ function ChatPage() {
                   return (
                     <div key={startIdx + idx} className={`msg agent${rewindClass}`} onClick={rewindClick}>
                       <div className="msg-bubble">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanReply(msg.content)}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{injectImagePreviews(cleanReply(msg.content))}</ReactMarkdown>
                       </div>
                       {msg.status === 'error' && <span className="msg-error">{t.sendFailed}</span>}
                     </div>
@@ -557,6 +566,16 @@ function ChatPage() {
             ))}
           </div>
         )}
+        {showCmdMenu && (
+          <div className="cmd-menu">
+            {GA_COMMANDS.filter(c => c.cmd.startsWith(input)).map(c => (
+              <div key={c.cmd} className="cmd-menu-item" onClick={() => { setInput(c.cmd.split(' ')[0] + ' '); setShowCmdMenu(false); }}>
+                <span className="cmd-menu-cmd">{c.cmd}</span>
+                <span className="cmd-menu-desc">{c.desc}</span>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="input-row">
           <input type="file" ref={fileInputRef} style={{display:'none'}} multiple onChange={handleFileSelect} />
           <button className="attach-btn" onClick={() => fileInputRef.current?.click()} title="Attach file">&#128206;</button>
@@ -564,7 +583,7 @@ function ChatPage() {
             className="chat-input"
             placeholder={isDragging ? 'Drop files here...' : t.inputPlaceholder}
             value={input}
-            onChange={e => setInput(e.target.value)}
+            onChange={e => { setInput(e.target.value); setShowCmdMenu(e.target.value.startsWith('/') && !e.target.value.includes(' ')); }}
             onPaste={handlePaste}
             onKeyDown={handleKeyDown}
             rows={2}

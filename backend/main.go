@@ -215,6 +215,30 @@ func main() {
 		json.NewEncoder(w).Encode(plugins)
 	})
 
+	// Serve local files (images referenced in GA responses)
+	mux.HandleFunc("GET /api/file", func(w http.ResponseWriter, r *http.Request) {
+		filePath := r.URL.Query().Get("path")
+		if filePath == "" {
+			http.Error(w, "path required", http.StatusBadRequest)
+			return
+		}
+		// Security: only serve files under GA root or system temp
+		gaRoot := cfg.GARoot
+		allowed := false
+		cleanPath := filepath.Clean(filePath)
+		if strings.HasPrefix(cleanPath, filepath.Clean(gaRoot)) {
+			allowed = true
+		}
+		if strings.HasPrefix(cleanPath, os.TempDir()) {
+			allowed = true
+		}
+		if !allowed {
+			http.Error(w, "access denied", http.StatusForbidden)
+			return
+		}
+		http.ServeFile(w, r, cleanPath)
+	})
+
 	// App config (GA path, etc.)
 	mux.HandleFunc("GET /api/config/app", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
