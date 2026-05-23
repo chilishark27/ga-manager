@@ -4,11 +4,12 @@ import { useStore } from '../store';
 import { useI18n } from '../i18n';
 import { parseSessionLog } from '../utils/chatUtils';
 
-const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling' | 'help'; label: string; labelZh: string; tip: string; tipZh: string }[] = [
+const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling' | 'help' | 'sophub'; label: string; labelZh: string; tip: string; tipZh: string }[] = [
   { key: 'chat', label: 'Chat', labelZh: '聊天', tip: 'Chat with Agent', tipZh: '与 Agent 对话' },
   { key: 'conductor', label: 'Orch', labelZh: '编排', tip: 'Multi-agent orchestration', tipZh: '多 Agent 编排协作' },
   { key: 'monitor', label: 'Monitor', labelZh: '监控', tip: 'Token usage & system resources', tipZh: '费用追踪与系统资源' },
   { key: 'skills', label: 'Skills', labelZh: '技能', tip: 'Skill tree & SOP editor', tipZh: '技能树与 SOP 编辑' },
+  { key: 'sophub', label: 'Sophub', labelZh: 'Sophub', tip: 'SOP marketplace', tipZh: 'SOP 市场' },
   { key: 'hive', label: 'Hive', labelZh: '蜂巢', tip: 'Multi-agent goal collaboration', tipZh: '多 Agent 目标协作' },
   { key: 'morphling', label: 'Morph', labelZh: '吸收', tip: 'Project capability absorption', tipZh: '项目能力吸收/替代' },
   { key: 'settings', label: 'Settings', labelZh: '设置', tip: 'App configuration', tipZh: '应用配置' },

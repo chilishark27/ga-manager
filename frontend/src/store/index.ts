@@ -40,8 +40,8 @@ function getWsUrl(instanceId: string): string {
 
 interface AppState {
   // Page navigation
-  currentPage: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling' | 'help';
-  setPage: (page: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling' | 'help') => void;
+  currentPage: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling' | 'help' | 'sophub';
+  setPage: (page: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling' | 'help' | 'sophub') => void;
 
   // Setup / Configuration
   configured: boolean;
@@ -258,7 +258,21 @@ export const useStore = create<AppState>((set, get) => ({
           const cached = loadMessages(newId);
           set({ instances, activeInstanceId: newId, messages: cached });
         } else {
-          set({ instances });
+          // Preserve existing order: update in-place, append new ones
+          const prev = get().instances;
+          if (prev.length > 0) {
+            const ordered: typeof instances = [];
+            for (const p of prev) {
+              const updated = instances.find(i => i.id === p.id);
+              if (updated) ordered.push(updated);
+            }
+            for (const i of instances) {
+              if (!ordered.find(o => o.id === i.id)) ordered.push(i);
+            }
+            set({ instances: ordered });
+          } else {
+            set({ instances });
+          }
         }
         // Auto-connect WS for the selected running instance
         if (shouldSelect && instances.length > 0 && instances[0].status === 'running') {

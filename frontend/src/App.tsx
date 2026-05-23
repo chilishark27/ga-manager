@@ -12,6 +12,7 @@ import SettingsPage from './pages/SettingsPage';
 import HivePage from './pages/HivePage';
 import MorphlingPage from './pages/MorphlingPage';
 import HelpPage from './pages/HelpPage';
+import SophubPage from './pages/SophubPage';
 import UpdateNotifier from './components/UpdateNotifier';
 import { useStore } from './store';
 import { I18nProvider } from './i18n';
@@ -37,7 +38,7 @@ function AppInner() {
 
   // Global keyboard shortcuts
   useEffect(() => {
-    const pages = ['chat', 'conductor', 'monitor', 'skills', 'settings', 'hive', 'morphling', 'help'] as const;
+    const pages = ['chat', 'conductor', 'monitor', 'skills', 'sophub', 'hive', 'morphling', 'settings', 'help'] as const;
     const handler = (e: KeyboardEvent) => {
       if (e.ctrlKey || e.metaKey) {
         const num = parseInt(e.key);
@@ -65,6 +66,7 @@ function AppInner() {
       case 'hive': return <HivePage />;
       case 'morphling': return <MorphlingPage />;
       case 'help': return <HelpPage />;
+      case 'sophub': return <SophubPage />;
       default: return <ChatPage />;
     }
   };
