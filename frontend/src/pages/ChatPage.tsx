@@ -23,11 +23,21 @@ const GA_TOOLS = [
 ];
 
 const GA_COMMANDS = [
-  { cmd: '/goal <text>', desc: 'Set a goal' },
+  { cmd: '/session.reasoning_effort=', desc: 'Set thinking intensity (low/medium/high)' },
+  { cmd: '/session.thinking_type=', desc: 'Set thinking type (enabled/adaptive/disabled)' },
+  { cmd: '/session.temperature=', desc: 'Set temperature (0-1)' },
+  { cmd: '/resume', desc: 'Resume recent session' },
+  { cmd: '/btw', desc: 'Side question without interrupting main flow' },
+  { cmd: '/review', desc: 'Review current code changes' },
+  { cmd: '/continue', desc: 'List/resume background sessions' },
   { cmd: '/clear', desc: 'Clear context' },
-  { cmd: '/reset', desc: 'Reset agent' },
   { cmd: '/status', desc: 'Show status' },
-  { cmd: '/save', desc: 'Save session' },
+  { cmd: '/goal', desc: 'Set a goal' },
+  { cmd: '/stop', desc: 'Stop current task' },
+  { cmd: '/llm', desc: 'Switch LLM backend' },
+  { cmd: '/sessions', desc: 'List all sessions' },
+  { cmd: '/new', desc: 'New session' },
+  { cmd: '/help', desc: 'Show help' },
 ];
 
 function ChatPage() {

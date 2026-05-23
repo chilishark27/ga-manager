@@ -842,6 +842,13 @@ def main():
                     info = f"Status: {'busy' if is_busy else 'idle'}\nTurns: {total_turns}\nTokens: {tokens_used}"
                     send({"event": "done", "text": info, "tokens": 0})
                     cmd_handled = True
+                elif query.strip() == '/stop':
+                    if is_busy:
+                        agent.abort()
+                        send({"event": "aborted"})
+                    else:
+                        send({"event": "done", "text": "No task running.", "tokens": 0})
+                    cmd_handled = True
                 if cmd_handled:
                     continue
             _update_activity()  # Reset idle timer on user message
