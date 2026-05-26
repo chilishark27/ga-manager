@@ -458,9 +458,9 @@ export const useStore = create<AppState>((set, get) => ({
             if (lastMsg && lastMsg.role === 'agent' && lastMsg.status === 'streaming') {
               // Append delta to existing streaming message
               const accumulated = lastMsg.content === '⏳ 思考中...' ? rawText : lastMsg.content + rawText;
-              // Strip prefixes from accumulated content for display
+              // Strip all LLM Running markers, summaries, and info fences
               const display = accumulated
-                .replace(/^\s*\*\*LLM Running[^*]*\*\*\s*/g, '')
+                .replace(/\s*\*\*LLM Running[^*]*\*\*\s*/g, '')
                 .replace(/<summary>[\s\S]*?<\/summary>\s*/g, '')
                 .replace(/`{3,}\s*\[Info\][^\n]*\n?/g, '')
                 .replace(/`{3,}\s*$/g, '')
@@ -472,10 +472,10 @@ export const useStore = create<AppState>((set, get) => ({
             return { messages: msgs };
           });
         } else if (event === 'reply_done' || event === 'done') {
-          // Final response — strip thinking prefix same as streaming
+          // Final response — strip all LLM Running markers
           const rawText = data.text || '';
           let text = rawText
-            .replace(/^\s*\*\*LLM Running[^*]*\*\*\s*/g, '')
+            .replace(/\s*\*\*LLM Running[^*]*\*\*\s*/g, '')
             .replace(/<summary>[\s\S]*?<\/summary>\s*/g, '')
             .replace(/`{3,}\s*\[Info\][^\n]*\n?/g, '')
             .replace(/`{3,}\s*$/g, '')
