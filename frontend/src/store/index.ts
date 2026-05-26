@@ -495,7 +495,8 @@ export const useStore = create<AppState>((set, get) => ({
           set(state => {
             const msgs = [...state.messages];
             const lastMsg = msgs[msgs.length - 1];
-            if (lastMsg && lastMsg.role === 'agent' && lastMsg.status === 'streaming') {
+            if (lastMsg && lastMsg.role === 'agent') {
+              // Update existing agent message (whether streaming or done from previous turn)
               msgs[msgs.length - 1] = { ...lastMsg, content: text || lastMsg.content, status: 'done' as const };
             } else {
               msgs.push({ role: 'agent' as const, content: text, timestamp: Date.now(), status: 'done' as const });
