@@ -836,6 +836,10 @@ def main():
                 if query.strip() == '/clear':
                     if hasattr(agent, 'llmclient') and hasattr(agent.llmclient, 'backend'):
                         agent.llmclient.backend.history = []
+                    if hasattr(agent, 'history'):
+                        agent.history = []
+                    if hasattr(agent, 'handler') and agent.handler:
+                        agent.handler.working = {}
                     send({"event": "done", "text": "Context cleared.", "tokens": 0})
                     cmd_handled = True
                 elif query.strip() == '/status':
@@ -861,6 +865,16 @@ def main():
             except Exception as e:
                 is_busy = False
                 send({"event": "error", "msg": f"put_task failed: {e}"})
+
+        elif c == "clear":
+            # Reset GA's LLM context for a fresh conversation
+            if hasattr(agent, 'llmclient') and hasattr(agent.llmclient, 'backend'):
+                agent.llmclient.backend.history = []
+            if hasattr(agent, 'history'):
+                agent.history = []
+            if hasattr(agent, 'handler') and agent.handler:
+                agent.handler.working = {}
+            send({"event": "done", "text": "Context cleared.", "tokens": 0})
 
         elif c == "abort":
             if is_busy:
