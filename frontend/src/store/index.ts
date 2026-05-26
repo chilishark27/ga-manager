@@ -449,40 +449,28 @@ export const useStore = create<AppState>((set, get) => ({
         console.log('[WS_DEBUG] parsed event:', event, 'text:', data.text);
 
         if (event === 'reply_chunk' || event === 'next') {
-          // Streaming partial — update or append agent message
+          // Streaming partial — accumulate delta content
           const rawText = data.text || '';
-          // Extract actual content: strip thinking prefix like "**LLM Running (Turn N) ...**\n\n"
-          // and strip <summary>...</summary> tags and code fences like [Info]...
-          let text = rawText
-            .replace(/^\s*\*\*LLM Running[^*]*\*\*\s*/g, '')
-            .replace(/<summary>[\s\S]*?<\/summary>\s*/g, '')
-            .replace(/`{3,}\s*\[Info\][^\n]*\n?/g, '')
-            .replace(/`{3,}\s*$/g, '')
-            .trim();
 
-          if (!text) {
-            // Only thinking prefix, no real content yet — show typing indicator
-            set(state => {
-              const msgs = [...state.messages];
-              const lastMsg = msgs[msgs.length - 1];
-              if (!(lastMsg && lastMsg.role === 'agent' && lastMsg.status === 'streaming')) {
-                msgs.push({ role: 'agent', content: '⏳ 思考中...', timestamp: Date.now(), status: 'streaming' });
-              }
-              return { messages: msgs };
-            });
-          } else {
-            // Real content available
-            set(state => {
-              const msgs = [...state.messages];
-              const lastMsg = msgs[msgs.length - 1];
-              if (lastMsg && lastMsg.role === 'agent' && lastMsg.status === 'streaming') {
-                msgs[msgs.length - 1] = { ...lastMsg, content: text };
-              } else {
-                msgs.push({ role: 'agent', content: text, timestamp: Date.now(), status: 'streaming' });
-              }
-              return { messages: msgs };
-            });
-          }
+          set(state => {
+            const msgs = [...state.messages];
+            const lastMsg = msgs[msgs.length - 1];
+            if (lastMsg && lastMsg.role === 'agent' && lastMsg.status === 'streaming') {
+              // Append delta to existing streaming message
+              const accumulated = lastMsg.content === '⏳ 思考中...' ? rawText : lastMsg.content + rawText;
+              // Strip prefixes from accumulated content for display
+              const display = accumulated
+                .replace(/^\s*\*\*LLM Running[^*]*\*\*\s*/g, '')
+                .replace(/<summary>[\s\S]*?<\/summary>\s*/g, '')
+                .replace(/`{3,}\s*\[Info\][^\n]*\n?/g, '')
+                .replace(/`{3,}\s*$/g, '')
+                .trim();
+              msgs[msgs.length - 1] = { ...lastMsg, content: display || '⏳ 思考中...' };
+            } else {
+              msgs.push({ role: 'agent', content: '⏳ 思考中...', timestamp: Date.now(), status: 'streaming' });
+            }
+            return { messages: msgs };
+          });
         } else if (event === 'reply_done' || event === 'done') {
           // Final response — strip thinking prefix same as streaming
           const rawText = data.text || '';
