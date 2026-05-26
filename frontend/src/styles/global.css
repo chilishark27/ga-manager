@@ -488,6 +488,17 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .sophub-card-title { font-size: 14px; font-weight: 600; color: var(--text-1); margin-bottom: 4px; }
 .sophub-card-desc { font-size: 12px; color: var(--text-2); line-height: 1.5; margin-bottom: 6px; }
 .sophub-card-meta { font-size: 11px; color: var(--text-3); display: flex; gap: 12px; }
+.msg-actions { display: none; position: absolute; top: 4px; right: 4px; gap: 4px; }
+.msg:hover .msg-actions { display: flex; }
+.msg { position: relative; }
+.msg-action-btn { background: var(--card); border: 1px solid var(--border); border-radius: 4px; padding: 2px 6px; font-size: 12px; cursor: pointer; opacity: 0.7; transition: opacity 0.15s; }
+.msg-action-btn:hover { opacity: 1; border-color: var(--accent); }
+.msg-edit-area { width: 100%; }
+.msg-edit-input { width: 100%; min-height: 60px; resize: vertical; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 8px; color: var(--text-1); font-size: 13px; font-family: inherit; }
+.msg-edit-actions { display: flex; gap: 6px; margin-top: 6px; }
+.msg-edit-btn { padding: 4px 12px; border-radius: 6px; font-size: 12px; cursor: pointer; border: none; }
+.msg-edit-btn.save { background: var(--accent); color: #fff; }
+.msg-edit-btn.cancel { background: var(--bg3); color: var(--text-2); border: 1px solid var(--border); }
 .input-row { display: flex; gap: 10px; align-items: stretch; }
 .input-row .chat-input { flex: 1; min-height: 50px; }
 .chat-input { width: 100%; min-height: 60px; max-height: 150px; resize: vertical; background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; color: var(--text-1); font-size: 14px; font-family: inherit; outline: none; transition: border-color 0.2s, box-shadow 0.2s; }

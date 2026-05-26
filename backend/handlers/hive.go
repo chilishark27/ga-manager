@@ -187,7 +187,15 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		masterToken = rr["token"]
 	}
 	if masterToken != "" {
-		task := fmt.Sprintf("[任务分配] 目标: %s | 时间: %d分钟\n\n分工：请各Worker认领不同子任务，不要重复。Worker-1先认领，Worker-2等Worker-1认领后再选其他部分。完成后发帖汇报。", body.Objective, body.Budget)
+		task := fmt.Sprintf(`[Coordinator 任务分配] 目标: %s | 时间预算: %d分钟 | Worker数量: %d
+
+重要规则：
+1. 你是 Coordinator，负责拆分任务并明确指派给每个 Worker
+2. 每个子任务必须标注 [指派: Worker-XXX]，确保不重复
+3. Worker 只能执行指派给自己的任务，看到非自己的任务跳过
+4. 完成后发帖汇报，等 Coordinator 验收
+
+请立即拆分目标为 %d 个独立子任务并分别指派。`, body.Objective, body.Budget, body.Workers, body.Workers)
 		payload, _ := json.Marshal(map[string]string{"token": masterToken, "content": task})
 		pr, _ := http.NewRequest("POST", baseURL+"/post", strings.NewReader(string(payload)))
 		pr.Header.Set("Content-Type", "application/json")
@@ -312,6 +320,8 @@ func (h *HiveHandler) stopAll() {
 	if !h.running {
 		return
 	}
+	// Save run record before stopping
+	h.saveRunRecord()
 	if h.masterCmd != nil && h.masterCmd.Process != nil {
 		killProcessTree(h.masterCmd.Process.Pid)
 		h.masterCmd = nil
@@ -442,6 +452,93 @@ func (h *HiveHandler) PostMessage(w http.ResponseWriter, r *http.Request) {
 	defer resp.Body.Close()
 	w.Header().Set("Content-Type", "application/json")
 	io.Copy(w, resp.Body)
+}
+
+func (h *HiveHandler) saveRunRecord() {
+	gaRoot := h.cfg.GARoot
+	histDir := filepath.Join(gaRoot, "temp", "hive_history")
+	os.MkdirAll(histDir, 0755)
+
+	// Fetch posts from BBS
+	var posts []interface{}
+	if h.cfg.BBSBaseURL != "" {
+		req, _ := http.NewRequest("GET", h.cfg.BBSBaseURL+"/posts?limit=100", nil)
+		req.Header.Set("X-API-Key", h.cfg.BBSKey)
+		if resp, err := http.DefaultClient.Do(req); err == nil {
+			json.NewDecoder(resp.Body).Decode(&posts)
+			resp.Body.Close()
+		}
+	}
+
+	record := map[string]interface{}{
+		"objective":  h.objective,
+		"budget":     h.budget,
+		"workers":    len(h.workers),
+		"started_at": h.startedAt,
+		"stopped_at": time.Now().Format(time.RFC3339),
+		"posts":      posts,
+		"logs":       h.logs,
+	}
+	data, _ := json.MarshalIndent(record, "", "  ")
+	filename := fmt.Sprintf("run_%s.json", time.Now().Format("20060102_150405"))
+	os.WriteFile(filepath.Join(histDir, filename), data, 0644)
+}
+
+// ListRunHistory returns saved Hive run records
+func (h *HiveHandler) ListRunHistory(w http.ResponseWriter, r *http.Request) {
+	gaRoot := h.cfg.GARoot
+	histDir := filepath.Join(gaRoot, "temp", "hive_history")
+	entries, err := os.ReadDir(histDir)
+	if err != nil {
+		writeJSON(w, http.StatusOK, []interface{}{})
+		return
+	}
+	type RunSummary struct {
+		File      string `json:"file"`
+		Objective string `json:"objective"`
+		StoppedAt string `json:"stopped_at"`
+		Posts     int    `json:"posts"`
+	}
+	var results []RunSummary
+	for i := len(entries) - 1; i >= 0 && len(results) < 20; i-- {
+		e := entries[i]
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".json") {
+			continue
+		}
+		data, err := os.ReadFile(filepath.Join(histDir, e.Name()))
+		if err != nil {
+			continue
+		}
+		var rec map[string]interface{}
+		if json.Unmarshal(data, &rec) != nil {
+			continue
+		}
+		obj, _ := rec["objective"].(string)
+		stopped, _ := rec["stopped_at"].(string)
+		postsArr, _ := rec["posts"].([]interface{})
+		results = append(results, RunSummary{
+			File: e.Name(), Objective: obj, StoppedAt: stopped, Posts: len(postsArr),
+		})
+	}
+	writeJSON(w, http.StatusOK, results)
+}
+
+// GetRunRecord returns a specific run record
+func (h *HiveHandler) GetRunRecord(w http.ResponseWriter, r *http.Request) {
+	file := r.URL.Query().Get("file")
+	if file == "" {
+		writeError(w, http.StatusBadRequest, "file required")
+		return
+	}
+	gaRoot := h.cfg.GARoot
+	path := filepath.Join(gaRoot, "temp", "hive_history", filepath.Base(file))
+	data, err := os.ReadFile(path)
+	if err != nil {
+		writeError(w, http.StatusNotFound, "record not found")
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(data)
 }
 
 func killProcessTree(pid int) {

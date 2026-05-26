@@ -82,6 +82,8 @@ interface AppState {
   disconnectWs: () => void;
   sendMessage: (content: string, images?: string[], files?: { name: string; type: string; content: string }[]) => void;
   clearChat: () => void;
+  deleteMessage: (index: number) => void;
+  editMessage: (index: number, content: string) => void;
   interruptChat: (id: string) => Promise<void>;
   deleteInstance: (id: string) => Promise<void>;
 
@@ -589,6 +591,27 @@ export const useStore = create<AppState>((set, get) => ({
         messages: [...state.messages, { role: 'agent', content: `⚠️ 网络错误: ${e}`, timestamp: Date.now(), status: 'error' }],
       }));
     }
+  },
+
+  deleteMessage: (index: number) => {
+    const id = get().activeInstanceId;
+    set(state => {
+      const msgs = state.messages.filter((_, i) => i !== index);
+      if (id) saveMessages(id, msgs);
+      return { messages: msgs };
+    });
+  },
+
+  editMessage: (index: number, content: string) => {
+    const id = get().activeInstanceId;
+    set(state => {
+      const msgs = [...state.messages];
+      if (msgs[index]) {
+        msgs[index] = { ...msgs[index], content };
+        if (id) saveMessages(id, msgs);
+      }
+      return { messages: msgs };
+    });
   },
 
   clearChat: async () => {

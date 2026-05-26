@@ -43,6 +43,7 @@ const GA_COMMANDS = [
 function ChatPage() {
   const {
     messages, sendMessage, activeInstance: getActiveInstance, clearChat, interruptChat,
+    deleteMessage, editMessage,
     toggleInstance, toggleFeature, fetchLLMs, attachedPort, detachInstance,
     replayMode, setReplayMode, replaySessions, replaySteps, replayIndex,
     fetchReplaySessions, loadReplaySession, setReplayIndex,
@@ -65,6 +66,8 @@ function ChatPage() {
   const [sessionsLoading, setSessionsLoading] = useState(false);
   const [showCmdMenu, setShowCmdMenu] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [editContent, setEditContent] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -515,6 +518,9 @@ function ChatPage() {
                       <div className="msg-bubble">
                         <ReactMarkdown remarkPlugins={[remarkGfm]}>{injectImagePreviews(cleanReply(msg.content))}</ReactMarkdown>
                       </div>
+                      <div className="msg-actions">
+                        <button className="msg-action-btn" onClick={(e) => { e.stopPropagation(); deleteMessage(globalIdx); }} title="Delete">&#128465;</button>
+                      </div>
                       {msg.status === 'error' && <span className="msg-error">{t.sendFailed}</span>}
                     </div>
                   );
@@ -536,7 +542,21 @@ function ChatPage() {
                           ))}
                         </div>
                       )}
-                      {msg.content.replace(/\[File: [^\]]+\]\n?/g, '').trim() || null}
+                      {editingIdx === globalIdx ? (
+                        <div className="msg-edit-area">
+                          <textarea className="msg-edit-input" value={editContent} onChange={e => setEditContent(e.target.value)} rows={3} />
+                          <div className="msg-edit-actions">
+                            <button className="msg-edit-btn save" onClick={() => { editMessage(globalIdx, editContent); setEditingIdx(null); }}>Save</button>
+                            <button className="msg-edit-btn cancel" onClick={() => setEditingIdx(null)}>Cancel</button>
+                          </div>
+                        </div>
+                      ) : (
+                        msg.content.replace(/\[File: [^\]]+\]\n?/g, '').trim() || null
+                      )}
+                    </div>
+                    <div className="msg-actions">
+                      <button className="msg-action-btn" onClick={(e) => { e.stopPropagation(); setEditingIdx(globalIdx); setEditContent(msg.content); }} title="Edit">&#9998;</button>
+                      <button className="msg-action-btn" onClick={(e) => { e.stopPropagation(); deleteMessage(globalIdx); }} title="Delete">&#128465;</button>
                     </div>
                     {msg.status === 'error' && <span className="msg-error">{t.sendFailed}</span>}
                   </div>

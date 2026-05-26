@@ -23,8 +23,26 @@ function HivePage() {
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
   const [newMsg, setNewMsg] = useState('');
+  const [showHistory, setShowHistory] = useState(false);
+  const [runHistory, setRunHistory] = useState<{ file: string; objective: string; stopped_at: string; posts: number }[]>([]);
+  const [viewingRecord, setViewingRecord] = useState<any>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
   const postsEndRef = useRef<HTMLDivElement | null>(null);
+  const prevRunning = useRef(false);
+
+  const fetchHistory = async () => {
+    try {
+      const res = await fetch('/api/hive/history');
+      if (res.ok) setRunHistory(await res.json());
+    } catch {}
+  };
+
+  const viewRecord = async (file: string) => {
+    try {
+      const res = await fetch(`/api/hive/history/record?file=${encodeURIComponent(file)}`);
+      if (res.ok) setViewingRecord(await res.json());
+    } catch {}
+  };
 
   const fetchStatus = async () => {
     try {
@@ -67,6 +85,14 @@ function HivePage() {
     if (postsEndRef.current) postsEndRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [posts]);
 
+  // Refresh history when Hive stops
+  useEffect(() => {
+    if (prevRunning.current && status && !status.running) {
+      setTimeout(fetchHistory, 1000);
+    }
+    prevRunning.current = status?.running || false;
+  }, [status?.running]);
+
   const handleStart = async () => {
     if (!objective.trim()) { setError(lang === 'zh' ? '请输入目标' : 'Objective required'); return; }
     setStarting(true); setError('');
@@ -105,7 +131,48 @@ function HivePage() {
   return (
     <div className="hive-page">
       <div className="page-container">
-        <h2 className="page-header">{lang === 'zh' ? '蜂巢模式' : 'Goal Hive'}</h2>
+        <h2 className="page-header">
+          {lang === 'zh' ? '蜂巢模式' : 'Goal Hive'}
+          <button className="ch-btn" style={{ marginLeft: '12px', fontSize: '12px' }} onClick={() => { setShowHistory(!showHistory); if (!showHistory) fetchHistory(); }}>
+            {lang === 'zh' ? '历史记录' : 'History'}
+          </button>
+        </h2>
+
+        {showHistory && (
+          <div className="page-card" style={{ marginBottom: '16px' }}>
+            <div className="page-card-title">{lang === 'zh' ? '运行记录' : 'Run History'}</div>
+            {viewingRecord ? (
+              <div>
+                <button className="ch-btn" style={{ marginBottom: '10px' }} onClick={() => setViewingRecord(null)}>Back</button>
+                <div style={{ fontSize: '13px', fontWeight: 600, marginBottom: '8px' }}>{viewingRecord.objective}</div>
+                <div style={{ fontSize: '11px', color: 'var(--text-3)', marginBottom: '12px' }}>
+                  {viewingRecord.started_at} → {viewingRecord.stopped_at} | {viewingRecord.posts?.length || 0} posts
+                </div>
+                <div style={{ maxHeight: '400px', overflow: 'auto', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {(viewingRecord.posts || []).map((p: any, i: number) => (
+                    <div key={i} style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px' }}>
+                      <span style={{ fontWeight: 600, color: 'var(--accent)', marginRight: '8px' }}>{p.author || p.name || 'anon'}</span>
+                      <span style={{ color: 'var(--text-2)' }}>{p.content || p.text || JSON.stringify(p)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : runHistory.length === 0 ? (
+              <p style={{ fontSize: '12px', color: 'var(--text-3)' }}>{lang === 'zh' ? '暂无记录' : 'No records yet'}</p>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {runHistory.map((r, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '12px', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border)', fontSize: '12px', cursor: 'pointer' }}
+                    onClick={() => viewRecord(r.file)}>
+                    <span style={{ flex: 1, color: 'var(--text-1)', fontWeight: 500 }}>{r.objective?.slice(0, 60)}</span>
+                    <span style={{ color: 'var(--text-3)' }}>{r.posts} posts</span>
+                    <span style={{ color: 'var(--text-3)' }}>{r.stopped_at?.slice(0, 16)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {!statusLoaded ? (
           <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-3)' }}>Loading...</div>
