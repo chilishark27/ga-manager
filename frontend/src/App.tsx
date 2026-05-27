@@ -32,7 +32,7 @@ function AppInner() {
     if (!configured) return;
     fetchInstances();
     useStore.getState().fetchTodos();
-    const interval = setInterval(fetchInstances, 2000);
+    const interval = setInterval(fetchInstances, 5000);
     return () => clearInterval(interval);
   }, [configured, fetchInstances]);
 

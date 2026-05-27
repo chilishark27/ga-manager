@@ -86,15 +86,16 @@ function ChatPage() {
   const [historyIndex, setHistoryIndex] = useState(-1);
   const [draftInput, setDraftInput] = useState('');
 
-  const MAX_VISIBLE = 150;
+  const MAX_VISIBLE = 50;
   const [showAll, setShowAll] = useState(false);
   const [showInfoPanel, setShowInfoPanel] = useState(false);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2000); };
 
   useEffect(() => {
+    // Only auto-scroll on new messages (length change), not content updates
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [messages.length]);
 
   const handleSend = () => {
     if (!input.trim() && pastedImages.length === 0 && attachedFiles.length === 0) return;

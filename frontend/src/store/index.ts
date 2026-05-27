@@ -32,6 +32,7 @@ function clearStoredMessages(instanceId: string) {
 // WebSocket connection manager
 let ws: WebSocket | null = null;
 let wsInstanceId: string | null = null;
+const streamThrottleRef = { lastUpdate: 0 };
 
 function getWsUrl(instanceId: string): string {
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -271,7 +272,11 @@ export const useStore = create<AppState>((set, get) => ({
             for (const i of instances) {
               if (!ordered.find(o => o.id === i.id)) ordered.push(i);
             }
-            set({ instances: ordered });
+            // Only update state if something actually changed
+            const changed = ordered.length !== prev.length || ordered.some((inst, idx) =>
+              inst.status !== prev[idx]?.status || inst.name !== prev[idx]?.name || inst.tokens_used !== prev[idx]?.tokens_used
+            );
+            if (changed) set({ instances: ordered });
           } else {
             set({ instances });
           }
@@ -445,31 +450,34 @@ export const useStore = create<AppState>((set, get) => ({
 
     socket.onmessage = (evt) => {
       try {
-        console.log('[WS_DEBUG] raw message:', evt.data);
         const data = JSON.parse(evt.data);
         const event = data.event || data.type;
-        console.log('[WS_DEBUG] parsed event:', event, 'text:', data.text);
 
         if (event === 'reply_chunk' || event === 'next') {
           // Streaming partial — each next contains accumulated content (not delta)
+          // Throttle UI updates to avoid excessive re-renders with long markdown
           const rawText = data.text || '';
-          const display = rawText
-            .replace(/\s*\*\*LLM Running[^*]*\*\*\s*/g, '')
-            .replace(/<summary>[\s\S]*?<\/summary>\s*/g, '')
-            .replace(/`{3,}\s*\[Info\][^\n]*\n?/g, '')
-            .replace(/`{3,}\s*$/g, '')
-            .trim();
+          const now = Date.now();
+          if (!streamThrottleRef.lastUpdate || now - streamThrottleRef.lastUpdate > 150 || rawText.length < 500) {
+            streamThrottleRef.lastUpdate = now;
+            const display = rawText
+              .replace(/\s*\*\*LLM Running[^*]*\*\*\s*/g, '')
+              .replace(/<summary>[\s\S]*?<\/summary>\s*/g, '')
+              .replace(/`{3,}\s*\[Info\][^\n]*\n?/g, '')
+              .replace(/`{3,}\s*$/g, '')
+              .trim();
 
-          set(state => {
-            const msgs = [...state.messages];
-            const lastMsg = msgs[msgs.length - 1];
-            if (lastMsg && lastMsg.role === 'agent') {
-              msgs[msgs.length - 1] = { ...lastMsg, content: display || '⏳ 思考中...', status: 'streaming' as const };
-            } else {
-              msgs.push({ role: 'agent', content: display || '⏳ 思考中...', timestamp: Date.now(), status: 'streaming' });
-            }
-            return { messages: msgs };
-          });
+            set(state => {
+              const msgs = [...state.messages];
+              const lastMsg = msgs[msgs.length - 1];
+              if (lastMsg && lastMsg.role === 'agent') {
+                msgs[msgs.length - 1] = { ...lastMsg, content: display || '⏳ 思考中...', status: 'streaming' as const };
+              } else {
+                msgs.push({ role: 'agent', content: display || '⏳ 思考中...', timestamp: Date.now(), status: 'streaming' });
+              }
+              return { messages: msgs };
+            });
+          }
         } else if (event === 'reply_done' || event === 'done') {
           // Final response — strip all LLM Running markers
           const rawText = data.text || '';
@@ -543,6 +551,7 @@ export const useStore = create<AppState>((set, get) => ({
   sendMessage: async (content: string, images?: string[], files?: { name: string; type: string; content: string }[]) => {
     const id = get().activeInstanceId;
     if (!id) return;
+    streamThrottleRef.lastUpdate = 0;
 
     // Add user message to UI (with images if any)
     const userMsg: ChatMessage = { role: 'user', content, timestamp: Date.now(), images, files };
