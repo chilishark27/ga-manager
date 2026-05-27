@@ -451,25 +451,22 @@ export const useStore = create<AppState>((set, get) => ({
         console.log('[WS_DEBUG] parsed event:', event, 'text:', data.text);
 
         if (event === 'reply_chunk' || event === 'next') {
-          // Streaming partial — accumulate delta content
+          // Streaming partial — each next contains accumulated content (not delta)
           const rawText = data.text || '';
+          const display = rawText
+            .replace(/\s*\*\*LLM Running[^*]*\*\*\s*/g, '')
+            .replace(/<summary>[\s\S]*?<\/summary>\s*/g, '')
+            .replace(/`{3,}\s*\[Info\][^\n]*\n?/g, '')
+            .replace(/`{3,}\s*$/g, '')
+            .trim();
 
           set(state => {
             const msgs = [...state.messages];
             const lastMsg = msgs[msgs.length - 1];
-            if (lastMsg && lastMsg.role === 'agent' && lastMsg.status === 'streaming') {
-              // Append delta to existing streaming message
-              const accumulated = lastMsg.content === '⏳ 思考中...' ? rawText : lastMsg.content + rawText;
-              // Strip all LLM Running markers, summaries, and info fences
-              const display = accumulated
-                .replace(/\s*\*\*LLM Running[^*]*\*\*\s*/g, '')
-                .replace(/<summary>[\s\S]*?<\/summary>\s*/g, '')
-                .replace(/`{3,}\s*\[Info\][^\n]*\n?/g, '')
-                .replace(/`{3,}\s*$/g, '')
-                .trim();
-              msgs[msgs.length - 1] = { ...lastMsg, content: display || '⏳ 思考中...' };
+            if (lastMsg && lastMsg.role === 'agent') {
+              msgs[msgs.length - 1] = { ...lastMsg, content: display || '⏳ 思考中...', status: 'streaming' as const };
             } else {
-              msgs.push({ role: 'agent', content: '⏳ 思考中...', timestamp: Date.now(), status: 'streaming' });
+              msgs.push({ role: 'agent', content: display || '⏳ 思考中...', timestamp: Date.now(), status: 'streaming' });
             }
             return { messages: msgs };
           });
