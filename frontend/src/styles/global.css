@@ -853,6 +853,11 @@ body { background: transparent; color: var(--text-1); height: 100vh; overflow: h
 .desktop-pet:active { cursor: grabbing; }
 .desktop-pet:hover { filter: drop-shadow(0 0 6px rgba(212, 114, 154, 0.3)); }
 .desktop-pet-container { position: relative; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; }
+.desktop-pet.idle .desktop-pet-container { animation: petBounce 2.5s ease-in-out infinite; }
+.desktop-pet.walking .desktop-pet-container { animation: petBounce 1.2s ease-in-out infinite; }
+.desktop-pet.working .desktop-pet-container { animation: petWork 1s ease-in-out infinite; }
+@keyframes petBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
+@keyframes petWork { 0%,100% { transform: scale(1) rotate(0deg); } 25% { transform: scale(1.03) rotate(-2deg); } 75% { transform: scale(1.03) rotate(2deg); } }
 .desktop-pet-img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 .desktop-pet svg { width: 100%; height: 100%; }
 .desktop-pet.idle .pet-body { animation: petIdle 3s ease-in-out infinite; }

@@ -32,10 +32,13 @@ const PET_IMAGES: Record<PetType, string> = {
   chun: '/pets/chun.png',
 };
 
+const ALL_PET_TYPES = Object.keys(PET_IMAGES) as PetType[];
+
 export default function DesktopPet() {
   const { instances, activeInstanceId, messages } = useStore();
   const [petType, setPetType] = useState<PetType>(() => {
-    return (localStorage.getItem('ga_pet_type') as PetType) || 'pixel_cat';
+    const saved = localStorage.getItem('ga_pet_type') as PetType;
+    return (saved && PET_IMAGES[saved]) ? saved : 'pixel_cat';
   });
   const [showSelector, setShowSelector] = useState(false);
   const [position, setPosition] = useState<Position>(() => {
@@ -114,7 +117,7 @@ export default function DesktopPet() {
 
       {showSelector && (
         <div className="pet-selector" onClick={e => e.stopPropagation()}>
-          {(Object.keys(PET_IMAGES) as PetType[]).map(type => (
+          {ALL_PET_TYPES.map(type => (
             <div
               key={type}
               className={`pet-option ${petType === type ? 'active' : ''}`}
