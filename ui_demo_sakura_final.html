@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GA Manager - Sakura Bloom UI</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { font-family: 'Inter', sans-serif; height: 100%; background: #fffbfc; color: #4a2535; overflow: hidden; }
+@keyframes sakuraPetal { 0% { transform: translateY(-20px) rotate(0deg); opacity: 0; } 10% { opacity: 0.5; } 90% { opacity: 0.3; } 100% { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
+@keyframes petIdle { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes tailWag { 0%,100% { d: path("M60 40 L72 34 L70 42 L72 50 L60 44 Z"); } 50% { d: path("M60 40 L74 32 L72 42 L74 52 L60 44 Z"); } }
+.app-layout { display: flex; height: 100vh; width: 100%; }
+.nav-bar { width: 180px; min-width: 180px; height: 100vh; background: rgba(255,252,253,0.45); backdrop-filter: blur(24px); display: flex; flex-direction: column; border-right: 1px solid rgba(236,143,173,0.12); }
+.nav-logo { display: flex; align-items: center; justify-content: center; height: 50px; border-bottom: 1px solid rgba(236,143,173,0.12); }
+.nav-logo span { font-size: 16px; font-weight: 700; background: linear-gradient(135deg,#f0a0ba,#f7c8d8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.nav-items { padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+.nav-item { display: flex; align-items: center; padding: 10px 14px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #8c5a6e; cursor: pointer; transition: all 0.2s; }
+.nav-bottom { margin-top: auto; padding: 10px; border-top: 1px solid rgba(236,143,173,0.12); }
+.nav-inst { padding: 8px 12px; border-radius: 8px; background: rgba(255,240,245,0.4); font-size: 12px; color: #8c5a6e; display: flex; align-items: center; gap: 8px; }
+.dot-green { width: 6px; height: 6px; border-radius: 50%; background: #34d399; box-shadow: 0 0 4px #34d399; }
+.top-bar { height: 50px; min-height: 50px; display: flex; align-items: center; padding: 0 20px; gap: 16px; border-bottom: 1px solid rgba(236,143,173,0.12); background: rgba(255,255,255,0.35); backdrop-filter: blur(24px); }
+.top-dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; box-shadow: 0 0 4px #34d399; }
+.top-name { font-size: 14px; font-weight: 600; color: #4a2535; }
+.top-status { font-size: 11px; color: #c4a0b0; padding: 2px 8px; border-radius: 4px; background: rgba(255,240,245,0.4); }
+.top-right { margin-left: auto; display: flex; gap: 8px; }
+.top-pill { padding: 5px 12px; border-radius: 8px; border: 1px solid rgba(236,143,173,0.12); background: rgba(255,255,255,0.3); color: #8c5a6e; font-size: 12px; }
+.main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.messages { flex: 1; overflow: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 12px; }
+.msg { max-width: 78%; padding: 14px 18px; border-radius: 16px; font-size: 13.5px; line-height: 1.7; }
+.msg.user { align-self: flex-end; background: linear-gradient(135deg,rgba(236,143,173,0.08),rgba(244,184,204,0.06)); border: 1px solid rgba(236,143,173,0.12); border-bottom-right-radius: 4px; }
+.msg.agent { align-self: flex-start; background: rgba(255,255,255,0.3); backdrop-filter: blur(10px); border: 1px solid rgba(236,143,173,0.12); border-bottom-left-radius: 4px; }
+pre { background: rgba(255,255,255,0.12); backdrop-filter: blur(8px); padding: 0; border-radius: 10px; margin: 10px 0; border: 1px solid rgba(236,143,173,0.12); overflow-x: auto; }
+pre code { display: block; padding: 14px 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.6; }
+.diff-block { padding: 14px 16px; font-family: 'JetBrains Mono', monospace; font-size: 12px; line-height: 1.7; }
+.diff-line { padding: 1px 8px; border-radius: 3px; white-space: pre; }
+.diff-add { background: rgba(52,211,153,0.12); color: #34d399; }
+.diff-del { background: rgba(251,113,133,0.12); color: #fb7185; }
+.diff-hunk { color: #a78bfa; font-weight: 600; opacity: 0.8; margin: 4px 0; }
+.input-area { padding: 14px 24px; border-top: 1px solid rgba(236,143,173,0.12); background: rgba(255,255,255,0.3); backdrop-filter: blur(16px); }
+.input-row { display: flex; gap: 10px; align-items: stretch; }
+.chat-input { flex: 1; min-height: 50px; resize: none; background: rgba(255,255,255,0.35); border: 1px solid rgba(236,143,173,0.12); border-radius: 10px; padding: 12px 16px; color: #4a2535; font-size: 14px; font-family: inherit; outline: none; }
+.send-btn { padding: 8px 16px; border-radius: 8px; border: none; background: linear-gradient(135deg,#f0a0ba,#f7c8d8); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; min-width: 60px; }
+.pet { position: fixed; bottom: 30px; right: 120px; z-index: 800; animation: petIdle 3s ease-in-out infinite; cursor: grab; }
+.pet-name { position: absolute; bottom: -16px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 600; color: #e87da0; white-space: nowrap; background: rgba(255,255,255,0.35); padding: 2px 8px; border-radius: 8px; border: 1px solid rgba(236,143,173,0.12); }
+.pet-status { position: absolute; top: -4px; right: -4px; width: 10px; height: 10px; border-radius: 50%; background: #34d399; box-shadow: 0 0 4px #34d399; border: 2px solid #fffbfc; }
+.sakura-petal { position: fixed; top: -20px; background: radial-gradient(ellipse at center, rgba(236,143,173,0.5) 0%, rgba(244,184,204,0.2) 100%); border-radius: 50% 0 50% 0; pointer-events: none; z-index: -1; animation: sakuraPetal linear infinite; }
+.kw { color: #e87da0; } .fn { color: #a78bfa; } .ty { color: #fbbf24; } .str { color: #34d399; } .num { color: #a78bfa; }
+</style>
+</head>
+<body>
+<div class="app-layout">
+  <div class="nav-bar">
+    <div class="nav-logo"><span>GA Manager</span></div>
+    <div class="nav-items">
+      <div class="nav-item active">Chat</div>
+      <div class="nav-item">Conductor</div>
+      <div class="nav-item">Monitor</div>
+      <div class="nav-item">Skills</div>
+      <div class="nav-item">Settings</div>
+    </div>
+    <div class="nav-bottom"><div class="nav-inst"><span class="dot-green"></span>instance-1</div></div>
+  </div>
+  <div class="main">
+    <div class="top-bar">
+      <span class="top-dot"></span>
+      <span class="top-name">demo-agent</span>
+      <span class="top-status">running</span>
+      <div class="top-right"><span class="top-pill">Claude 4</span></div>
+    </div>
+    <div class="messages">
+      <div class="msg user">帮我写一个 Python 函数，计算斐波那契数列</div>
+      <div class="msg agent">
+        <p style="margin-bottom:8px">好的，这是一个高效的迭代实现：</p>
+        <pre><code><span class="kw">def</span> <span class="fn">fibonacci</span>(n: <span class="ty">int</span>) -> <span class="ty">int</span>:
+    <span class="str">"""Calculate nth Fibonacci number."""</span>
+    <span class="kw">if</span> n <= <span class="num">1</span>:
+        <span class="kw">return</span> n
+    a, b = <span class="num">0</span>, <span class="num">1</span>
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="ty">range</span>(<span class="num">2</span>, n + <span class="num">1</span>):
+        a, b = b, a + b
+    <span class="kw">return</span> b</code></pre>
+        <p style="margin:8px 0">对比之前的递归版本 (diff)：</p>
+        <pre><div class="diff-block"><div class="diff-line diff-hunk">@@ -1,3 +1,8 @@</div><div class="diff-line diff-del">-def fibonacci(n):</div><div class="diff-line diff-del">-    if n &lt;= 1: return n</div><div class="diff-line diff-del">-    return fibonacci(n-1) + fibonacci(n-2)</div><div class="diff-line diff-add">+def fibonacci(n: int) -> int:</div><div class="diff-line diff-add">+    if n &lt;= 1:</div><div class="diff-line diff-add">+        return n</div><div class="diff-line diff-add">+    a, b = 0, 1</div><div class="diff-line diff-add">+    for _ in range(2, n + 1):</div><div class="diff-line diff-add">+        a, b = b, a + b</div><div class="diff-line diff-add">+    return b</div></div></pre>
+      </div>
+    </div>
+    <div class="input-area">
+      <div class="input-row">
+        <textarea class="chat-input" placeholder="输入消息..."></textarea>
+        <button class="send-btn">发送</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Desktop Pet: Shark Chili -->
+<div class="pet">
+  <svg width="70" height="70" viewBox="0 0 80 80" fill="none">
+    <ellipse cx="40" cy="42" rx="22" ry="16" fill="#4a90d9"/>
+    <ellipse cx="40" cy="46" rx="14" ry="10" fill="#e8f4ff"/>
+    <path d="M38 26 L40 18 L44 26 Z" fill="#3a7bc8"/>
+    <path d="M60 40 L72 34 L70 42 L72 50 L60 44 Z" fill="#3a7bc8">
+      <animate attributeName="d" values="M60 40 L72 34 L70 42 L72 50 L60 44 Z;M60 40 L74 32 L72 42 L74 52 L60 44 Z;M60 40 L72 34 L70 42 L72 50 L60 44 Z" dur="1.5s" repeatCount="indefinite"/>
+    </path>
+    <path d="M30 28 Q35 20 40 22 Q42 18 38 14 L36 16 Q38 20 36 22 Q32 24 30 28 Z" fill="#e74c3c"/>
+    <circle cx="37" cy="14" r="2" fill="#27ae60"/>
+    <circle cx="33" cy="40" r="4" fill="#fff"/>
+    <circle cx="33" cy="40" r="2.5" fill="#1a1a2e"><animate attributeName="cx" values="33;34;33;32;33" dur="4s" repeatCount="indefinite"/></circle>
+    <circle cx="47" cy="40" r="4" fill="#fff"/>
+    <circle cx="47" cy="40" r="2.5" fill="#1a1a2e"><animate attributeName="cx" values="47;48;47;46;47" dur="4s" repeatCount="indefinite"/></circle>
+    <path d="M35 50 Q40 54 45 50" stroke="#1a1a2e" stroke-width="1.5" fill="none"/>
+    <path d="M36 50 L37 52 L38 50 M42 50 L43 52 L44 50" fill="#fff" stroke="#fff" stroke-width="0.5"/>
+  </svg>
+  <div class="pet-name">鲨鱼辣椒</div>
+  <div class="pet-status"></div>
+</div>
+
+<script>
+// Sakura petals
+for (let i = 0; i < 12; i++) {
+  const p = document.createElement('div');
+  p.className = 'sakura-petal';
+  p.style.left = Math.random() * 100 + '%';
+  p.style.width = (Math.random() * 6 + 6) + 'px';
+  p.style.height = (Math.random() * 6 + 6) + 'px';
+  p.style.animationDuration = (Math.random() * 8 + 10) + 's';
+  p.style.animationDelay = (Math.random() * 8) + 's';
+  p.style.opacity = Math.random() * 0.25 + 0.1;
+  document.body.appendChild(p);
+}
+</script>
+</body>
+</html>

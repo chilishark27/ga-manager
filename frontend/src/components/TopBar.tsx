@@ -171,6 +171,14 @@ function TopBar() {
         >
           Restart
         </button>
+        {/* Window Controls */}
+        {(window as any).electronWindow && (
+          <div className="window-controls">
+            <button className="win-ctrl-btn" onClick={() => (window as any).electronWindow.minimize()} title="Minimize">&#x2014;</button>
+            <button className="win-ctrl-btn" onClick={() => (window as any).electronWindow.maximize()} title="Maximize">&#x25A1;</button>
+            <button className="win-ctrl-btn win-close" onClick={() => (window as any).electronWindow.close()} title="Close">&#x2715;</button>
+          </div>
+        )}
       </div>
       {showWorktree && <WorktreePanel onClose={() => setShowWorktree(false)} />}
     </div>

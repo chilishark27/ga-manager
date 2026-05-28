@@ -2,7 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body, #root { font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; height: 100%; }
+html, body, #root { font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; height: 100%; background: transparent; }
 
 /* ===== Dark Theme Variables (Sakura Night) ===== */
 [data-theme="dark"] {
@@ -54,11 +54,11 @@ html, body, #root { font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMa
 @keyframes sakuraPetal { 0% { transform: translateY(-20px) rotate(0deg); opacity: 0; } 10% { opacity: 0.6; } 90% { opacity: 0.4; } 100% { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
 
 /* ===== Base ===== */
-body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hidden; transition: background 0.3s, color 0.3s; }
+body { background: transparent; color: var(--text-1); height: 100vh; overflow: hidden; transition: color 0.3s; }
 #root { width: 100%; height: 100vh; }
 
 /* ===== NEW LAYOUT ===== */
-.app-layout { display: flex; height: 100vh; width: 100%; overflow: hidden; }
+.app-layout { display: flex; height: 100vh; width: 100%; overflow: hidden; border-radius: 12px; background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); -webkit-app-region: no-drag; }
 .app-main { flex: 1; display: flex; flex-direction: column; min-width: 0; height: 100vh; overflow: hidden; }
 .app-content { flex: 1; overflow: auto; display: flex; flex-direction: column; padding: 24px; min-height: 0; }
 
@@ -154,7 +154,8 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .nav-action-btn.scan:hover { border-color: var(--accent); color: var(--accent); background: rgba(236, 143, 173,0.06); }
 
 /* ===== TopBar (50px) ===== */
-.top-bar { height: 50px; min-height: 50px; display: flex; align-items: center; padding: 0 20px; gap: 16px; border-bottom: 1px solid var(--border); background: var(--card); backdrop-filter: blur(12px); flex-shrink: 0; position: relative; z-index: 50; }
+.top-bar { height: 50px; min-height: 50px; display: flex; align-items: center; padding: 0 20px; gap: 16px; border-bottom: 1px solid var(--border); background: var(--card); backdrop-filter: blur(12px); flex-shrink: 0; position: relative; z-index: 50; -webkit-app-region: drag; }
+.top-bar button, .top-bar select, .top-bar input, .top-bar [class*="btn"], .top-bar [class*="pill"], .top-bar [class*="dropdown"], .top-bar [class*="wrapper"] { -webkit-app-region: no-drag; }
 .top-bar-left { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .top-bar-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
 .top-bar-name { font-size: 14px; font-weight: 600; color: var(--text-1); white-space: nowrap; }
@@ -196,6 +197,12 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .top-bar-project-option.active { background: rgba(236, 143, 173, 0.1); color: var(--accent); font-weight: 600; }
 .top-bar-project-opt-icon { font-size: 10px; color: var(--text-3); width: 14px; text-align: center; }
 .top-bar-project-divider { height: 1px; background: var(--border); margin: 4px 8px; }
+
+/* Window Controls (frameless) */
+.window-controls { display: flex; gap: 2px; margin-left: 12px; -webkit-app-region: no-drag; }
+.win-ctrl-btn { width: 32px; height: 28px; border: none; background: transparent; color: var(--text-2); font-size: 12px; cursor: pointer; border-radius: 4px; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+.win-ctrl-btn:hover { background: rgba(0, 0, 0, 0.06); }
+.win-ctrl-btn.win-close:hover { background: #e81123; color: #fff; }
 
 /* ===== Page Layouts ===== */
 .page-container { max-width: 1200px; margin: 0 auto; width: 100%; }

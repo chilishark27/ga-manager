@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>GA Manager - UI Redesign Demo</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+:root{--bg0:#0f1117;--bg1:#161922;--bg2:#1c1f2e;--bg3:#222639;--bgH:#2a2f45;--bd:#2d3348;--bdS:#232840;--t1:#e8eaf0;--t2:#9ca3b8;--t3:#6b7394;--ac:#6c8cff;--acD:#4a6ae0;--acG:rgba(108,140,255,.15);--gn:#4ade80;--gnD:rgba(74,222,128,.12);--yl:#fbbf24;--ylD:rgba(251,191,36,.12);--rd:#f87171;--rdD:rgba(248,113,113,.12);--pp:#a78bfa;--r1:6px;--r2:10px;--r3:14px;--tr:.2s cubic-bezier(.4,0,.2,1)}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;font-family:'Inter',sans-serif;background:var(--bg0);color:var(--t1);overflow:hidden}
+.app{display:flex;height:100vh}
+.rail{width:56px;flex-shrink:0;background:var(--bg0);border-right:1px solid var(--bdS);display:flex;flex-direction:column;align-items:center;padding:12px 0;gap:4px}
+.rail-logo{width:36px;height:36px;border-radius:var(--r2);background:linear-gradient(135deg,var(--ac),var(--pp));display:flex;align-items:center;justify-content:center;margin-bottom:12px;font-weight:700;font-size:14px;color:#fff}
+.rb{width:40px;height:40px;border-radius:var(--r2);display:flex;align-items:center;justify-content:center;cursor:pointer;transition:var(--tr);color:var(--t3);position:relative}
+.rb:hover{background:var(--bgH);color:var(--t2)}
+.rb.on{background:var(--acG);color:var(--ac)}
+.rb.on::before{content:'';position:absolute;left:-8px;width:3px;height:20px;background:var(--ac);border-radius:0 3px 3px 0}
+.rb svg{width:20px;height:20px}
+.spacer{flex:1}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--bg3);border:2px solid var(--bd);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--t2);cursor:pointer}
+.ctx{width:260px;flex-shrink:0;background:var(--bg1);border-right:1px solid var(--bdS);display:flex;flex-direction:column}
+.ctx-hd{padding:16px 16px 12px;border-bottom:1px solid var(--bdS)}
+.ctx-hd h3{font-size:13px;font-weight:600;color:var(--t2);text-transform:uppercase;letter-spacing:.5px}
+.ctx-search{margin-top:10px;position:relative}
+.ctx-search input{width:100%;padding:8px 12px 8px 32px;background:var(--bg2);border:1px solid var(--bdS);border-radius:var(--r1);color:var(--t1);font-size:13px;outline:none;transition:var(--tr)}
+.ctx-search input:focus{border-color:var(--ac);box-shadow:0 0 0 3px var(--acG)}
+.ctx-search svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--t3)}
+.ctx-list{flex:1;overflow-y:auto;padding:8px}
+.ci{padding:10px 12px;border-radius:var(--r1);cursor:pointer;transition:var(--tr);margin-bottom:2px}
+.ci:hover{background:var(--bgH)}
+.ci.on{background:var(--acG);border:1px solid rgba(108,140,255,.2)}
+.ci-t{font-size:13px;font-weight:500;margin-bottom:3px}
+.ci-m{font-size:11px;color:var(--t3);display:flex;align-items:center;gap:6px}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.dg{background:var(--gn);box-shadow:0 0 6px var(--gn)}
+.dy{background:var(--yl)}
+.dd{background:var(--t3)}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:52px;flex-shrink:0;display:flex;align-items:center;padding:0 20px;border-bottom:1px solid var(--bdS);gap:12px}
+.topbar-title{font-size:15px;font-weight:600}
+.badge{font-size:11px;padding:2px 8px;border-radius:10px;background:var(--gnD);color:var(--gn);font-weight:500}
+.tabs{display:flex;gap:2px;background:var(--bg2);border-radius:var(--r1);padding:3px}
+.tab{padding:5px 12px;border-radius:4px;font-size:12px;font-weight:500;color:var(--t3);cursor:pointer;transition:var(--tr)}
+.tab:hover{color:var(--t2)}
+.tab.on{background:var(--bg3);color:var(--t1)}
+.topbar .spacer{flex:1}
+.topbar-acts{display:flex;gap:6px}
+.tbtn{padding:6px 12px;border-radius:var(--r1);background:var(--bg2);border:1px solid var(--bdS);color:var(--t2);font-size:12px;cursor:pointer;transition:var(--tr)}
+.tbtn:hover{background:var(--bgH);color:var(--t1)}
+.tbtn.pri{background:var(--ac);border-color:var(--ac);color:#fff}
+.tbtn.pri:hover{background:var(--acD)}
+.chat{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.msgs{flex:1;overflow-y:auto;padding:20px 24px;display:flex;flex-direction:column;gap:16px}
+.m{display:flex;gap:10px;max-width:85%;animation:fi .3s ease}
+.m.u{align-self:flex-end;flex-direction:row-reverse}
+.m-av{width:30px;height:30px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600}
+.m.a .m-av{background:linear-gradient(135deg,var(--ac),var(--pp));color:#fff}
+.m.u .m-av{background:var(--bg3);color:var(--t2);border:1px solid var(--bd)}
+.m-b{padding:12px 16px;border-radius:var(--r3);font-size:14px;line-height:1.6}
+.m.a .m-b{background:var(--bg2);border:1px solid var(--bdS)}
+.m.u .m-b{background:var(--ac);color:#fff}
+.m-b code{font-family:'JetBrains Mono',monospace;font-size:12px;background:rgba(0,0,0,.3);padding:2px 6px;border-radius:4px}
+.tc{margin-top:8px;padding:8px 12px;background:rgba(0,0,0,.2);border-radius:var(--r1);border-left:3px solid var(--pp);font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--t2)}
+.m-t{font-size:10px;color:var(--t3);margin-top:4px;padding:0 4px}
+.inp-area{padding:16px 24px 20px;border-top:1px solid var(--bdS)}
+.inp-box{display:flex;align-items:flex-end;gap:10px;background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r3);padding:10px 14px;transition:var(--tr)}
+.inp-box:focus-within{border-color:var(--ac);box-shadow:0 0 0 3px var(--acG)}
+.inp-box textarea{flex:1;background:none;border:none;color:var(--t1);font-size:14px;font-family:inherit;resize:none;outline:none;line-height:1.5}
+.inp-box textarea::placeholder{color:var(--t3)}
+.send{width:34px;height:34px;border-radius:50%;background:var(--ac);border:none;color:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:var(--tr);flex-shrink:0}
+.send:hover{background:var(--acD);transform:scale(1.05)}
+.inp-hint{font-size:11px;color:var(--t3);margin-top:6px;padding:0 4px}
+.dash{flex:1;overflow-y:auto;padding:24px;display:none}
+.dash.on{display:block}
+.dgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px}
+.dc{background:var(--bg1);border:1px solid var(--bdS);border-radius:var(--r3);padding:20px;transition:var(--tr)}
+.dc:hover{border-color:var(--bd);transform:translateY(-1px)}
+.dc-t{font-size:13px;color:var(--t3);margin-bottom:8px}
+.dc-v{font-size:28px;font-weight:700}
+.dc-s{font-size:12px;color:var(--gn);margin-top:4px}
+.igrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.ic{background:var(--bg1);border:1px solid var(--bdS);border-radius:var(--r3);padding:16px 18px;display:flex;align-items:center;gap:14px;cursor:pointer;transition:var(--tr)}
+.ic:hover{border-color:var(--ac);background:var(--bg2)}
+.ic-icon{width:42px;height:42px;border-radius:var(--r2);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.ic-icon.run{background:var(--gnD)}
+.ic-icon.idle{background:var(--bg3)}
+.ic-info{flex:1}
+.ic-name{font-size:14px;font-weight:600;margin-bottom:3px}
+.ic-det{font-size:12px;color:var(--t3)}
+.sh{margin-bottom:14px}
+.sh-t{font-size:16px;font-weight:600}
+@keyframes fi{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.typing{display:flex;gap:4px;padding:12px 16px;background:var(--bg2);border:1px solid var(--bdS);border-radius:var(--r3)}
+.typing span{width:6px;height:6px;border-radius:50%;background:var(--t3);animation:pulse 1.4s infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+::-webkit-scrollbar{width:6px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+</style>
+</head>
+<body>
+<div class="app">
+<nav class="rail">
+<div class="rail-logo">GA</div>
+<div class="rb on" onclick="sv('chat')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+<div class="rb" onclick="sv('dash')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></div>
+<div class="rb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div>
+<div class="rb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+<div class="rb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg></div>
+<div class="spacer"></div>
+<div class="rb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68 1.65 1.65 0 0 0 10 3.17V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+<div class="avatar">U</div>
+</nav>
+<aside class="ctx">
+<div class="ctx-hd"><h3>Instances</h3>
+<div class="ctx-search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg><input placeholder="Search..."></div>
+</div>
+<div class="ctx-list">
+<div class="ci on"><div class="ci-t">&#x1F916; Main Agent</div><div class="ci-m"><span class="dot dg"></span> Running · 2h 14m</div></div>
+<div class="ci"><div class="ci-t">&#x1F4CA; Data Analyst</div><div class="ci-m"><span class="dot dg"></span> Running · 45m</div></div>
+<div class="ci"><div class="ci-t">&#x1F50D; Research Worker</div><div class="ci-m"><span class="dot dy"></span> Busy · 12m</div></div>
+<div class="ci"><div class="ci-t">&#x1F6E0;&#xFE0F; Code Review</div><div class="ci-m"><span class="dot dd"></span> Stopped</div></div>
+<div class="ci"><div class="ci-t">&#x1F4DD; Daily Summary</div><div class="ci-m"><span class="dot dd"></span> Stopped · 8h ago</div></div>
+</div>
+</aside>
+
+<main class="main">
+<header class="topbar">
+<span class="topbar-title">Main Agent</span>
+<span class="badge">Running</span>
+<div class="tabs">
+<div class="tab on" id="tc" onclick="sv('chat')">Chat</div>
+<div class="tab" id="td" onclick="sv('dash')">Overview</div>
+</div>
+<div class="spacer"></div>
+<div class="topbar-acts">
+<button class="tbtn">&#x23F9; Stop</button>
+<button class="tbtn">&#x1F4CB; Logs</button>
+<button class="tbtn pri">+ New</button>
+</div>
+</header>
+
+<div class="chat" id="cv">
+<div class="msgs">
+<div class="m a"><div class="m-av">GA</div><div><div class="m-b">Hello! I'm your GenericAgent. I have web browsing, code execution, and file tools. What can I help with?</div><div class="m-t">10:32</div></div></div>
+<div class="m u"><div class="m-av">U</div><div><div class="m-b">帮我查一下今天A股市场有什么异动</div><div class="m-t">10:33</div></div></div>
+<div class="m a"><div class="m-av">GA</div><div><div class="m-b">好的，我来查看今天A股市场的异动情况。<div class="tc">&#x1F527; web_browse("finance.sina.com.cn")<br>⏱ 3.2s · ✓ done</div><div class="tc">&#x1F527; code_run("analyze_market.py")<br>⏱ 1.8s · ✓ done</div><div style="margin-top:10px">今日A股主要异动：<br><br>📈 <b>涨幅前三</b>：AI算力(+4.2%)、机器人(+3.8%)、半导体(+2.1%)<br>📉 <b>跌幅前三</b>：房地产(-2.3%)、白酒(-1.5%)、银行(-0.8%)<br><br>🔥 <b>热点个股</b>：中际旭创涨停、寒武纪+8.5%、科大讯飞+6.2%<br><br>需要深入分析某个板块吗？</div></div><div class="m-t">10:33 · 5.0s</div></div></div>
+<div class="m u"><div class="m-av">U</div><div><div class="m-b">分析一下AI算力板块的龙头</div><div class="m-t">10:34</div></div></div>
+<div class="m a"><div class="m-av">GA</div><div><div class="typing"><span></span><span></span><span></span></div></div></div>
+</div>
+<div class="inp-area">
+<div class="inp-box"><textarea rows="1" placeholder="Type a message... (Ctrl+V paste image)"></textarea><button class="send"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg></button></div>
+<div class="inp-hint">Enter send · Shift+Enter newline · Ctrl+V image</div>
+</div>
+</div>
+
+<div class="dash" id="dv">
+<div class="sh"><div class="sh-t">System Overview</div></div>
+<div class="dgrid">
+<div class="dc"><div class="dc-t">Active Instances</div><div class="dc-v">3</div><div class="dc-s">↑ 1 from yesterday</div></div>
+<div class="dc"><div class="dc-t">Messages Today</div><div class="dc-v">142</div><div class="dc-s">↑ 23% avg</div></div>
+<div class="dc"><div class="dc-t">Uptime</div><div class="dc-v">99.2%</div><div class="dc-s">Last 7 days</div></div>
+</div>
+<div class="sh" style="margin-top:8px"><div class="sh-t">All Instances</div></div>
+<div class="igrid">
+<div class="ic"><div class="ic-icon run">&#x1F916;</div><div class="ic-info"><div class="ic-name">Main Agent</div><div class="ic-det">claude-sonnet · 2h 14m · 87 msgs</div></div></div>
+<div class="ic"><div class="ic-icon run">&#x1F4CA;</div><div class="ic-info"><div class="ic-name">Data Analyst</div><div class="ic-det">gpt-4o · 45m · 23 msgs</div></div></div>
+<div class="ic"><div class="ic-icon run">&#x1F50D;</div><div class="ic-info"><div class="ic-name">Research Worker</div><div class="ic-det">claude-sonnet · 12m · 8 msgs</div></div></div>
+<div class="ic"><div class="ic-icon idle">&#x1F6E0;&#xFE0F;</div><div class="ic-info"><div class="ic-name">Code Review</div><div class="ic-det">Stopped · Last active 3h ago</div></div></div>
+</div>
+</div>
+</main>
+</div>
+
+<script>
+function sv(v){
+  document.getElementById('cv').style.display=v==='chat'?'flex':'none';
+  document.getElementById('dv').className=v==='dash'?'dash on':'dash';
+  document.getElementById('tc').className=v==='chat'?'tab on':'tab';
+  document.getElementById('td').className=v==='dash'?'tab on':'tab';
+  document.querySelectorAll('.rb').forEach((b,i)=>{b.className=i===(v==='chat'?0:1)?'rb on':'rb'});
+}
+</script>
+</body>
+</html>

@@ -98,6 +98,10 @@ function createWindow() {
     minHeight: 600,
     title: 'GA Manager',
     icon: getIconPath(),
+    transparent: true,
+    frame: false,
+    backgroundColor: '#00000000',
+    hasShadow: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -156,6 +160,10 @@ ipcMain.handle('show-notification', (_, title, body) => {
     new Notification({ title, body }).show();
   }
 });
+
+ipcMain.handle('window-minimize', () => { if (mainWindow) mainWindow.minimize(); });
+ipcMain.handle('window-maximize', () => { if (mainWindow) { mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize(); } });
+ipcMain.handle('window-close', () => { if (mainWindow) mainWindow.close(); });
 
 ipcMain.handle('open-external', (_, url) => {
   const { shell } = require('electron');

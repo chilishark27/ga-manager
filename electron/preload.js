@@ -28,6 +28,12 @@ contextBridge.exposeInMainWorld('electronNotify', {
   send: (title, body) => ipcRenderer.invoke('show-notification', title, body),
 });
 
+contextBridge.exposeInMainWorld('electronWindow', {
+  minimize: () => ipcRenderer.invoke('window-minimize'),
+  maximize: () => ipcRenderer.invoke('window-maximize'),
+  close: () => ipcRenderer.invoke('window-close'),
+});
+
 contextBridge.exposeInMainWorld('electronShell', {
   openExternal: (url) => ipcRenderer.invoke('open-external', url),
 });
