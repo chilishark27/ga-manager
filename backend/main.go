@@ -124,6 +124,14 @@ func main() {
 	mux.HandleFunc("GET /api/hive/history", hiveHandler.ListRunHistory)
 	mux.HandleFunc("GET /api/hive/history/record", hiveHandler.GetRunRecord)
 
+	// Git worktree management
+	gitHandler := handlers.NewGitHandler()
+	mux.HandleFunc("GET /api/git/worktrees", gitHandler.ListWorktrees)
+	mux.HandleFunc("POST /api/git/worktrees", gitHandler.CreateWorktree)
+	mux.HandleFunc("DELETE /api/git/worktrees", gitHandler.RemoveWorktree)
+	mux.HandleFunc("GET /api/git/branches", gitHandler.ListBranches)
+	mux.HandleFunc("GET /api/git/status", gitHandler.Status)
+
 	// Supervisor Agent
 	mux.HandleFunc("GET /api/supervisor/status", supervisorHandler.Status)
 	mux.HandleFunc("POST /api/supervisor/start", supervisorHandler.Start)

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useStore } from '../store';
 import { useI18n } from '../i18n';
+import WorktreePanel from './WorktreePanel';
 
 function TopBar() {
   const {
@@ -14,6 +15,7 @@ function TopBar() {
 
   const [showLLMDropdown, setShowLLMDropdown] = useState(false);
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
+  const [showWorktree, setShowWorktree] = useState(false);
 
   if (!inst) {
     return (
@@ -118,6 +120,13 @@ function TopBar() {
       </div>
 
       <div className="top-bar-right">
+        {/* Git Worktree */}
+        {projectPath && (
+          <button className="top-bar-ctrl-btn" onClick={() => setShowWorktree(true)}>
+            Branches
+          </button>
+        )}
+
         {/* TODO Toggle */}
         <button className={`top-bar-ctrl-btn ${showTodoPanel ? 'active' : ''}`} onClick={toggleTodoPanel}>
           {lang === 'zh' ? '待办' : 'TODO'}{todos.filter(t => !t.done).length > 0 ? ` (${todos.filter(t => !t.done).length})` : ''}
@@ -163,6 +172,7 @@ function TopBar() {
           Restart
         </button>
       </div>
+      {showWorktree && <WorktreePanel onClose={() => setShowWorktree(false)} />}
     </div>
   );
 }
