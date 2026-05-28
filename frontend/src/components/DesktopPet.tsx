@@ -31,6 +31,26 @@ const PETS: PetConfig[] = [
       angry: { prefix: 'onfloor', frames: 8, interval: 150 },
     },
   },
+  { name: '纳西妲', folder: '/pets', actions: { stand: { prefix: 'nahida', frames: 1, interval: 1000 } } },
+  { name: '小呆', folder: '/pets', actions: { stand: { prefix: 'xiao_dai', frames: 1, interval: 1000 } } },
+  { name: '魈', folder: '/pets', actions: { stand: { prefix: 'xiao', frames: 1, interval: 1000 } } },
+  { name: '流浪者', folder: '/pets', actions: { stand: { prefix: 'wanderer', frames: 1, interval: 1000 } } },
+  { name: '流萤', folder: '/pets', actions: { stand: { prefix: 'firefly', frames: 1, interval: 1000 } } },
+  { name: '露西亚', folder: '/pets', actions: { stand: { prefix: 'lucia', frames: 1, interval: 1000 } } },
+  { name: '守岸人', folder: '/pets', actions: { stand: { prefix: 'shorekeeper', frames: 1, interval: 1000 } } },
+  { name: '椿', folder: '/pets', actions: { stand: { prefix: 'chun', frames: 1, interval: 1000 } } },
+  { name: '饮月', folder: '/pets', actions: { stand: { prefix: 'yinyue', frames: 1, interval: 1000 } } },
+  { name: '像素猫', folder: '/pets', actions: { stand: { prefix: 'pixel_cat', frames: 1, interval: 1000 } } },
+  { name: '像素四妹', folder: '/pets', actions: { stand: { prefix: 'pixel_simei', frames: 1, interval: 1000 } } },
+  { name: '派蒙', folder: '/pets', actions: { stand: { prefix: 'paimon', frames: 1, interval: 1000 } } },
+  { name: '兰纳罗', folder: '/pets', actions: { stand: { prefix: 'lanaluo', frames: 1, interval: 1000 } } },
+  { name: '皮克啾', folder: '/pets', actions: { stand: { prefix: 'pikeqiu', frames: 1, interval: 1000 } } },
+];
+
+const CLICK_DIALOGUES = [
+  '喵~', '别戳我！', '嗯？', '想我了？', '(´・ω・`)', '有什么事吗~',
+  '好无聊啊...', '陪我玩！', '哼！', '摸摸头~', '٩(◕‿◕｡)۶',
+  '在忙呢...', '嘿嘿~', '(｡◕‿◕｡)', '干嘛啦~', '好痒！',
 ];
 
 interface Position { x: number; y: number; }
@@ -50,9 +70,12 @@ export default function DesktopPet() {
   const [isDragging, setIsDragging] = useState(false);
   const [action, setAction] = useState('stand');
   const [frameIdx, setFrameIdx] = useState(0);
+  const [bubble, setBubble] = useState<string | null>(null);
+  const [clickAnim, setClickAnim] = useState(false);
   const dragOffset = useRef<Position>({ x: 0, y: 0 });
   const actionTimer = useRef<ReturnType<typeof setInterval>>();
   const autoTimer = useRef<ReturnType<typeof setTimeout>>();
+  const bubbleTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const pet = PETS[petIdx];
   const activeInstance = instances.find(i => i.id === activeInstanceId);
@@ -113,6 +136,17 @@ export default function DesktopPet() {
   }, [isWorking]);
 
   const handleClick = () => {
+    // Random dialogue bubble
+    const msg = CLICK_DIALOGUES[Math.floor(Math.random() * CLICK_DIALOGUES.length)];
+    setBubble(msg);
+    clearTimeout(bubbleTimer.current);
+    bubbleTimer.current = setTimeout(() => setBubble(null), 2500);
+
+    // Bounce animation
+    setClickAnim(true);
+    setTimeout(() => setClickAnim(false), 400);
+
+    // Play angry/reaction if available
     if (pet.actions.angry) {
       setAction('angry');
       setFrameIdx(0);
@@ -152,17 +186,20 @@ export default function DesktopPet() {
   }, [isDragging, pet]);
 
   const currentAction = pet.actions[action] || pet.actions.stand;
-  const frameSrc = `${pet.folder}/${currentAction.prefix}_${frameIdx % currentAction.frames}.png`;
+  const frameSrc = currentAction.frames === 1 && !currentAction.prefix.includes('walk')
+    ? `${pet.folder}/${currentAction.prefix}.png`
+    : `${pet.folder}/${currentAction.prefix}_${frameIdx % currentAction.frames}.png`;
 
   return (
     <>
       <div
-        className={`desktop-pet ${isWorking ? 'working' : 'idle'}`}
+        className={`desktop-pet ${isWorking ? 'working' : 'idle'} ${clickAnim ? 'pet-clicked' : ''}`}
         style={{ left: position.x, top: position.y, bottom: 'auto' }}
         onMouseDown={handleMouseDown}
         onClick={handleClick}
         onDoubleClick={() => setShowSelector(s => !s)}
       >
+        {bubble && <div className="pet-bubble">{bubble}</div>}
         <div className="desktop-pet-container">
           <img src={frameSrc} alt={pet.name} className="desktop-pet-img" draggable={false} />
           <div className={`desktop-pet-status ${isWorking ? 'working' : 'idle'}`} />
@@ -179,7 +216,7 @@ export default function DesktopPet() {
               onClick={() => { setPetIdx(idx); setShowSelector(false); setAction('stand'); setFrameIdx(0); }}
               title={p.name}
             >
-              <img src={`${p.folder}/${p.actions.stand.prefix}_0.png`} alt={p.name} style={{ width: 40, height: 40, objectFit: 'contain', imageRendering: 'pixelated' }} />
+              <img src={p.actions.stand.frames === 1 ? `${p.folder}/${p.actions.stand.prefix}.png` : `${p.folder}/${p.actions.stand.prefix}_0.png`} alt={p.name} style={{ width: 40, height: 40, objectFit: 'contain', imageRendering: 'pixelated' }} />
               <span style={{ fontSize: 10, color: 'var(--text-2)' }}>{p.name}</span>
             </div>
           ))}

@@ -860,6 +860,15 @@ body { background: transparent; color: var(--text-1); height: 100vh; overflow: h
 .desktop-pet.working .pet-body { animation: petWork 1.5s ease-in-out infinite; }
 .desktop-pet-name { position: absolute; bottom: -18px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 600; color: var(--accent); white-space: nowrap; background: var(--card); padding: 2px 8px; border-radius: 8px; border: 1px solid var(--border); opacity: 0; transition: opacity 0.2s; }
 .desktop-pet:hover .desktop-pet-name { opacity: 1; }
+
+/* Pet click bounce */
+.desktop-pet.pet-clicked .desktop-pet-container { animation: petClickBounce 0.4s ease; }
+@keyframes petClickBounce { 0% { transform: scale(1); } 20% { transform: scale(0.85) rotate(-5deg); } 50% { transform: scale(1.15) rotate(3deg); } 70% { transform: scale(0.95) rotate(-2deg); } 100% { transform: scale(1) rotate(0deg); } }
+
+/* Pet dialogue bubble */
+.pet-bubble { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 8px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 6px 12px; font-size: 12px; color: var(--text-1); white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.08); animation: bubbleIn 0.3s ease; z-index: 10; }
+.pet-bubble::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #fff; }
+@keyframes bubbleIn { from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.8); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
 .desktop-pet-status { position: absolute; top: -6px; right: -6px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--bg); }
 .desktop-pet-status.working { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); animation: pulse 1.5s infinite; }
 .desktop-pet-status.idle { background: var(--green); box-shadow: 0 0 4px var(--green); }
