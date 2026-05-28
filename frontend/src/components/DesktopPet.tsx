@@ -85,7 +85,6 @@ export default function DesktopPet() {
   const [clickAnim, setClickAnim] = useState(false);
   const dragOffset = useRef<Position>({ x: 0, y: 0 });
   const actionTimer = useRef<ReturnType<typeof setInterval>>();
-  const autoTimer = useRef<ReturnType<typeof setTimeout>>();
   const bubbleTimer = useRef<ReturnType<typeof setTimeout>>();
 
   const pet = PETS[petIdx];
@@ -117,30 +116,39 @@ export default function DesktopPet() {
     return () => clearInterval(actionTimer.current);
   }, [action, pet]);
 
+  // Auto behavior: cycle through actions
   useEffect(() => {
     if (isDragging || isWorking) return;
-    const scheduleNext = () => {
-      autoTimer.current = setTimeout(() => {
+    let cancelled = false;
+    let timer: ReturnType<typeof setTimeout>;
+
+    const loop = () => {
+      if (cancelled) return;
+      const delay = 3000 + Math.random() * 4000;
+      timer = setTimeout(() => {
+        if (cancelled) return;
         const rand = Math.random();
         if (rand < 0.3 && pet.actions.left_walk) {
           setAction('left_walk');
-          setTimeout(() => { setAction('stand'); scheduleNext(); }, 3000);
+          timer = setTimeout(() => { if (!cancelled) { setAction('stand'); loop(); } }, 3000);
         } else if (rand < 0.6 && pet.actions.right_walk) {
           setAction('right_walk');
-          setTimeout(() => { setAction('stand'); scheduleNext(); }, 3000);
+          timer = setTimeout(() => { if (!cancelled) { setAction('stand'); loop(); } }, 3000);
         } else if (rand < 0.75 && pet.actions.sleep) {
           setAction('sleep');
-          setTimeout(() => { setAction('stand'); scheduleNext(); }, 5000);
+          timer = setTimeout(() => { if (!cancelled) { setAction('stand'); loop(); } }, 5000);
         } else {
           setAction('stand');
-          scheduleNext();
+          loop();
         }
-      }, 3000 + Math.random() * 4000);
+      }, delay);
     };
+
     setAction('stand');
-    scheduleNext();
-    return () => clearTimeout(autoTimer.current);
-  }, [isDragging, isWorking, pet]);
+    setFrameIdx(0);
+    loop();
+    return () => { cancelled = true; clearTimeout(timer); };
+  }, [isDragging, isWorking, petIdx]);
 
   useEffect(() => {
     if (isWorking) setAction('stand');
@@ -213,7 +221,8 @@ export default function DesktopPet() {
       >
         {bubble && <div className="pet-bubble">{bubble}</div>}
         <div className="desktop-pet-container">
-          <img src={frameSrc} alt={lang === 'zh' ? pet.nameZh : pet.name} className="desktop-pet-img" draggable={false} />
+          <img src={frameSrc} alt={lang === 'zh' ? pet.nameZh : pet.name} className="desktop-pet-img" draggable={false}
+            onError={(e) => { (e.target as HTMLImageElement).src = `${pet.folder}/${pet.actions.stand.prefix}_0.png`; }} />
           <div className={`desktop-pet-status ${isWorking ? 'working' : 'idle'}`} />
         </div>
         <div className="desktop-pet-name">{lang === 'zh' ? pet.nameZh : pet.name}</div>
