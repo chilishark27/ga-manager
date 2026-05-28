@@ -176,6 +176,8 @@ interface AppState {
   // TODO Panel
   todos: { id: string; text: string; done: boolean; createdAt: number; source: 'manual' | 'agent' }[];
   showTodoPanel: boolean;
+  sidePanel: 'instances' | 'history' | 'features' | null;
+  setSidePanel: (panel: 'instances' | 'history' | 'features' | null) => void;
   addTodo: (text: string, source?: 'manual' | 'agent') => void;
   toggleTodo: (id: string) => void;
   deleteTodo: (id: string) => void;
@@ -1192,6 +1194,8 @@ export const useStore = create<AppState>((set, get) => ({
   // TODO Panel
   todos: JSON.parse(localStorage.getItem('ga_todos') || '[]'),
   showTodoPanel: false,
+  sidePanel: 'instances',
+  setSidePanel: (panel) => set(state => ({ sidePanel: state.sidePanel === panel ? null : panel })),
   toggleTodoPanel: () => set(state => ({ showTodoPanel: !state.showTodoPanel })),
   fetchTodos: async () => {
     try {

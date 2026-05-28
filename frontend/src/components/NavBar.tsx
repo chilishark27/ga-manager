@@ -4,16 +4,16 @@ import { useStore } from '../store';
 import { useI18n } from '../i18n';
 import { parseSessionLog } from '../utils/chatUtils';
 
-const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling' | 'help' | 'sophub'; label: string; labelZh: string; tip: string; tipZh: string }[] = [
-  { key: 'chat', label: 'Chat', labelZh: '聊天', tip: 'Chat with Agent', tipZh: '与 Agent 对话' },
-  { key: 'conductor', label: 'Orch', labelZh: '编排', tip: 'Multi-agent orchestration', tipZh: '多 Agent 编排协作' },
-  { key: 'monitor', label: 'Monitor', labelZh: '监控', tip: 'Token usage & system resources', tipZh: '费用追踪与系统资源' },
-  { key: 'skills', label: 'Skills', labelZh: '技能', tip: 'Skill tree & SOP editor', tipZh: '技能树与 SOP 编辑' },
-  { key: 'sophub', label: 'Sophub', labelZh: 'Sophub', tip: 'SOP marketplace', tipZh: 'SOP 市场' },
-  { key: 'hive', label: 'Hive', labelZh: '蜂巢', tip: 'Multi-agent goal collaboration', tipZh: '多 Agent 目标协作' },
-  { key: 'morphling', label: 'Morph', labelZh: '吸收', tip: 'Project capability absorption', tipZh: '项目能力吸收/替代' },
-  { key: 'settings', label: 'Settings', labelZh: '设置', tip: 'App configuration', tipZh: '应用配置' },
-  { key: 'help', label: 'Help', labelZh: '帮助', tip: 'User guide & shortcuts', tipZh: '使用说明与快捷键' },
+const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling' | 'help' | 'sophub'; label: string; labelZh: string; icon: string; tip: string; tipZh: string }[] = [
+  { key: 'chat', label: 'Chat', labelZh: '聊天', icon: '💬', tip: 'Chat with Agent', tipZh: '与 Agent 对话' },
+  { key: 'conductor', label: 'Orch', labelZh: '编排', icon: '🎭', tip: 'Multi-agent orchestration', tipZh: '多 Agent 编排协作' },
+  { key: 'monitor', label: 'Monitor', labelZh: '监控', icon: '📊', tip: 'Token usage & system resources', tipZh: '费用追踪与系统资源' },
+  { key: 'skills', label: 'Skills', labelZh: '技能', icon: '⚡', tip: 'Skill tree & SOP editor', tipZh: '技能树与 SOP 编辑' },
+  { key: 'sophub', label: 'Sophub', labelZh: 'Sophub', icon: '🏪', tip: 'SOP marketplace', tipZh: 'SOP 市场' },
+  { key: 'hive', label: 'Hive', labelZh: '蜂巢', icon: '🐝', tip: 'Multi-agent goal collaboration', tipZh: '多 Agent 目标协作' },
+  { key: 'morphling', label: 'Morph', labelZh: '吸收', icon: '🧬', tip: 'Project capability absorption', tipZh: '项目能力吸收/替代' },
+  { key: 'settings', label: 'Settings', labelZh: '设置', icon: '⚙️', tip: 'App configuration', tipZh: '应用配置' },
+  { key: 'help', label: 'Help', labelZh: '帮助', icon: '❓', tip: 'User guide & shortcuts', tipZh: '使用说明与快捷键' },
 ];
 
 function NavBar() {
@@ -22,6 +22,7 @@ function NavBar() {
     createInstance, deleteInstance, llmConfigs, fetchLLMs, toggleInstance,
     discoveredInstances, discoverLoading, discoverInstances, adoptInstance,
     toggleFeature, theme, toggleTheme, moveInstance,
+    sidePanel, setSidePanel,
   } = useStore();
   const { t, tf, lang, setLang } = useI18n();
   const inst = instances.find(i => i.id === activeInstanceId) || null;
@@ -175,95 +176,112 @@ function NavBar() {
   ];
 
   return (
-    <div className="nav-bar" style={{ width: navWidth, minWidth: navWidth }}>
-      <div
-        className={`nav-resize-handle ${isResizing ? 'dragging' : ''}`}
-        onMouseDown={handleResizeMouseDown}
-      />
-
-      {/* Logo */}
-      <div className="nav-logo">
-        <img src="/app.png?v=2" alt="GA" className="nav-logo-img" />
+    <>
+    {/* Icon Rail */}
+    <div className="icon-rail">
+      <div className="icon-rail-top">
+        <img src="/app.png?v=2" alt="GA" className="icon-rail-logo" />
       </div>
-
-      {/* Navigation Items */}
-      <div className="nav-items">
+      <div className="icon-rail-nav">
         {NAV_ITEMS.map(item => (
           <div
             key={item.key}
-            className={`nav-item ${currentPage === item.key ? 'active' : ''}`}
+            className={`icon-rail-item ${currentPage === item.key ? 'active' : ''}`}
             onClick={() => setPage(item.key)}
             title={lang === 'zh' ? item.tipZh : item.tip}
           >
-            <span className="nav-item-text">{lang === 'zh' ? item.labelZh : item.label}</span>
+            <span className="icon-rail-icon">{item.icon}</span>
           </div>
         ))}
       </div>
-
-      {/* Feature Toggles */}
-      {inst && (
-        <div className="nav-features">
-          <div className="nav-features-header" onClick={() => setShowFeatures(!showFeatures)}>
-            <span className="nav-features-title">Features</span>
-            <span className="nav-sessions-chevron">{showFeatures ? '▾' : '▸'}</span>
-          </div>
-          {showFeatures && featurePills.map(pill => {
-            const isActive = !!(inst as any)[pill.key];
-            return (
-              <div
-                key={pill.key}
-                className={`nav-feature-pill ${isActive ? 'active' : ''}`}
-                onClick={() => toggleFeature(inst.id, pill.key)}
-                title={lang === 'zh' ? pill.tipZh : pill.tip}
-              >
-                {lang === 'zh' ? pill.labelZh : pill.label}
-              </div>
-            );
-          })}
+      <div className="icon-rail-panels">
+        <div className={`icon-rail-item ${sidePanel === 'instances' ? 'panel-active' : ''}`} onClick={() => setSidePanel('instances')} title={lang === 'zh' ? '实例列表' : 'Instances'}>
+          <span className="icon-rail-icon">📦</span>
         </div>
-      )}
-
-      {/* Supervisor Agent */}
-      <div className="nav-supervisor">
-        <div
-          className={`nav-supervisor-btn ${supervisorStatus === 'running' || supervisorStatus === 'busy' ? 'active' : ''}`}
-          onClick={async () => {
-            if (supervisorLoading) return;
-            setSupervisorLoading(true);
-            try {
-              if (supervisorStatus === 'running' || supervisorStatus === 'busy') {
-                await fetch('/api/supervisor/stop', { method: 'POST' });
-                setSupervisorStatus('stopped');
-              } else {
-                const gaRoot = localStorage.getItem('ga_root') || '';
-                await fetch('/api/supervisor/start', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({ ga_root: gaRoot }),
-                });
-                setSupervisorStatus('running');
-              }
-            } catch {}
-            setSupervisorLoading(false);
-          }}
-        >
-          <span className={`nav-supervisor-dot ${supervisorStatus === 'running' || supervisorStatus === 'busy' ? 'active' : ''}`} />
-          <span>{lang === 'zh' ? '总管 Agent' : 'Supervisor'}</span>
+        <div className={`icon-rail-item ${sidePanel === 'history' ? 'panel-active' : ''}`} onClick={() => setSidePanel('history')} title={lang === 'zh' ? '对话历史' : 'History'}>
+          <span className="icon-rail-icon">📜</span>
+        </div>
+        <div className={`icon-rail-item ${sidePanel === 'features' ? 'panel-active' : ''}`} onClick={() => setSidePanel('features')} title={lang === 'zh' ? '功能开关' : 'Features'}>
+          <span className="icon-rail-icon">🎛️</span>
         </div>
       </div>
+      <div className="icon-rail-bottom">
+        <div className="icon-rail-item" onClick={toggleTheme} title={lang === 'zh' ? '切换主题' : 'Toggle theme'}>
+          <span className="icon-rail-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
+        </div>
+        <div className="icon-rail-item" onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')} title={lang === 'zh' ? '切换语言' : 'Language'}>
+          <span className="icon-rail-icon" style={{ fontSize: '11px', fontWeight: 600 }}>{lang === 'zh' ? 'En' : '中'}</span>
+        </div>
+      </div>
+    </div>
 
-      {/* Session History */}
-      {inst && (
-        <div className="nav-sessions">
-          <div className="nav-sessions-header" onClick={() => setShowSessions(!showSessions)}>
-            <span className="nav-sessions-title">{lang === 'zh' ? '对话历史' : 'History'}</span>
-            <span className="nav-sessions-chevron">{showSessions ? '▾' : '▸'}</span>
-          </div>
-          {showSessions && (
-            <div className="nav-sessions-list">
+    {/* Side Panel */}
+    {sidePanel && (
+      <div className="side-panel">
+        {sidePanel === 'instances' && (
+          <>
+            <div className="side-panel-header">
+              <span className="side-panel-title">{lang === 'zh' ? '实例' : 'Instances'} ({instances.length})</span>
+              <button className="side-panel-action" onClick={() => { fetchLLMs(); fetch('/api/config/app').then(r => r.ok ? r.json() : {}).then((d: any) => { if (d.ga_root) setGaRoot(d.ga_root); }).catch(() => {}); setShowCreate(true); }}>+</button>
+            </div>
+            <div className="side-panel-content">
+              {instances.map(inst => (
+                renamingInstance === inst.id ? (
+                  <div key={inst.id} className="nav-inst-item active">
+                    <input className="nav-rename-input" autoFocus value={instRenameValue}
+                      onChange={e => setInstRenameValue(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleInstRename(inst.id); if (e.key === 'Escape') setRenamingInstance(null); }}
+                      onBlur={() => handleInstRename(inst.id)} />
+                  </div>
+                ) : (
+                <div
+                  key={inst.id}
+                  className={`nav-inst-item ${getInstClass(inst)} ${inst.id === activeInstanceId ? 'active' : ''}`}
+                  draggable
+                  onDragStart={() => setDragIdx(instances.indexOf(inst))}
+                  onDragOver={(e) => { e.preventDefault(); setDragOverIdx(instances.indexOf(inst)); }}
+                  onDragLeave={() => setDragOverIdx(null)}
+                  onDrop={() => { if (dragIdx !== null && dragIdx !== instances.indexOf(inst)) { const dir = instances.indexOf(inst) - dragIdx; for (let i = 0; i < Math.abs(dir); i++) moveInstance(inst.id, dir > 0 ? -1 : 1); } setDragIdx(null); setDragOverIdx(null); }}
+                  onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
+                  onClick={() => selectInstance(inst.id)}
+                  onDoubleClick={(e) => { e.stopPropagation(); setRenamingInstance(inst.id); setInstRenameValue(inst.name); }}
+                  title={`${inst.name} (${inst.status})`}
+                >
+                  <span className={`nav-dot ${inst.status === 'running' || inst.status === 'busy' ? 'green' : inst.status === 'error' ? 'red' : 'gray'}`} />
+                  <span className="nav-inst-name">{inst.name}</span>
+                  <span className="nav-inst-delete" onClick={(e) => { e.stopPropagation(); if (confirm(lang === 'zh' ? `确定删除实例 "${inst.name}"？` : `Delete instance "${inst.name}"?`)) deleteInstance(inst.id); }}>×</span>
+                </div>
+                )
+              ))}
+              {discoveredInstances.length > 0 && (
+                <>
+                  <div className="nav-discovered-title">{lang === 'zh' ? '发现的实例' : 'Discovered'}</div>
+                  {discoveredInstances.map(d => (
+                    <div key={d.port} className="nav-inst-item discovered running" onClick={() => { setAdoptPort(d.port); setShowAdopt(true); }}>
+                      <span className="nav-dot green" />
+                      <span className="nav-inst-name">GA :{d.port}</span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
+            <div className="side-panel-footer">
+              <button className="nav-action-btn scan" onClick={() => discoverInstances()}>
+                {discoverLoading ? '...' : (lang === 'zh' ? '扫描' : 'Scan')}
+              </button>
+            </div>
+          </>
+        )}
+
+        {sidePanel === 'history' && inst && (
+          <>
+            <div className="side-panel-header">
+              <span className="side-panel-title">{lang === 'zh' ? '对话历史' : 'History'}</span>
+            </div>
+            <div className="side-panel-content">
               <input
                 className="nav-session-search"
-                placeholder={lang === 'zh' ? '搜索会话...' : 'Search...'}
+                placeholder={lang === 'zh' ? '搜索...' : 'Search...'}
                 value={sessionSearch}
                 onChange={e => setSessionSearch(e.target.value)}
               />
@@ -274,105 +292,78 @@ function NavBar() {
                   .filter(s => {
                     if (!sessionSearch.trim()) return true;
                     const q = sessionSearch.toLowerCase();
-                    const text = (s.display_name || s.preview || s.name).toLowerCase();
-                    return text.includes(q);
+                    return (s.display_name || s.preview || s.name).toLowerCase().includes(q);
                   })
-                  .slice(0, sessionSearch.trim() ? 20 : 10)
+                  .slice(0, sessionSearch.trim() ? 20 : 15)
                   .map(s => {
-                  const label = s.display_name || s.preview || s.name.replace('model_responses_', '').replace('.txt', '');
-                  if (renamingSession === s.name) {
+                    const label = s.display_name || s.preview || s.name.replace('model_responses_', '').replace('.txt', '');
+                    if (renamingSession === s.name) {
+                      return (
+                        <div key={s.name} className="nav-session-item">
+                          <input className="nav-session-search" style={{ marginBottom: 0 }} autoFocus value={renameValue}
+                            onChange={e => setRenameValue(e.target.value)}
+                            onKeyDown={e => { if (e.key === 'Enter') handleRename(s.name); if (e.key === 'Escape') setRenamingSession(null); }}
+                            onBlur={() => handleRename(s.name)} />
+                        </div>
+                      );
+                    }
                     return (
-                      <div key={s.name} className="nav-session-item">
-                        <input className="nav-session-search" style={{ marginBottom: 0 }}
-                          autoFocus value={renameValue}
-                          onChange={e => setRenameValue(e.target.value)}
-                          onKeyDown={e => { if (e.key === 'Enter') handleRename(s.name); if (e.key === 'Escape') setRenamingSession(null); }}
-                          onBlur={() => handleRename(s.name)} />
+                      <div key={s.name} className="nav-session-item" onClick={() => restoreSession(s.name)}
+                        onDoubleClick={(e) => { e.stopPropagation(); setRenamingSession(s.name); setRenameValue(s.display_name || ''); }}
+                        title={label}>
+                        <span className="nav-session-preview">{label}</span>
                       </div>
                     );
-                  }
-                  return (
-                  <div key={s.name} className="nav-session-item"
-                    onClick={() => restoreSession(s.name)}
-                    onDoubleClick={(e) => { e.stopPropagation(); setRenamingSession(s.name); setRenameValue(s.display_name || ''); }}
-                    title={`${label}\n(${lang === 'zh' ? '双击重命名' : 'Double-click to rename'})`}>
-                    <span className="nav-session-preview">{label}</span>
-                    <span className="nav-session-meta">{s.modified}</span>
-                  </div>
-                  );
-                })
+                  })
               )}
             </div>
-          )}
-        </div>
-      )}
+          </>
+        )}
 
-      {/* Instance List */}
-      <div className="nav-instances">
-        <div className="nav-instances-header">
-          <span className="nav-instances-title">Instances ({instances.length})</span>
-        </div>
-        <div className="nav-instances-list">
-          {instances.map(inst => (
-            renamingInstance === inst.id ? (
-              <div key={inst.id} className="nav-inst-item active">
-                <input className="nav-rename-input" autoFocus value={instRenameValue}
-                  onChange={e => setInstRenameValue(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') handleInstRename(inst.id); if (e.key === 'Escape') setRenamingInstance(null); }}
-                  onBlur={() => handleInstRename(inst.id)} />
-              </div>
-            ) : (
-            <div
-              key={inst.id}
-              className={`nav-inst-item ${getInstClass(inst)} ${inst.id === activeInstanceId ? 'active' : ''} ${dragOverIdx === instances.indexOf(inst) ? 'drag-over' : ''}`}
-              draggable
-              onDragStart={() => setDragIdx(instances.indexOf(inst))}
-              onDragOver={(e) => { e.preventDefault(); setDragOverIdx(instances.indexOf(inst)); }}
-              onDragLeave={() => setDragOverIdx(null)}
-              onDrop={() => { if (dragIdx !== null && dragIdx !== instances.indexOf(inst)) { const dir = instances.indexOf(inst) - dragIdx; for (let i = 0; i < Math.abs(dir); i++) moveInstance(inst.id, dir > 0 ? -1 : 1); } setDragIdx(null); setDragOverIdx(null); }}
-              onDragEnd={() => { setDragIdx(null); setDragOverIdx(null); }}
-              onClick={() => selectInstance(inst.id)}
-              onDoubleClick={(e) => { e.stopPropagation(); setRenamingInstance(inst.id); setInstRenameValue(inst.name); }}
-              title={`${inst.name} (${inst.status})`}
-            >
-              <span className="nav-inst-name">{inst.name}</span>
-              <span className="nav-inst-status">{getStatusText(inst.status)}</span>
-              <span className="nav-inst-delete" onClick={(e) => { e.stopPropagation(); if (confirm(lang === 'zh' ? `确定删除实例 "${inst.name}"？` : `Delete instance "${inst.name}"?`)) deleteInstance(inst.id); }} title={lang === 'zh' ? '删除' : 'Delete'}>×</span>
+        {sidePanel === 'features' && inst && (
+          <>
+            <div className="side-panel-header">
+              <span className="side-panel-title">{lang === 'zh' ? '功能' : 'Features'}</span>
             </div>
-            )
-          ))}
-        </div>
-
-        {discoveredInstances.length > 0 && (
-          <div className="nav-discovered">
-            <div className="nav-discovered-title">{lang === 'zh' ? '发现的实例' : 'Discovered'}</div>
-            {discoveredInstances.map(d => (
-              <div key={d.port} className="nav-inst-item discovered running" onClick={() => { setAdoptPort(d.port); setShowAdopt(true); }} title={lang === 'zh' ? '点击接管此实例' : 'Click to adopt this instance'}>
-                <span className="nav-inst-name">GA :{d.port}</span>
-                <span className="nav-inst-status">{lang === 'zh' ? '运行中' : 'running'}</span>
+            <div className="side-panel-content">
+              {featurePills.map(pill => {
+                const isActive = !!(inst as any)[pill.key];
+                return (
+                  <div key={pill.key} className={`nav-feature-pill ${isActive ? 'active' : ''}`}
+                    onClick={() => toggleFeature(inst.id, pill.key)}
+                    title={lang === 'zh' ? pill.tipZh : pill.tip}>
+                    {lang === 'zh' ? pill.labelZh : pill.label}
+                  </div>
+                );
+              })}
+              <div style={{ marginTop: 12 }}>
+                <div
+                  className={`nav-supervisor-btn ${supervisorStatus === 'running' || supervisorStatus === 'busy' ? 'active' : ''}`}
+                  onClick={async () => {
+                    if (supervisorLoading) return;
+                    setSupervisorLoading(true);
+                    try {
+                      if (supervisorStatus === 'running' || supervisorStatus === 'busy') {
+                        await fetch('/api/supervisor/stop', { method: 'POST' });
+                        setSupervisorStatus('stopped');
+                      } else {
+                        const gaRoot = localStorage.getItem('ga_root') || '';
+                        await fetch('/api/supervisor/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ga_root: gaRoot }) });
+                        setSupervisorStatus('running');
+                      }
+                    } catch {}
+                    setSupervisorLoading(false);
+                  }}
+                >
+                  <span className={`nav-supervisor-dot ${supervisorStatus === 'running' || supervisorStatus === 'busy' ? 'active' : ''}`} />
+                  <span>{lang === 'zh' ? '总管 Agent' : 'Supervisor'}</span>
+                </div>
               </div>
-            ))}
-          </div>
+            </div>
+          </>
         )}
       </div>
-
-      {/* Bottom: Theme/Lang + Actions */}
-      <div className="nav-bottom">
-        <div className="nav-bottom-toggles">
-          <div className="nav-toggle-btn" onClick={toggleTheme} title={lang === 'zh' ? '切换主题' : 'Toggle theme'}>
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </div>
-          <div className="nav-toggle-btn" onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')} title={lang === 'zh' ? '切换语言' : 'Toggle language'}>
-            {lang === 'zh' ? 'En' : '中'}
-          </div>
-        </div>
-        <div className="nav-actions">
-          <button className="nav-action-btn create" onClick={() => { fetchLLMs(); fetch('/api/config/app').then(r => r.ok ? r.json() : {}).then((d: any) => { if (d.ga_root) setGaRoot(d.ga_root); }).catch(() => {}); setShowCreate(true); }} title={lang === 'zh' ? '创建新的 Agent 实例' : 'Create new Agent instance'}>{lang === 'zh' ? '+ 新建实例' : '+ New'}</button>
-          <button className="nav-action-btn scan" onClick={() => discoverInstances()} title={lang === 'zh' ? '扫描本机已运行的 GA 实例' : 'Scan for running GA instances'}>
-            {discoverLoading ? '...' : (lang === 'zh' ? '扫描' : 'Scan')}
-          </button>
-        </div>
-      </div>
+    )}
 
       {/* Create Instance Modal */}
       {showCreate && createPortal(
@@ -425,7 +416,7 @@ function NavBar() {
         </div>,
         document.body
       )}
-    </div>
+    </>
   );
 }
 
