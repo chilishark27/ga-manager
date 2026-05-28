@@ -165,7 +165,7 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 	script := "import webbrowser, os\nwebbrowser.open = lambda *a, **k: None\n__file__ = os.path.abspath('conductor.py')\nexec(compile(open('conductor.py', encoding='utf-8').read(), 'conductor.py', 'exec'))\n"
 	cmd := exec.Command(h.python, "-u", "-c", script)
 	cmd.Dir = frontendsDir
-	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "PYTHONPATH="+h.gaRoot)
+	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "PYTHONIOENCODING=utf-8", "PYTHONPATH="+h.gaRoot)
 	var stderrBuf bytes.Buffer
 	var stdoutBuf bytes.Buffer
 	cmd.Stdout = &stdoutBuf

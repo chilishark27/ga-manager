@@ -216,7 +216,7 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 			"--reflect", workerReflect,
 			"--base_url", baseURL, "--board_key", h.boardKey, "--name", name)
 		cmd.Dir = gaRoot
-		cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1")
+		cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "PYTHONIOENCODING=utf-8")
 		cmd.Stdout = os.Stdout
 		cmd.Stderr = os.Stderr
 		if err := cmd.Start(); err != nil {

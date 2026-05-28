@@ -115,6 +115,7 @@ func (s *ConfigService) GetLLMList() ([]models.LLMConfig, error) {
 
 	cmd := exec.Command(python, scriptPath, "--ga-root", s.gaRoot)
 	cmd.Dir = bridgeDir
+	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "PYTHONIOENCODING=utf-8")
 	hideWindow(cmd)
 	output, err := cmd.Output()
 	if err != nil {

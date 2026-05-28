@@ -1209,7 +1209,7 @@ func findPIDByPort(port int) (int, error) {
 // On macOS/Linux, injects common paths so bridge can find Python and tools.
 func buildBridgeEnv() []string {
 	env := os.Environ()
-	env = append(env, "PYTHONUNBUFFERED=1")
+	env = append(env, "PYTHONUNBUFFERED=1", "PYTHONIOENCODING=utf-8")
 	if runtime.GOOS != "windows" {
 		extraPaths := []string{"/opt/homebrew/bin", "/usr/local/bin", "/usr/bin", "/opt/local/bin"}
 		if home, err := os.UserHomeDir(); err == nil {
