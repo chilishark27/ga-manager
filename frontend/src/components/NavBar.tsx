@@ -209,18 +209,22 @@ function NavBar() {
             title={lang === 'zh' ? item.tipZh : item.tip}
           >
             <span className="icon-rail-icon">{NAV_ICONS[item.key]}</span>
+            <span className="icon-rail-label">{lang === 'zh' ? item.labelZh : item.label}</span>
           </div>
         ))}
       </div>
       <div className="icon-rail-panels">
         <div className={`icon-rail-item ${sidePanel === 'instances' ? 'panel-active' : ''}`} onClick={() => setSidePanel('instances')} title={lang === 'zh' ? '实例列表' : 'Instances'}>
           <span className="icon-rail-icon"><AppstoreOutlined /></span>
+          <span className="icon-rail-label">{lang === 'zh' ? '实例' : 'Inst'}</span>
         </div>
         <div className={`icon-rail-item ${sidePanel === 'history' ? 'panel-active' : ''}`} onClick={() => setSidePanel('history')} title={lang === 'zh' ? '对话历史' : 'History'}>
           <span className="icon-rail-icon"><HistoryOutlined /></span>
+          <span className="icon-rail-label">{lang === 'zh' ? '历史' : 'Hist'}</span>
         </div>
         <div className={`icon-rail-item ${sidePanel === 'features' ? 'panel-active' : ''}`} onClick={() => setSidePanel('features')} title={lang === 'zh' ? '功能开关' : 'Features'}>
           <span className="icon-rail-icon"><ControlOutlined /></span>
+          <span className="icon-rail-label">{lang === 'zh' ? '功能' : 'Feat'}</span>
         </div>
       </div>
       <div className="icon-rail-bottom">
