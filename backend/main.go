@@ -490,7 +490,7 @@ func main() {
 		switch runtime.GOOS {
 		case "windows":
 			cmd := exec.Command("powershell", "-NoProfile", "-STA", "-Command",
-				`Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = 'Select Project Folder'; $f.ShowNewFolderButton = $true; $f.RootFolder = 'MyComputer'; if ($f.ShowDialog() -eq 'OK') { Write-Output $f.SelectedPath } else { Write-Output '' }`)
+				`[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.FolderBrowserDialog; $f.Description = 'Select Project Folder'; $f.ShowNewFolderButton = $true; $f.RootFolder = 'MyComputer'; if ($f.ShowDialog() -eq 'OK') { Write-Output $f.SelectedPath } else { Write-Output '' }`)
 			out, e := cmd.Output()
 			err = e
 			selectedPath = strings.TrimSpace(string(out))
