@@ -228,7 +228,7 @@ export default function DesktopPet() {
               onClick={() => { setPetIdx(idx); setShowSelector(false); setAction('stand'); setFrameIdx(0); }}
               title={lang === 'zh' ? p.nameZh : p.name}
             >
-              <img src={p.actions.stand.frames === 1 ? `${p.folder}/${p.actions.stand.prefix}.png` : `${p.folder}/${p.actions.stand.prefix}_0.png`} alt={p.name} style={{ width: 40, height: 40, objectFit: 'contain', imageRendering: 'pixelated' }} />
+              <img src={p.actions.stand.frames === 1 ? `${p.folder}/${p.actions.stand.prefix}.png` : `${p.folder}/${p.actions.stand.prefix}_0.png`} alt={p.name} style={{ width: 56, height: 56, objectFit: 'contain', imageRendering: 'pixelated' }} />
               <span style={{ fontSize: 10, color: 'var(--text-2)' }}>{lang === 'zh' ? p.nameZh : p.name}</span>
             </div>
           ))}
