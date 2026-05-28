@@ -117,6 +117,21 @@ function SettingsPage() {
                 Light
               </button>
             </div>
+            <div style={{ marginTop: 12 }}>
+              <label style={{ fontSize: 11, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>
+                {lang === 'zh' ? '窗口透明度' : 'Window Opacity'}: {Math.round((parseFloat(localStorage.getItem('ga_opacity') || '0.82')) * 100)}%
+              </label>
+              <input type="range" min="50" max="100" step="2"
+                defaultValue={Math.round((parseFloat(localStorage.getItem('ga_opacity') || '0.82')) * 100)}
+                onChange={e => {
+                  const v = parseInt(e.target.value) / 100;
+                  localStorage.setItem('ga_opacity', String(v));
+                  const el = document.querySelector('.app-layout') as HTMLElement;
+                  if (el) el.style.background = `rgba(255,255,255,${v})`;
+                }}
+                style={{ width: '100%', accentColor: 'var(--accent)' }}
+              />
+            </div>
           </div>
 
           {/* Language card */}

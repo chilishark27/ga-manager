@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useStore } from '../store';
 
-type PetType = 'pixel_cat' | 'xiao_dai' | 'nahida' | 'pixel_simei';
+type PetType = 'pixel_cat' | 'xiao_dai' | 'nahida' | 'pixel_simei' | 'xiao' | 'wanderer' | 'firefly' | 'lucia' | 'shorekeeper' | 'chun';
 type PetState = 'idle' | 'walking' | 'working';
 
 interface Position { x: number; y: number; }
@@ -11,6 +11,12 @@ const PET_NAMES: Record<PetType, string> = {
   xiao_dai: '小呆',
   nahida: '纳西妲',
   pixel_simei: '像素四妹',
+  xiao: '魈',
+  wanderer: '流浪者',
+  firefly: '流萤',
+  lucia: '露西亚',
+  shorekeeper: '守岸人',
+  chun: '椿',
 };
 
 const PET_IMAGES: Record<PetType, string> = {
@@ -18,6 +24,12 @@ const PET_IMAGES: Record<PetType, string> = {
   xiao_dai: '/pets/xiao_dai.png',
   nahida: '/pets/nahida.png',
   pixel_simei: '/pets/pixel_simei.png',
+  xiao: '/pets/xiao.png',
+  wanderer: '/pets/wanderer.png',
+  firefly: '/pets/firefly.png',
+  lucia: '/pets/lucia.png',
+  shorekeeper: '/pets/shorekeeper.png',
+  chun: '/pets/chun.png',
 };
 
 export default function DesktopPet() {

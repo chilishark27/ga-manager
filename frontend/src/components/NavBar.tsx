@@ -244,7 +244,10 @@ function NavBar() {
           <>
             <div className="side-panel-header">
               <span className="side-panel-title">{lang === 'zh' ? '实例' : 'Instances'} ({instances.length})</span>
-              <button className="side-panel-action" onClick={() => { fetchLLMs(); fetch('/api/config/app').then(r => r.ok ? r.json() : {}).then((d: any) => { if (d.ga_root) setGaRoot(d.ga_root); }).catch(() => {}); setShowCreate(true); }}><PlusOutlined /></button>
+              <div style={{ display: 'flex', gap: 4 }}>
+                <button className="side-panel-action" onClick={() => discoverInstances()} title={lang === 'zh' ? '扫描本机实例' : 'Scan local'}>{discoverLoading ? '...' : '⟳'}</button>
+                <button className="side-panel-action" onClick={() => { fetchLLMs(); fetch('/api/config/app').then(r => r.ok ? r.json() : {}).then((d: any) => { if (d.ga_root) setGaRoot(d.ga_root); }).catch(() => {}); setShowCreate(true); }}><PlusOutlined /></button>
+              </div>
             </div>
             <div className="side-panel-content">
               {instances.map(inst => (
@@ -286,11 +289,6 @@ function NavBar() {
                   ))}
                 </>
               )}
-            </div>
-            <div className="side-panel-footer">
-              <button className="nav-action-btn scan" onClick={() => discoverInstances()}>
-                {discoverLoading ? '...' : (lang === 'zh' ? '扫描' : 'Scan')}
-              </button>
             </div>
           </>
         )}

@@ -852,7 +852,7 @@ body { background: transparent; color: var(--text-1); height: 100vh; overflow: h
 .desktop-pet { position: fixed; bottom: 20px; left: 50%; z-index: 800; cursor: grab; user-select: none; transition: filter 0.3s; }
 .desktop-pet:active { cursor: grabbing; }
 .desktop-pet:hover { filter: drop-shadow(0 0 6px rgba(212, 114, 154, 0.3)); }
-.desktop-pet-container { position: relative; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; }
+.desktop-pet-container { position: relative; width: 100px; height: 100px; display: flex; align-items: center; justify-content: center; }
 .desktop-pet-img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 .desktop-pet svg { width: 100%; height: 100%; }
 .desktop-pet.idle .pet-body { animation: petIdle 3s ease-in-out infinite; }
@@ -863,7 +863,7 @@ body { background: transparent; color: var(--text-1); height: 100vh; overflow: h
 .desktop-pet-status { position: absolute; top: -6px; right: -6px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--bg); }
 .desktop-pet-status.working { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); animation: pulse 1.5s infinite; }
 .desktop-pet-status.idle { background: var(--green); box-shadow: 0 0 4px var(--green); }
-.pet-selector { position: fixed; bottom: 110px; left: 50%; transform: translateX(-50%); background: var(--card); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 12px; padding: 12px; box-shadow: var(--shadow); z-index: 801; display: flex; gap: 10px; animation: scaleIn 0.2s ease; }
+.pet-selector { position: fixed; bottom: 130px; left: 50%; transform: translateX(-50%); background: var(--card); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 12px; padding: 12px; box-shadow: var(--shadow); z-index: 801; display: flex; flex-wrap: wrap; gap: 8px; max-width: 320px; animation: scaleIn 0.2s ease; }
 .pet-option { width: 50px; height: 50px; border-radius: 10px; border: 2px solid var(--border); cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; background: var(--bg3); }
 .pet-option:hover { border-color: var(--accent); transform: scale(1.1); }
 .pet-option.active { border-color: var(--accent); background: rgba(236, 143, 173, 0.15); box-shadow: 0 0 8px rgba(236, 143, 173, 0.2); }

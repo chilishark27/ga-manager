@@ -73,8 +73,10 @@ function AppInner() {
     }
   };
 
+  const opacity = localStorage.getItem('ga_opacity') || '0.82';
+
   return (
-    <div className="app-layout">
+    <div className="app-layout" style={{ background: `rgba(255,255,255,${opacity})` }}>
       <SakuraPetals />
       <NavBar />
       <div className="app-main">
