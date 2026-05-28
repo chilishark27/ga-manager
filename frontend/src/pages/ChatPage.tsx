@@ -4,6 +4,7 @@ import remarkGfm from 'remark-gfm';
 import { useStore } from '../store';
 import { useI18n } from '../i18n';
 import { cleanReply, foldTurns, SessionFile, parseSessionLog } from '../utils/chatUtils';
+import CodeBlock from '../components/CodeBlock';
 
 const IMG_PATH_RE = /(?:^|\s)((?:[A-Z]:\\|\/)[^\s"'<>]+\.(?:png|jpg|jpeg|gif|webp|bmp|svg))(?:\s|$|[)\].,])/gim;
 function injectImagePreviews(text: string): string {
@@ -503,7 +504,7 @@ function ChatPage() {
                                 )}
                                 {isExpanded && (
                                   <div className="turn-content">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{injectImagePreviews(turn.content)}</ReactMarkdown>
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code: ({ className, children }) => <CodeBlock className={className}>{children}</CodeBlock> }}>{injectImagePreviews(turn.content)}</ReactMarkdown>
                                   </div>
                                 )}
                               </div>
@@ -517,7 +518,7 @@ function ChatPage() {
                   return (
                     <div key={startIdx + idx} className={`msg agent${rewindClass}`} onClick={rewindClick}>
                       <div className="msg-bubble">
-                        <ReactMarkdown remarkPlugins={[remarkGfm]}>{injectImagePreviews(cleanReply(msg.content))}</ReactMarkdown>
+                        <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code: ({ className, children }) => <CodeBlock className={className}>{children}</CodeBlock> }}>{injectImagePreviews(cleanReply(msg.content))}</ReactMarkdown>
                       </div>
                       <div className="msg-actions">
                         <button className="msg-action-btn" onClick={(e) => { e.stopPropagation(); deleteMessage(globalIdx); }} title="Delete">&#128465;</button>

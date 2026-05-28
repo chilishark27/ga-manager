@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useStore } from '../store';
 import { useI18n } from '../i18n';
+import CodeBlock from './CodeBlock';
 import { cleanReply, foldTurns, FoldedTurn, SessionFile, parseSessionLog } from '../utils/chatUtils';
 
 function ChatPanel() {
@@ -355,7 +356,7 @@ function ChatPanel() {
                           )}
                           {isExpanded && (
                             <div className="turn-content">
-                              <ReactMarkdown remarkPlugins={[remarkGfm]}>{turn.content}</ReactMarkdown>
+                              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code: ({ className, children }) => <CodeBlock className={className}>{children}</CodeBlock> }}>{turn.content}</ReactMarkdown>
                             </div>
                           )}
                         </div>
@@ -370,7 +371,7 @@ function ChatPanel() {
             return (
               <div key={idx} className="msg agent">
                 <div className="msg-bubble">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{cleanReply(msg.content)}</ReactMarkdown>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code: ({ className, children }) => <CodeBlock className={className}>{children}</CodeBlock> }}>{cleanReply(msg.content)}</ReactMarkdown>
                 </div>
                 {msg.status === 'error' && <span className="msg-error">{t.sendFailed}</span>}
               </div>
