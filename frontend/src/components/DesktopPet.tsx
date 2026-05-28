@@ -17,23 +17,23 @@ function DarkKnightSVG({ state }: { state: PetState }) {
   return (
     <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g className="pet-body">
-        <ellipse cx="32" cy="44" rx="16" ry="14" fill="#2a2a3e" stroke="#1a1a2e" strokeWidth="1"/>
-        <path d="M20 38 L16 56 Q32 60 48 56 L44 38" fill="#1a1a2e" opacity="0.7"/>
-        <circle cx="32" cy="28" r="13" fill="#3d3d5c" stroke="#2a2a3e" strokeWidth="1.5"/>
-        <path d="M22 24 Q32 16 42 24 L41 30 Q32 33 23 30 Z" fill="#4a4a6a"/>
-        <rect x="24" y="26" width="16" height="5" rx="2.5" fill="#d4729a" opacity="0.85">
-          {state === 'working' && <animate attributeName="opacity" values="0.85;1;0.6;1;0.85" dur="1.2s" repeatCount="indefinite"/>}
+        <path d="M12 38 C12 22 20 12 32 12 C44 12 52 22 52 38 C52 50 44 56 32 56 C20 56 12 50 12 38 Z" fill="#2d2b55" stroke="#1e1b3a" strokeWidth="1.5"/>
+        <path d="M16 40 C16 30 22 22 32 22 C42 22 48 30 48 40 C48 48 42 52 32 52 C22 52 16 48 16 40 Z" fill="#3d3a6e" opacity="0.5"/>
+        <ellipse cx="25" cy="35" rx="5" ry="5.5" fill="#fff"/>
+        <ellipse cx="39" cy="35" rx="5" ry="5.5" fill="#fff"/>
+        <circle cx="26" cy="36" r="3" fill="#1a1a2e">
+          {state === 'idle' && <animate attributeName="cy" values="36;35;36" dur="3s" repeatCount="indefinite"/>}
+        </circle>
+        <circle cx="40" cy="36" r="3" fill="#1a1a2e">
+          {state === 'idle' && <animate attributeName="cy" values="36;35;36" dur="3s" repeatCount="indefinite"/>}
+        </circle>
+        <circle cx="24" cy="34" r="1.5" fill="#fff" opacity="0.8"/>
+        <circle cx="38" cy="34" r="1.5" fill="#fff" opacity="0.8"/>
+        <path d="M28 44 Q32 47 36 44" stroke="#1e1b3a" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
+        <rect x="26" y="10" width="12" height="6" rx="3" fill="#d4729a" opacity="0.9">
+          {state === 'working' && <animate attributeName="opacity" values="0.9;0.5;0.9" dur="1s" repeatCount="indefinite"/>}
         </rect>
-        <circle cx="29" cy="28" r="1.5" fill="#fff" opacity="0.9">
-          {state === 'idle' && <animate attributeName="r" values="1.5;0.4;1.5" dur="3.5s" repeatCount="indefinite"/>}
-        </circle>
-        <circle cx="35" cy="28" r="1.5" fill="#fff" opacity="0.9">
-          {state === 'idle' && <animate attributeName="r" values="1.5;0.4;1.5" dur="3.5s" repeatCount="indefinite"/>}
-        </circle>
-        <path d="M46 20 L48 8 L50 20" fill="#b0b0cc" stroke="#8888aa" strokeWidth="0.5"/>
-        <rect x="47" y="8" width="2" height="3" rx="1" fill="#d4729a"/>
-        <path d="M19 22 L17 18 L21 20 Z" fill="#3d3d5c"/>
-        <path d="M43 20 L47 18 L45 22 Z" fill="#3d3d5c"/>
+        <path d="M20 16 L18 10 M44 16 L46 10" stroke="#3d3a6e" strokeWidth="2" strokeLinecap="round"/>
       </g>
     </svg>
   );
@@ -43,31 +43,33 @@ function SharkChiliSVG({ state }: { state: PetState }) {
   return (
     <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g className="pet-body">
-        <ellipse cx="32" cy="34" rx="18" ry="13" fill="#5ba3e6" stroke="#3a7bc8" strokeWidth="1"/>
-        <ellipse cx="32" cy="37" rx="11" ry="8" fill="#e8f4ff" opacity="0.9"/>
-        <path d="M30 21 L32 14 L34 21 Z" fill="#3a7bc8" stroke="#2d6db5" strokeWidth="0.5"/>
-        <path d="M48 32 L58 27 L56 34 L58 41 L48 36 Z" fill="#3a7bc8">
-          {state !== 'working' && <animate attributeName="d" values="M48 32 L58 27 L56 34 L58 41 L48 36 Z;M48 32 L60 25 L58 34 L60 43 L48 36 Z;M48 32 L58 27 L56 34 L58 41 L48 36 Z" dur="1.8s" repeatCount="indefinite"/>}
+        <path d="M8 34 C8 20 18 12 32 12 C46 12 56 20 56 34 C56 48 46 54 32 54 C18 54 8 48 8 34 Z" fill="#5ba3e6" stroke="#3a7bc8" strokeWidth="1.5"/>
+        <path d="M14 38 C14 30 20 24 32 24 C44 24 50 30 50 38 C50 46 44 50 32 50 C20 50 14 46 14 38 Z" fill="#e8f4ff" opacity="0.7"/>
+        <path d="M30 10 L32 4 L34 10" fill="#3a7bc8" stroke="#2d6db5" strokeWidth="0.8" strokeLinejoin="round"/>
+        <path d="M50 30 Q58 26 56 34 Q58 42 50 38" fill="#3a7bc8" stroke="#2d6db5" strokeWidth="0.8">
+          {state !== 'working' && <animate attributeName="d" values="M50 30 Q58 26 56 34 Q58 42 50 38;M50 30 Q60 24 58 34 Q60 44 50 38;M50 30 Q58 26 56 34 Q58 42 50 38" dur="2s" repeatCount="indefinite"/>}
         </path>
-        <circle cx="26" cy="32" r="3.5" fill="#fff" stroke="#e8e8f0" strokeWidth="0.5"/>
-        <circle cx="26" cy="32" r="2" fill="#1a1a2e">
-          {state === 'idle' && <animate attributeName="cx" values="26;27;26;25;26" dur="4s" repeatCount="indefinite"/>}
+        <ellipse cx="24" cy="33" rx="5.5" ry="6" fill="#fff"/>
+        <ellipse cx="40" cy="33" rx="5.5" ry="6" fill="#fff"/>
+        <circle cx="25" cy="34" r="3.2" fill="#1a1a2e">
+          {state === 'idle' && <animate attributeName="cx" values="25;26;25;24;25" dur="4s" repeatCount="indefinite"/>}
         </circle>
-        <circle cx="38" cy="32" r="3.5" fill="#fff" stroke="#e8e8f0" strokeWidth="0.5"/>
-        <circle cx="38" cy="32" r="2" fill="#1a1a2e">
-          {state === 'idle' && <animate attributeName="cx" values="38;39;38;37;38" dur="4s" repeatCount="indefinite"/>}
+        <circle cx="41" cy="34" r="3.2" fill="#1a1a2e">
+          {state === 'idle' && <animate attributeName="cx" values="41;42;41;40;41" dur="4s" repeatCount="indefinite"/>}
         </circle>
-        <path d="M28 40 Q32 43 36 40" stroke="#1a1a2e" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
-        <path d="M29 40 L30 41.5 L31 40 M33 40 L34 41.5 L35 40" fill="#fff" stroke="#fff" strokeWidth="0.3"/>
-        <path d="M22 22 Q26 16 30 18 Q31 14 28 11" fill="#e74c3c" stroke="#c0392b" strokeWidth="0.5"/>
-        <circle cx="27.5" cy="11" r="1.5" fill="#27ae60"/>
+        <circle cx="23" cy="32" r="1.5" fill="#fff" opacity="0.8"/>
+        <circle cx="39" cy="32" r="1.5" fill="#fff" opacity="0.8"/>
+        <path d="M27 44 Q32 48 37 44" stroke="#1a1a2e" strokeWidth="1.5" fill="none" strokeLinecap="round"/>
+        <path d="M28 44 L29 46 L30 44 M34 44 L35 46 L36 44" fill="#fff" stroke="#fff" strokeWidth="0.5"/>
+        <path d="M16 16 Q20 10 24 14 Q25 9 22 6" fill="#e74c3c" stroke="#c0392b" strokeWidth="0.8" strokeLinejoin="round"/>
+        <circle cx="21.5" cy="6" r="2" fill="#27ae60"/>
         {state === 'working' && (
-          <g>
-            <ellipse cx="18" cy="38" rx="3" ry="2.5" fill="#ff6b35" opacity="0.7">
-              <animate attributeName="rx" values="3;5;3" dur="0.6s" repeatCount="indefinite"/>
+          <g opacity="0.8">
+            <ellipse cx="6" cy="36" rx="4" ry="3" fill="#ff6b35">
+              <animate attributeName="rx" values="4;6;4" dur="0.6s" repeatCount="indefinite"/>
             </ellipse>
-            <ellipse cx="15" cy="38" rx="2" ry="1.5" fill="#ffd700" opacity="0.5">
-              <animate attributeName="rx" values="2;4;2" dur="0.5s" repeatCount="indefinite"/>
+            <ellipse cx="3" cy="36" rx="2.5" ry="2" fill="#ffd700" opacity="0.7">
+              <animate attributeName="rx" values="2.5;4;2.5" dur="0.5s" repeatCount="indefinite"/>
             </ellipse>
           </g>
         )}
@@ -80,45 +82,32 @@ function SakuraCatSVG({ state }: { state: PetState }) {
   return (
     <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g className="pet-body">
-        <ellipse cx="32" cy="44" rx="13" ry="11" fill="#fce4ec" stroke="#f8bbd0" strokeWidth="1"/>
-        <circle cx="32" cy="28" r="14" fill="#fce4ec" stroke="#f8bbd0" strokeWidth="1"/>
-        <path d="M21 18 L23 8 L28 16 Z" fill="#fce4ec" stroke="#f8bbd0" strokeWidth="0.8"/>
-        <path d="M23 14 L24 10 L27 15 Z" fill="#f48fb1" opacity="0.4"/>
-        <path d="M36 16 L41 8 L43 18 Z" fill="#fce4ec" stroke="#f8bbd0" strokeWidth="0.8"/>
-        <path d="M38 15 L40 10 L42 16 Z" fill="#f48fb1" opacity="0.4"/>
-        <ellipse cx="27" cy="27" rx="2.5" ry="3" fill="#37474f">
-          {state === 'idle' && <animate attributeName="ry" values="3;0.5;3" dur="4s" repeatCount="indefinite"/>}
+        <path d="M10 36 C10 20 19 12 32 12 C45 12 54 20 54 36 C54 50 45 56 32 56 C19 56 10 50 10 36 Z" fill="#fce4ec" stroke="#f8bbd0" strokeWidth="1.5"/>
+        <path d="M18 14 L16 4 L24 12" fill="#fce4ec" stroke="#f8bbd0" strokeWidth="1.2" strokeLinejoin="round"/>
+        <path d="M19 10 L17 5 L23 11" fill="#f48fb1" opacity="0.35"/>
+        <path d="M40 12 L48 4 L46 14" fill="#fce4ec" stroke="#f8bbd0" strokeWidth="1.2" strokeLinejoin="round"/>
+        <path d="M41 11 L47 5 L45 13" fill="#f48fb1" opacity="0.35"/>
+        <ellipse cx="24" cy="34" rx="5.5" ry="6" fill="#fff"/>
+        <ellipse cx="40" cy="34" rx="5.5" ry="6" fill="#fff"/>
+        <ellipse cx="25" cy="35" rx="3.5" ry="4" fill="#37474f">
+          {state === 'idle' && <animate attributeName="ry" values="4;1;4" dur="4s" repeatCount="indefinite"/>}
         </ellipse>
-        <ellipse cx="37" cy="27" rx="2.5" ry="3" fill="#37474f">
-          {state === 'idle' && <animate attributeName="ry" values="3;0.5;3" dur="4s" repeatCount="indefinite"/>}
+        <ellipse cx="41" cy="35" rx="3.5" ry="4" fill="#37474f">
+          {state === 'idle' && <animate attributeName="ry" values="4;1;4" dur="4s" repeatCount="indefinite"/>}
         </ellipse>
-        <circle cx="26" cy="26" r="1" fill="#fff" opacity="0.8"/>
-        <circle cx="36" cy="26" r="1" fill="#fff" opacity="0.8"/>
-        <ellipse cx="23" cy="32" rx="3" ry="1.5" fill="#f48fb1" opacity="0.3"/>
-        <ellipse cx="41" cy="32" rx="3" ry="1.5" fill="#f48fb1" opacity="0.3"/>
-        <ellipse cx="32" cy="30" rx="1.5" ry="1" fill="#f48fb1"/>
-        <path d="M29 32 Q32 34 35 32" stroke="#795548" strokeWidth="0.8" fill="none" strokeLinecap="round"/>
-        <line x1="16" y1="28" x2="24" y2="29" stroke="#bdbdbd" strokeWidth="0.5" strokeLinecap="round"/>
-        <line x1="16" y1="31" x2="24" y2="31" stroke="#bdbdbd" strokeWidth="0.5" strokeLinecap="round"/>
-        <line x1="40" y1="29" x2="48" y2="28" stroke="#bdbdbd" strokeWidth="0.5" strokeLinecap="round"/>
-        <line x1="40" y1="31" x2="48" y2="31" stroke="#bdbdbd" strokeWidth="0.5" strokeLinecap="round"/>
-        <path d="M44 44 Q50 38 48 32 Q47 28 50 26" stroke="#fce4ec" strokeWidth="3.5" fill="none" strokeLinecap="round">
-          {state === 'idle' && <animate attributeName="d" values="M44 44 Q50 38 48 32 Q47 28 50 26;M44 44 Q52 40 50 34 Q49 30 52 28;M44 44 Q50 38 48 32 Q47 28 50 26" dur="3s" repeatCount="indefinite"/>}
+        <circle cx="23" cy="33" r="1.8" fill="#fff" opacity="0.85"/>
+        <circle cx="39" cy="33" r="1.8" fill="#fff" opacity="0.85"/>
+        <ellipse cx="18" cy="40" rx="4" ry="2.5" fill="#f48fb1" opacity="0.25"/>
+        <ellipse cx="46" cy="40" rx="4" ry="2.5" fill="#f48fb1" opacity="0.25"/>
+        <ellipse cx="32" cy="39" rx="2" ry="1.5" fill="#f48fb1"/>
+        <path d="M28 43 Q32 46 36 43" stroke="#795548" strokeWidth="1" fill="none" strokeLinecap="round"/>
+        <line x1="6" y1="34" x2="16" y2="35" stroke="#e0bfbf" strokeWidth="0.8" strokeLinecap="round"/>
+        <line x1="6" y1="38" x2="16" y2="38" stroke="#e0bfbf" strokeWidth="0.8" strokeLinecap="round"/>
+        <line x1="48" y1="35" x2="58" y2="34" stroke="#e0bfbf" strokeWidth="0.8" strokeLinecap="round"/>
+        <line x1="48" y1="38" x2="58" y2="38" stroke="#e0bfbf" strokeWidth="0.8" strokeLinecap="round"/>
+        <path d="M50 48 Q56 42 54 36" stroke="#fce4ec" strokeWidth="4" fill="none" strokeLinecap="round">
+          {state === 'idle' && <animate attributeName="d" values="M50 48 Q56 42 54 36;M50 48 Q58 44 56 38;M50 48 Q56 42 54 36" dur="2.5s" repeatCount="indefinite"/>}
         </path>
-        <g transform="translate(38,14)">
-          <circle cx="0" cy="0" r="2" fill="#ffcdd2"/>
-          <circle cx="1.8" cy="-1.5" r="2" fill="#ffcdd2"/>
-          <circle cx="-1.5" cy="-1.5" r="2" fill="#ffcdd2"/>
-          <circle cx="0" cy="-0.8" r="1.2" fill="#fff9c4" opacity="0.6"/>
-        </g>
-        {state === 'working' && (
-          <g>
-            <rect x="22" y="46" width="20" height="12" rx="2" fill="#455a64" stroke="#37474f" strokeWidth="0.5"/>
-            <rect x="24" y="48" width="16" height="8" rx="1" fill="#4fc3f7" opacity="0.6">
-              <animate attributeName="opacity" values="0.6;0.9;0.6" dur="1.5s" repeatCount="indefinite"/>
-            </rect>
-          </g>
-        )}
       </g>
     </svg>
   );
@@ -128,35 +117,37 @@ function PixelGhostSVG({ state }: { state: PetState }) {
   return (
     <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
       <g className="pet-body">
-        <path d="M20 34 Q20 16 32 16 Q44 16 44 34 L44 50 L41 47 L38 50 L35 47 L32 50 L29 47 L26 50 L23 47 L20 50 Z" fill="#b39ddb" stroke="#9575cd" strokeWidth="1" opacity="0.85">
-          {state === 'idle' && <animate attributeName="opacity" values="0.85;0.6;0.85" dur="3.5s" repeatCount="indefinite"/>}
+        <path d="M14 32 C14 16 22 8 32 8 C42 8 50 16 50 32 L50 52 L46 48 L42 52 L38 48 L34 52 L30 48 L26 52 L22 48 L18 52 L14 48 Z" fill="#b39ddb" stroke="#9575cd" strokeWidth="1.5">
+          {state === 'idle' && <animate attributeName="opacity" values="0.9;0.65;0.9" dur="3.5s" repeatCount="indefinite"/>}
         </path>
-        <path d="M24 34 Q24 20 32 20 Q40 20 40 34 L40 46 L38 44 L36 46 L34 44 L32 46 L30 44 L28 46 L26 44 L24 46 Z" fill="#d1c4e9" opacity="0.5"/>
-        <circle cx="28" cy="32" r="3.5" fill="#fff" stroke="#ede7f6" strokeWidth="0.5"/>
-        <circle cx="36" cy="32" r="3.5" fill="#fff" stroke="#ede7f6" strokeWidth="0.5"/>
-        <circle cx="28.5" cy="32.5" r="2" fill="#311b92">
-          {state === 'idle' && <animate attributeName="cy" values="32.5;31.5;32.5;33.5;32.5" dur="3s" repeatCount="indefinite"/>}
+        <path d="M18 32 C18 20 24 14 32 14 C40 14 46 20 46 32 L46 46 L43 43 L40 46 L37 43 L34 46 L31 43 L28 46 L25 43 L22 46 L18 43 Z" fill="#d1c4e9" opacity="0.4"/>
+        <ellipse cx="26" cy="30" rx="5.5" ry="6" fill="#fff"/>
+        <ellipse cx="38" cy="30" rx="5.5" ry="6" fill="#fff"/>
+        <circle cx="27" cy="31" r="3.2" fill="#311b92">
+          {state === 'idle' && <animate attributeName="cy" values="31;30;31;32;31" dur="3s" repeatCount="indefinite"/>}
         </circle>
-        <circle cx="36.5" cy="32.5" r="2" fill="#311b92">
-          {state === 'idle' && <animate attributeName="cy" values="32.5;31.5;32.5;33.5;32.5" dur="3s" repeatCount="indefinite"/>}
+        <circle cx="39" cy="31" r="3.2" fill="#311b92">
+          {state === 'idle' && <animate attributeName="cy" values="31;30;31;32;31" dur="3s" repeatCount="indefinite"/>}
         </circle>
-        <ellipse cx="25" cy="37" rx="2.5" ry="1.5" fill="#f48fb1" opacity="0.35"/>
-        <ellipse cx="39" cy="37" rx="2.5" ry="1.5" fill="#f48fb1" opacity="0.35"/>
-        <path d="M30 39 Q32 41 34 39" stroke="#7c4dff" strokeWidth="1" fill="none" strokeLinecap="round"/>
+        <circle cx="25" cy="29" r="1.8" fill="#fff" opacity="0.8"/>
+        <circle cx="37" cy="29" r="1.8" fill="#fff" opacity="0.8"/>
+        <ellipse cx="21" cy="37" rx="3.5" ry="2" fill="#f48fb1" opacity="0.3"/>
+        <ellipse cx="43" cy="37" rx="3.5" ry="2" fill="#f48fb1" opacity="0.3"/>
+        <path d="M29 40 Q32 43 35 40" stroke="#7c4dff" strokeWidth="1.2" fill="none" strokeLinecap="round"/>
         {state === 'working' && (
-          <ellipse cx="32" cy="14" rx="8" ry="2.5" fill="none" stroke="#ffd54f" strokeWidth="1.5" opacity="0.7">
+          <ellipse cx="32" cy="6" rx="9" ry="3" fill="none" stroke="#ffd54f" strokeWidth="1.8" opacity="0.7">
             <animate attributeName="opacity" values="0.7;1;0.7" dur="1.5s" repeatCount="indefinite"/>
           </ellipse>
         )}
         {state === 'idle' && (
           <g>
-            <circle cx="15" cy="24" r="1.2" fill="#ffd54f" opacity="0.5">
+            <circle cx="8" cy="20" r="1.5" fill="#ffd54f" opacity="0.5">
               <animate attributeName="opacity" values="0.5;0;0.5" dur="2.5s" repeatCount="indefinite"/>
             </circle>
-            <circle cx="49" cy="28" r="1" fill="#ffd54f" opacity="0.4">
+            <circle cx="56" cy="24" r="1.2" fill="#ffd54f" opacity="0.4">
               <animate attributeName="opacity" values="0.4;0;0.4" dur="3s" repeatCount="indefinite"/>
             </circle>
-            <circle cx="47" cy="20" r="1.2" fill="#ce93d8" opacity="0.4">
+            <circle cx="54" cy="14" r="1.5" fill="#ce93d8" opacity="0.4">
               <animate attributeName="opacity" values="0.4;0;0.4" dur="2s" repeatCount="indefinite"/>
             </circle>
           </g>
