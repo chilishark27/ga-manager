@@ -224,6 +224,9 @@ body { background: transparent; color: var(--text-1); height: 100vh; overflow: h
 .top-bar-project-option:hover { background: var(--sidebar-hover); color: var(--text-1); }
 .top-bar-project-option.active { background: rgba(236, 143, 173, 0.1); color: var(--accent); font-weight: 600; }
 .top-bar-project-opt-icon { font-size: 10px; color: var(--text-3); width: 14px; text-align: center; }
+.top-bar-project-del { display: none; font-size: 11px; color: var(--text-3); padding: 2px 4px; border-radius: 4px; cursor: pointer; }
+.top-bar-project-option:hover .top-bar-project-del { display: block; }
+.top-bar-project-del:hover { color: var(--red); background: rgba(239, 68, 68, 0.08); }
 .top-bar-project-divider { height: 1px; background: var(--border); margin: 4px 8px; }
 
 /* Window Controls (frameless) */
@@ -853,6 +856,10 @@ body { background: transparent; color: var(--text-1); height: 100vh; overflow: h
 .desktop-pet:active { cursor: grabbing; }
 .desktop-pet:hover { filter: drop-shadow(0 0 6px rgba(212, 114, 154, 0.3)); }
 .desktop-pet-container { position: relative; width: 130px; height: 130px; display: flex; align-items: center; justify-content: center; }
+.desktop-pet.idle .desktop-pet-container { animation: petIdleBounce 2.5s ease-in-out infinite; }
+.desktop-pet.working .desktop-pet-container { animation: petWorkPulse 1.2s ease-in-out infinite; }
+@keyframes petIdleBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+@keyframes petWorkPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 .desktop-pet-img { width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; }
 .desktop-pet svg { width: 100%; height: 100%; }
 .desktop-pet.idle .pet-body { animation: petIdle 3s ease-in-out infinite; }
@@ -869,6 +876,10 @@ body { background: transparent; color: var(--text-1); height: 100vh; overflow: h
 .pet-bubble { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 8px; background: #fff; border: 1px solid var(--border); border-radius: 12px; padding: 6px 12px; font-size: 12px; color: var(--text-1); white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.08); animation: bubbleIn 0.3s ease; z-index: 10; }
 .pet-bubble::after { content: ''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 0; height: 0; border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #fff; }
 @keyframes bubbleIn { from { opacity: 0; transform: translateX(-50%) translateY(8px) scale(0.8); } to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); } }
+
+/* Pet heart particles */
+.pet-heart { position: absolute; font-size: 14px; color: #e87da0; pointer-events: none; animation: heartFloat 1s ease-out forwards; z-index: 11; }
+@keyframes heartFloat { 0% { opacity: 1; transform: translateY(0) scale(1); } 100% { opacity: 0; transform: translateY(-40px) scale(0.5); } }
 .desktop-pet-status { position: absolute; top: -6px; right: -6px; width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--bg); }
 .desktop-pet-status.working { background: var(--yellow); box-shadow: 0 0 6px var(--yellow); animation: pulse 1.5s infinite; }
 .desktop-pet-status.idle { background: var(--green); box-shadow: 0 0 4px var(--green); }

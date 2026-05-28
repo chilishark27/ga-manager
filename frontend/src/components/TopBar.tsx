@@ -7,7 +7,7 @@ function TopBar() {
   const {
     activeInstance: getActiveInstance, llmConfigs, fetchLLMs, switchLLM,
     toggleInstance, restartInstance,
-    projectPath, projectName, setProject, clearProject, recentProjects,
+    projectPath, projectName, setProject, clearProject, recentProjects, removeRecentProject,
     showTodoPanel, toggleTodoPanel, todos,
   } = useStore();
   const { t, lang } = useI18n();
@@ -46,7 +46,9 @@ function TopBar() {
                 <div key={p.path} className={`top-bar-project-option ${p.path === projectPath ? 'active' : ''}`}
                   onClick={() => { setProject(p.path); setShowProjectDropdown(false); }}
                   title={p.path}>
-                  <span className="top-bar-project-opt-icon">&#9679;</span> {p.name}
+                  <span className="top-bar-project-opt-icon">&#9679;</span>
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
+                  <span className="top-bar-project-del" onClick={(e) => { e.stopPropagation(); removeRecentProject(p.path); }}>&#10005;</span>
                 </div>
               ))}
               {projectPath && (

@@ -172,6 +172,7 @@ interface AppState {
   recentProjects: { path: string; name: string }[];
   setProject: (path: string) => Promise<void>;
   clearProject: () => void;
+  removeRecentProject: (path: string) => void;
 
   // TODO Panel
   todos: { id: string; text: string; done: boolean; createdAt: number; source: 'manual' | 'agent' }[];
@@ -1189,6 +1190,16 @@ export const useStore = create<AppState>((set, get) => ({
     localStorage.removeItem('ga_project_path');
     localStorage.removeItem('ga_project_name');
     set({ projectPath: null, projectName: null, projectTree: null });
+  },
+  removeRecentProject: (path: string) => {
+    const recent = get().recentProjects.filter(p => p.path !== path);
+    localStorage.setItem('ga_recent_projects', JSON.stringify(recent));
+    set({ recentProjects: recent });
+    if (get().projectPath === path) {
+      localStorage.removeItem('ga_project_path');
+      localStorage.removeItem('ga_project_name');
+      set({ projectPath: null, projectName: null, projectTree: null });
+    }
   },
 
   // TODO Panel

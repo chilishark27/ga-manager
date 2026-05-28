@@ -83,9 +83,11 @@ export default function DesktopPet() {
   const [frameIdx, setFrameIdx] = useState(0);
   const [bubble, setBubble] = useState<string | null>(null);
   const [clickAnim, setClickAnim] = useState(false);
+  const [hearts, setHearts] = useState<{ id: number; x: number; y: number }[]>([]);
   const dragOffset = useRef<Position>({ x: 0, y: 0 });
   const actionTimer = useRef<ReturnType<typeof setInterval>>();
   const bubbleTimer = useRef<ReturnType<typeof setTimeout>>();
+  const heartId = useRef(0);
 
   const pet = PETS[petIdx];
   const activeInstance = instances.find(i => i.id === activeInstanceId);
@@ -155,16 +157,23 @@ export default function DesktopPet() {
   }, [isWorking]);
 
   const handleClick = () => {
-    // Random dialogue bubble
     const dialogues = lang === 'zh' ? CLICK_DIALOGUES_ZH : CLICK_DIALOGUES_EN;
     const msg = dialogues[Math.floor(Math.random() * dialogues.length)];
     setBubble(msg);
     clearTimeout(bubbleTimer.current);
     bubbleTimer.current = setTimeout(() => setBubble(null), 2500);
 
-    // Bounce animation
     setClickAnim(true);
     setTimeout(() => setClickAnim(false), 400);
+
+    // Spawn heart particles
+    const newHearts = Array.from({ length: 4 }, () => ({
+      id: heartId.current++,
+      x: (Math.random() - 0.5) * 60,
+      y: -Math.random() * 30 - 10,
+    }));
+    setHearts(prev => [...prev, ...newHearts]);
+    setTimeout(() => setHearts(prev => prev.filter(h => !newHearts.includes(h))), 1000);
 
     // Play angry/reaction if available
     if (pet.actions.angry) {
@@ -220,6 +229,9 @@ export default function DesktopPet() {
         onContextMenu={(e) => { e.preventDefault(); setShowSelector(s => !s); }}
       >
         {bubble && <div className="pet-bubble">{bubble}</div>}
+        {hearts.map(h => (
+          <span key={h.id} className="pet-heart" style={{ left: `calc(50% + ${h.x}px)`, top: `${h.y}px` }}>&#10084;</span>
+        ))}
         <div className="desktop-pet-container">
           <img src={frameSrc} alt={lang === 'zh' ? pet.nameZh : pet.name} className="desktop-pet-img" draggable={false}
             onError={(e) => { (e.target as HTMLImageElement).src = `${pet.folder}/${pet.actions.stand.prefix}_0.png`; }} />
