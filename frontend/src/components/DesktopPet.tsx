@@ -27,13 +27,13 @@ function PetRenderer({ type, state }: { type: PetType; state: PetState }) {
 
   switch (type) {
     case 'dark_knight':
-      return <Planet size={68} mood={mood} color={color} />;
+      return <Planet size={52} mood={mood} color={color} />;
     case 'shark_chili':
-      return <IceCream size={68} mood={mood} color={color} />;
+      return <IceCream size={52} mood={mood} color={color} />;
     case 'sakura_cat':
-      return <Cat size={68} mood={mood} color={color} />;
+      return <Cat size={52} mood={mood} color={color} />;
     case 'pixel_ghost':
-      return <Ghost size={68} mood={mood} color={color} />;
+      return <Ghost size={52} mood={mood} color={color} />;
   }
 }
 
@@ -46,7 +46,7 @@ export default function DesktopPet() {
   const [position, setPosition] = useState<Position>(() => {
     const saved = localStorage.getItem('ga_pet_pos');
     if (saved) return JSON.parse(saved);
-    return { x: window.innerWidth / 2 - 40, y: window.innerHeight - 100 };
+    return { x: window.innerWidth - 120, y: window.innerHeight - 100 };
   });
   const [isDragging, setIsDragging] = useState(false);
   const dragOffset = useRef<Position>({ x: 0, y: 0 });

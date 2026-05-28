@@ -58,7 +58,7 @@ body { background: transparent; color: var(--text-1); height: 100vh; overflow: h
 #root { width: 100%; height: 100vh; }
 
 /* ===== NEW LAYOUT ===== */
-.app-layout { display: flex; height: 100vh; width: 100%; overflow: hidden; border-radius: 12px; background: rgba(255, 255, 255, 0.75); backdrop-filter: blur(20px); -webkit-app-region: no-drag; }
+.app-layout { display: flex; height: 100vh; width: 100%; overflow: hidden; border-radius: 12px; background: rgba(255, 255, 255, 0.82); backdrop-filter: blur(16px); -webkit-app-region: no-drag; }
 
 /* ===== Icon Rail (48px) ===== */
 .icon-rail { width: 48px; min-width: 48px; height: 100vh; display: flex; flex-direction: column; align-items: center; background: var(--sidebar-bg); backdrop-filter: blur(16px); border-right: 1px solid var(--border); flex-shrink: 0; padding: 6px 0; }
@@ -70,9 +70,10 @@ body { background: transparent; color: var(--text-1); height: 100vh; overflow: h
 .icon-rail-item { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; cursor: pointer; transition: all 0.15s; position: relative; }
 .icon-rail-item:hover { background: var(--sidebar-hover); }
 .icon-rail-item.active { background: rgba(212, 114, 154, 0.12); }
+.icon-rail-item.active .icon-rail-icon { color: var(--accent); }
 .icon-rail-item.active::after { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 18px; background: var(--accent); border-radius: 0 3px 3px 0; }
 .icon-rail-item.panel-active { background: rgba(212, 114, 154, 0.08); border: 1px solid var(--border); }
-.icon-rail-icon { font-size: 16px; line-height: 1; }
+.icon-rail-icon { font-size: 18px; line-height: 1; display: flex; align-items: center; justify-content: center; color: var(--text-2); }
 
 /* ===== Side Panel (220px) ===== */
 .side-panel { width: 220px; min-width: 220px; height: 100vh; display: flex; flex-direction: column; background: var(--sidebar-bg); backdrop-filter: blur(16px); border-right: 1px solid var(--border); animation: slideInLeft 0.15s ease; overflow: hidden; }
@@ -848,8 +849,8 @@ body { background: transparent; color: var(--text-1); height: 100vh; overflow: h
 /* ===== Desktop Pet ===== */
 .desktop-pet { position: fixed; bottom: 20px; left: 50%; z-index: 800; cursor: grab; user-select: none; transition: filter 0.3s; }
 .desktop-pet:active { cursor: grabbing; }
-.desktop-pet:hover { filter: drop-shadow(0 0 8px rgba(236, 143, 173, 0.4)); }
-.desktop-pet-container { position: relative; width: 80px; height: 80px; }
+.desktop-pet:hover { filter: drop-shadow(0 0 6px rgba(212, 114, 154, 0.3)); }
+.desktop-pet-container { position: relative; width: 60px; height: 60px; display: flex; align-items: center; justify-content: center; }
 .desktop-pet svg { width: 100%; height: 100%; }
 .desktop-pet.idle .pet-body { animation: petIdle 3s ease-in-out infinite; }
 .desktop-pet.walking .pet-body { animation: petWalk 4s ease-in-out infinite; }

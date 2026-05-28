@@ -3,17 +3,35 @@ import { createPortal } from 'react-dom';
 import { useStore } from '../store';
 import { useI18n } from '../i18n';
 import { parseSessionLog } from '../utils/chatUtils';
+import {
+  MessageOutlined, ClusterOutlined, DashboardOutlined, ThunderboltOutlined,
+  ShopOutlined, ApartmentOutlined, ExperimentOutlined, SettingOutlined,
+  QuestionCircleOutlined, AppstoreOutlined, HistoryOutlined, ControlOutlined,
+  SunOutlined, MoonOutlined, PlusOutlined,
+} from '@ant-design/icons';
+
+const NAV_ICONS: Record<string, React.ReactNode> = {
+  chat: <MessageOutlined />,
+  conductor: <ClusterOutlined />,
+  monitor: <DashboardOutlined />,
+  skills: <ThunderboltOutlined />,
+  sophub: <ShopOutlined />,
+  hive: <ApartmentOutlined />,
+  morphling: <ExperimentOutlined />,
+  settings: <SettingOutlined />,
+  help: <QuestionCircleOutlined />,
+};
 
 const NAV_ITEMS: { key: 'chat' | 'conductor' | 'monitor' | 'skills' | 'settings' | 'hive' | 'morphling' | 'help' | 'sophub'; label: string; labelZh: string; icon: string; tip: string; tipZh: string }[] = [
-  { key: 'chat', label: 'Chat', labelZh: '聊天', icon: '💬', tip: 'Chat with Agent', tipZh: '与 Agent 对话' },
-  { key: 'conductor', label: 'Orch', labelZh: '编排', icon: '🎭', tip: 'Multi-agent orchestration', tipZh: '多 Agent 编排协作' },
-  { key: 'monitor', label: 'Monitor', labelZh: '监控', icon: '📊', tip: 'Token usage & system resources', tipZh: '费用追踪与系统资源' },
-  { key: 'skills', label: 'Skills', labelZh: '技能', icon: '⚡', tip: 'Skill tree & SOP editor', tipZh: '技能树与 SOP 编辑' },
-  { key: 'sophub', label: 'Sophub', labelZh: 'Sophub', icon: '🏪', tip: 'SOP marketplace', tipZh: 'SOP 市场' },
-  { key: 'hive', label: 'Hive', labelZh: '蜂巢', icon: '🐝', tip: 'Multi-agent goal collaboration', tipZh: '多 Agent 目标协作' },
-  { key: 'morphling', label: 'Morph', labelZh: '吸收', icon: '🧬', tip: 'Project capability absorption', tipZh: '项目能力吸收/替代' },
-  { key: 'settings', label: 'Settings', labelZh: '设置', icon: '⚙️', tip: 'App configuration', tipZh: '应用配置' },
-  { key: 'help', label: 'Help', labelZh: '帮助', icon: '❓', tip: 'User guide & shortcuts', tipZh: '使用说明与快捷键' },
+  { key: 'chat', label: 'Chat', labelZh: '聊天', icon: '', tip: 'Chat with Agent', tipZh: '与 Agent 对话' },
+  { key: 'conductor', label: 'Orch', labelZh: '编排', icon: '', tip: 'Multi-agent orchestration', tipZh: '多 Agent 编排协作' },
+  { key: 'monitor', label: 'Monitor', labelZh: '监控', icon: '', tip: 'Token usage & system resources', tipZh: '费用追踪与系统资源' },
+  { key: 'skills', label: 'Skills', labelZh: '技能', icon: '', tip: 'Skill tree & SOP editor', tipZh: '技能树与 SOP 编辑' },
+  { key: 'sophub', label: 'Sophub', labelZh: 'Sophub', icon: '', tip: 'SOP marketplace', tipZh: 'SOP 市场' },
+  { key: 'hive', label: 'Hive', labelZh: '蜂巢', icon: '', tip: 'Multi-agent goal collaboration', tipZh: '多 Agent 目标协作' },
+  { key: 'morphling', label: 'Morph', labelZh: '吸收', icon: '', tip: 'Project capability absorption', tipZh: '项目能力吸收/替代' },
+  { key: 'settings', label: 'Settings', labelZh: '设置', icon: '', tip: 'App configuration', tipZh: '应用配置' },
+  { key: 'help', label: 'Help', labelZh: '帮助', icon: '', tip: 'User guide & shortcuts', tipZh: '使用说明与快捷键' },
 ];
 
 function NavBar() {
@@ -190,24 +208,24 @@ function NavBar() {
             onClick={() => setPage(item.key)}
             title={lang === 'zh' ? item.tipZh : item.tip}
           >
-            <span className="icon-rail-icon">{item.icon}</span>
+            <span className="icon-rail-icon">{NAV_ICONS[item.key]}</span>
           </div>
         ))}
       </div>
       <div className="icon-rail-panels">
         <div className={`icon-rail-item ${sidePanel === 'instances' ? 'panel-active' : ''}`} onClick={() => setSidePanel('instances')} title={lang === 'zh' ? '实例列表' : 'Instances'}>
-          <span className="icon-rail-icon">📦</span>
+          <span className="icon-rail-icon"><AppstoreOutlined /></span>
         </div>
         <div className={`icon-rail-item ${sidePanel === 'history' ? 'panel-active' : ''}`} onClick={() => setSidePanel('history')} title={lang === 'zh' ? '对话历史' : 'History'}>
-          <span className="icon-rail-icon">📜</span>
+          <span className="icon-rail-icon"><HistoryOutlined /></span>
         </div>
         <div className={`icon-rail-item ${sidePanel === 'features' ? 'panel-active' : ''}`} onClick={() => setSidePanel('features')} title={lang === 'zh' ? '功能开关' : 'Features'}>
-          <span className="icon-rail-icon">🎛️</span>
+          <span className="icon-rail-icon"><ControlOutlined /></span>
         </div>
       </div>
       <div className="icon-rail-bottom">
         <div className="icon-rail-item" onClick={toggleTheme} title={lang === 'zh' ? '切换主题' : 'Toggle theme'}>
-          <span className="icon-rail-icon">{theme === 'dark' ? '☀️' : '🌙'}</span>
+          <span className="icon-rail-icon">{theme === 'dark' ? <SunOutlined /> : <MoonOutlined />}</span>
         </div>
         <div className="icon-rail-item" onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')} title={lang === 'zh' ? '切换语言' : 'Language'}>
           <span className="icon-rail-icon" style={{ fontSize: '11px', fontWeight: 600 }}>{lang === 'zh' ? 'En' : '中'}</span>
@@ -222,7 +240,7 @@ function NavBar() {
           <>
             <div className="side-panel-header">
               <span className="side-panel-title">{lang === 'zh' ? '实例' : 'Instances'} ({instances.length})</span>
-              <button className="side-panel-action" onClick={() => { fetchLLMs(); fetch('/api/config/app').then(r => r.ok ? r.json() : {}).then((d: any) => { if (d.ga_root) setGaRoot(d.ga_root); }).catch(() => {}); setShowCreate(true); }}>+</button>
+              <button className="side-panel-action" onClick={() => { fetchLLMs(); fetch('/api/config/app').then(r => r.ok ? r.json() : {}).then((d: any) => { if (d.ga_root) setGaRoot(d.ga_root); }).catch(() => {}); setShowCreate(true); }}><PlusOutlined /></button>
             </div>
             <div className="side-panel-content">
               {instances.map(inst => (
