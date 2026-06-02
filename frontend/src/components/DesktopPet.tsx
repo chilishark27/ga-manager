@@ -6,6 +6,7 @@ interface PetAction {
   images: string;
   frames: number;
   interval: number;
+  pad?: number;
   need_move?: boolean;
   direction?: string;
   frame_move?: number;
@@ -203,7 +204,8 @@ export default function DesktopPet() {
   if (!pet) return null;
 
   const currentAction = pet.actions[action] || pet.actions.default || Object.values(pet.actions)[0];
-  const frameSrc = `${pet.folder}/action/${currentAction.images}_${frameIdx % currentAction.frames}.png`;
+  const padFrame = (n: number, pad?: number) => pad ? String(n).padStart(pad, '0') : String(n);
+  const frameSrc = `${pet.folder}/action/${currentAction.images}_${padFrame(frameIdx % currentAction.frames, currentAction.pad)}.png`;
 
   return (
     <>
@@ -219,7 +221,7 @@ export default function DesktopPet() {
           <img src={frameSrc} alt={pet.name} className="desktop-pet-img" draggable={false}
             onError={(e) => {
               const def = pet.actions.default || Object.values(pet.actions)[0];
-              (e.target as HTMLImageElement).src = `${pet.folder}/action/${def.images}_0.png`;
+              (e.target as HTMLImageElement).src = `${pet.folder}/action/${def.images}_${padFrame(0, def.pad)}.png`;
             }} />
           <div className={`desktop-pet-status ${isWorking ? 'working' : 'idle'}`} />
         </div>
@@ -237,7 +239,7 @@ export default function DesktopPet() {
                 onClick={() => { setPetIdx(idx); setShowSelector(false); setAction('default'); setFrameIdx(0); }}
                 title={p.name}
               >
-                <img src={`${p.folder}/action/${defAct.images}_0.png`} alt={p.name} style={{ width: 56, height: 56, objectFit: 'contain', imageRendering: 'pixelated' }} />
+                <img src={`${p.folder}/action/${defAct.images}_${defAct.pad ? '0'.padStart(defAct.pad, '0') : '0'}.png`} alt={p.name} style={{ width: 56, height: 56, objectFit: 'contain', imageRendering: 'pixelated' }} />
                 <span style={{ fontSize: 10, color: 'var(--text-2)' }}>{p.name}</span>
               </div>
             );

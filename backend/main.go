@@ -794,6 +794,7 @@ return POSIX path of theFolder`)
 			Images    string `json:"images"`
 			Frames    int    `json:"frames"`
 			Interval  int    `json:"interval"`
+			Pad       int    `json:"pad,omitempty"`
 			NeedMove  bool   `json:"need_move,omitempty"`
 			Direction string `json:"direction,omitempty"`
 			FrameMove int    `json:"frame_move,omitempty"`
@@ -833,10 +834,19 @@ return POSIX path of theFolder`)
 					continue
 				}
 				frameCount := 0
+				pad := 0
 				if entries2, err := os.ReadDir(actionDir); err == nil {
 					for _, f := range entries2 {
 						if strings.HasPrefix(f.Name(), images+"_") && strings.HasSuffix(f.Name(), ".png") {
 							frameCount++
+							// Detect zero-padding by checking first match
+							if pad == 0 {
+								numStr := strings.TrimPrefix(f.Name(), images+"_")
+								numStr = strings.TrimSuffix(numStr, ".png")
+								if len(numStr) > 1 && numStr[0] == '0' {
+									pad = len(numStr)
+								}
+							}
 						}
 					}
 				}
@@ -856,6 +866,7 @@ return POSIX path of theFolder`)
 					Images:   images,
 					Frames:   frameCount,
 					Interval: interval,
+					Pad:      pad,
 				}
 				if needMove, ok := actionData["need_move"].(bool); ok {
 					act.NeedMove = needMove

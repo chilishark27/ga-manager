@@ -855,7 +855,7 @@ body { background: transparent; color: var(--text-1); height: 100vh; overflow: h
 .desktop-pet { position: fixed; bottom: 20px; left: 50%; z-index: 800; cursor: grab; user-select: none; transition: filter 0.3s; }
 .desktop-pet:active { cursor: grabbing; }
 .desktop-pet:hover { filter: drop-shadow(0 0 6px rgba(212, 114, 154, 0.3)); }
-.desktop-pet-container { position: relative; width: 130px; height: 130px; display: flex; align-items: center; justify-content: center; }
+.desktop-pet-container { position: relative; width: 160px; height: 160px; display: flex; align-items: center; justify-content: center; }
 .desktop-pet.idle .desktop-pet-container { animation: petIdleBounce 2.5s ease-in-out infinite; }
 .desktop-pet.working .desktop-pet-container { animation: petWorkPulse 1.2s ease-in-out infinite; }
 @keyframes petIdleBounce { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
