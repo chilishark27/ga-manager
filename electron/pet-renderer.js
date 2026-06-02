@@ -93,9 +93,9 @@ function setAction(name) {
 
   // Tell main process to start/stop walking
   if (window.petBridge) {
-    if (act.need_move) {
-      const dir = act.direction === 'left' ? -1 : 1;
-      const speed = act.frame_move || 3;
+    if (act.need_move || name.includes('walk')) {
+      const dir = (act.direction === 'left' || name.includes('left')) ? -1 : 1;
+      const speed = act.frame_move || 2;
       window.petBridge.walkStart(dir, speed);
     } else {
       window.petBridge.walkStop();

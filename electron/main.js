@@ -162,15 +162,15 @@ function createPetWindow() {
   setInterval(() => {
     if (!petWindow || walkDir === 0) return;
     try {
-      const [x, y] = petWindow.getPosition();
+      const bounds = petWindow.getBounds();
       const { screen } = require('electron');
       const display = screen.getPrimaryDisplay();
-      const newX = x + (walkDir * walkSpeed);
-      if (newX < 0 || newX > display.bounds.width - 250) {
+      const newX = bounds.x + (walkDir * walkSpeed);
+      if (newX < 0 || newX > display.bounds.width - bounds.width) {
         walkDir = 0;
         petWindow.webContents.send('pet-walk-done');
       } else {
-        petWindow.setPosition(newX, y);
+        petWindow.setBounds({ x: newX, y: bounds.y, width: bounds.width, height: bounds.height });
       }
     } catch {}
   }, 30);
@@ -193,15 +193,16 @@ function createPetWindow() {
     walkDir = 0; // stop walking while dragging
     const { screen } = require('electron');
     const cursor = screen.getCursorScreenPoint();
-    const [wx, wy] = petWindow.getPosition();
-    dragOffsetX = cursor.x - wx;
-    dragOffsetY = cursor.y - wy;
+    const bounds = petWindow.getBounds();
+    dragOffsetX = cursor.x - bounds.x;
+    dragOffsetY = cursor.y - bounds.y;
     // Poll cursor at 60fps and move window
     dragTimer = setInterval(() => {
       if (!petWindow || !petDragging) return;
       const { screen } = require('electron');
       const cur = screen.getCursorScreenPoint();
-      petWindow.setPosition(cur.x - dragOffsetX, cur.y - dragOffsetY);
+      const b = petWindow.getBounds();
+      petWindow.setBounds({ x: cur.x - dragOffsetX, y: cur.y - dragOffsetY, width: b.width, height: b.height });
     }, 16);
   });
 
