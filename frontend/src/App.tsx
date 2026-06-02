@@ -91,7 +91,7 @@ function AppInner() {
         </div>
       )}
       {showTodoPanel && <TodoPanel />}
-      {!(window as any).petBridge && <DesktopPet />}
+      {!(window as any).electronWindow && <DesktopPet />}
       <UpdateNotifier />
     </div>
   );

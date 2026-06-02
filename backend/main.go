@@ -844,9 +844,12 @@ return POSIX path of theFolder`)
 					continue
 				}
 
-				interval := 100
+				interval := 150
 				if fr, ok := actionData["frame_refresh"].(float64); ok && fr > 0 {
 					interval = int(fr * 1000)
+					if interval < 120 {
+						interval = 120
+					}
 				}
 
 				act := PetAction{
