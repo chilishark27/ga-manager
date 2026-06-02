@@ -228,6 +228,7 @@ function createTray() {
 
   const contextMenu = Menu.buildFromTemplate([
     { label: '打开管理面板', click: () => { if (mainWindow) mainWindow.show(); else createWindow(); } },
+    { label: '显示宠物', click: () => { if (petWindow) { petWindow.show(); const { screen } = require('electron'); const display = screen.getPrimaryDisplay(); const bounds = petWindow.getBounds(); if (bounds.x < -9000) petWindow.setBounds({ x: display.bounds.width - 300, y: display.bounds.height - 300, width: bounds.width, height: bounds.height }); } else { createPetWindow(); } } },
     { type: 'separator' },
     { label: '退出', click: () => { isQuitting = true; tray = null; app.quit(); } },
   ]);
