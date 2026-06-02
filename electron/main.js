@@ -142,7 +142,8 @@ function createPetWindow() {
     frame: false,
     alwaysOnTop: true,
     skipTaskbar: true,
-    resizable: false,
+    resizable: true,
+    movable: true,
     hasShadow: false,
     focusable: true,
     webPreferences: {
@@ -196,11 +197,17 @@ ipcMain.handle('window-close', () => { if (mainWindow) mainWindow.close(); });
 
 // --- Pet Window IPC ---
 ipcMain.handle('pet-move-window', (_, x, y) => {
-  if (petWindow) petWindow.setPosition(Math.round(x), Math.round(y));
+  if (petWindow) {
+    const [w, h] = petWindow.getSize();
+    petWindow.setBounds({ x: Math.round(x), y: Math.round(y), width: w, height: h });
+  }
 });
 
 ipcMain.handle('pet-get-position', () => {
-  if (petWindow) return petWindow.getPosition();
+  if (petWindow) {
+    const bounds = petWindow.getBounds();
+    return [bounds.x, bounds.y];
+  }
   return [0, 0];
 });
 
