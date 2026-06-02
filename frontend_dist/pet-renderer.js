@@ -145,21 +145,25 @@ function scheduleAuto() {
 }
 
 // Drag
-container.addEventListener('mousedown', (e) => {
+let dragReady = false;
+container.addEventListener('mousedown', async (e) => {
   if (e.button !== 0) return;
+  if (window.petBridge) {
+    const pos = await window.petBridge.getPosition();
+    winStartX = pos[0];
+    winStartY = pos[1];
+  }
   isDragging = true;
+  dragReady = true;
   dragStartX = e.screenX;
   dragStartY = e.screenY;
-  if (window.petBridge) {
-    window.petBridge.getPosition().then(pos => { winStartX = pos[0]; winStartY = pos[1]; });
-  }
   const pet = currentPet();
   if (pet?.actions?.drag) setAction('drag');
   clearTimeout(autoTimer);
 });
 
 document.addEventListener('mousemove', (e) => {
-  if (!isDragging) return;
+  if (!isDragging || !dragReady) return;
   const dx = e.screenX - dragStartX;
   const dy = e.screenY - dragStartY;
   if (window.petBridge) {
@@ -169,6 +173,8 @@ document.addEventListener('mousemove', (e) => {
 
 document.addEventListener('mouseup', () => {
   if (!isDragging) return;
+  isDragging = false;
+  dragReady = false;
   isDragging = false;
   const pet = currentPet();
   if (pet?.actions?.fall) {
