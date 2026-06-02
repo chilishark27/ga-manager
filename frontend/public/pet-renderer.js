@@ -146,51 +146,16 @@ function scheduleAuto() {
   }, 3000 + Math.random() * 4000);
 }
 
-// Drag
-let dragReady = false;
-container.addEventListener('mousedown', async (e) => {
-  if (e.button !== 0) return;
-  if (window.petBridge) {
-    const pos = await window.petBridge.getPosition();
-    winStartX = pos[0];
-    winStartY = pos[1];
-  }
-  isDragging = true;
-  dragReady = true;
-  dragStartX = e.screenX;
-  dragStartY = e.screenY;
-  const pet = currentPet();
-  if (pet?.actions?.drag) setAction('drag');
-  clearTimeout(autoTimer);
-});
+// Drag is handled by -webkit-app-region: drag (Electron native)
+// No manual drag code needed
 
-document.addEventListener('mousemove', (e) => {
-  if (!isDragging || !dragReady) return;
-  const dx = e.screenX - dragStartX;
-  const dy = e.screenY - dragStartY;
+// Toggle (hide) button
+document.getElementById('toggle-btn').addEventListener('click', (e) => {
+  e.stopPropagation();
   if (window.petBridge) {
-    window.petBridge.moveWindow(winStartX + dx, winStartY + dy);
+    window.petBridge.moveWindow(-9999, -9999); // Move off-screen to "hide"
   }
 });
-
-document.addEventListener('mouseup', () => {
-  if (!isDragging) return;
-  isDragging = false;
-  dragReady = false;
-  isDragging = false;
-  const pet = currentPet();
-  if (pet?.actions?.fall) {
-    setAction('fall');
-    setTimeout(() => {
-      if (pet?.actions?.onfloor) {
-        setAction('onfloor');
-        setTimeout(() => { setAction('default'); scheduleAuto(); }, 1500);
-      } else {
-        setAction('default'); scheduleAuto();
-      }
-    }, 800);
-  } else {
-    setAction('default'); scheduleAuto();
   }
 });
 
@@ -219,7 +184,7 @@ container.addEventListener('contextmenu', (e) => {
   selector.classList.toggle('show');
   if (window.petBridge) {
     if (showing) {
-      window.petBridge.resizeWindow(300, 350);
+      window.petBridge.resizeWindow(400, 400);
     } else {
       window.petBridge.resizeWindow(250, 250);
     }
