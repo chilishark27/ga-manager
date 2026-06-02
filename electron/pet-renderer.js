@@ -122,9 +122,7 @@ function stopAnim() { clearInterval(animTimer); animTimer = null; }
 
 function scheduleAuto() {
   clearTimeout(autoTimer);
-  if (isDragging) return;
   autoTimer = setTimeout(() => {
-    if (isDragging) return;
     const pet = currentPet();
     if (!pet) return;
     const rand = Math.random();
@@ -144,8 +142,36 @@ function scheduleAuto() {
   }, 3000 + Math.random() * 4000);
 }
 
-// Drag is handled by -webkit-app-region: drag (Electron native)
-// No manual drag code needed
+// Manual drag - track mouse position and move window
+let dragging = false;
+let lastScreenX = 0, lastScreenY = 0;
+
+container.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return;
+  dragging = true;
+  lastScreenX = e.screenX;
+  lastScreenY = e.screenY;
+  container.classList.add('dragging');
+});
+
+document.addEventListener('mousemove', (e) => {
+  if (!dragging) return;
+  const dx = e.screenX - lastScreenX;
+  const dy = e.screenY - lastScreenY;
+  lastScreenX = e.screenX;
+  lastScreenY = e.screenY;
+  if (window.petBridge && (dx !== 0 || dy !== 0)) {
+    window.petBridge.getPosition().then(pos => {
+      window.petBridge.moveWindow(pos[0] + dx, pos[1] + dy);
+    });
+  }
+});
+
+document.addEventListener('mouseup', () => {
+  if (!dragging) return;
+  dragging = false;
+  container.classList.remove('dragging');
+});
 
 // Toggle (hide) button
 document.getElementById('toggle-btn').addEventListener('click', (e) => {
@@ -154,12 +180,10 @@ document.getElementById('toggle-btn').addEventListener('click', (e) => {
     window.petBridge.moveWindow(-9999, -9999); // Move off-screen to "hide"
   }
 });
-  }
-});
 
 // Click
 container.addEventListener('click', (e) => {
-  if (e.detail === 1 && !isDragging) {
+  if (e.detail === 1) {
     img.classList.add('bounce');
     setTimeout(() => img.classList.remove('bounce'), 400);
     const msgs = DIALOGUES_ZH;
