@@ -8,9 +8,6 @@ contextBridge.exposeInMainWorld('petBridge', {
   walkStart: (dir, speed) => ipcRenderer.send('pet-walk-start', dir, speed),
   walkStop: () => ipcRenderer.send('pet-walk-stop'),
   onWalkDone: (cb) => ipcRenderer.on('pet-walk-done', () => cb()),
-  // Mouse enter/leave: toggle click-through
-  mouseEnter: () => ipcRenderer.send('pet-mouse-enter'),
-  mouseLeave: () => ipcRenderer.send('pet-mouse-leave'),
   // Window management
   moveWindow: (x, y) => ipcRenderer.invoke('pet-move-window', x, y),
   getPosition: () => ipcRenderer.invoke('pet-get-position'),

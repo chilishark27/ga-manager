@@ -3,8 +3,9 @@ const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
 
-// GPU acceleration stays ON for performance
-// Transparent window rendering fixed via type:'toolbar' on pet window
+// Only disable GPU compositing (fixes transparent window on Windows)
+// Much lighter than disableHardwareAcceleration — keeps GPU rendering for page content
+app.commandLine.appendSwitch('disable-gpu-compositing');
 
 const PORT = 18600;
 const BACKEND_URL = `http://localhost:${PORT}`;
@@ -143,7 +144,6 @@ function createPetWindow() {
     y: savedPos.y,
     transparent: true,
     frame: false,
-    type: 'toolbar',
     alwaysOnTop: true,
     skipTaskbar: true,
     hasShadow: false,
@@ -156,9 +156,6 @@ function createPetWindow() {
   });
 
   petWindow.loadURL(`${BACKEND_URL}/pet.html`);
-
-  // Make transparent areas click-through, but forward mouse events for hit detection
-  petWindow.setIgnoreMouseEvents(true, { forward: true });
 
   // Walk: main process moves window periodically
   let walkDir = 0; // -1 left, 0 stop, 1 right
@@ -187,15 +184,6 @@ function createPetWindow() {
 
   ipcMain.on('pet-walk-stop', () => { walkDir = 0; });
 
-  // Mouse enter/leave: toggle click-through so pet area is interactive
-  ipcMain.on('pet-mouse-enter', () => {
-    if (petWindow) petWindow.setIgnoreMouseEvents(false);
-  });
-
-  ipcMain.on('pet-mouse-leave', () => {
-    if (petWindow && !petDragging) petWindow.setIgnoreMouseEvents(true, { forward: true });
-  });
-
   // Drag: main process tracks cursor and moves window
   let petDragging = false;
   let dragOffsetX = 0, dragOffsetY = 0;
@@ -204,14 +192,12 @@ function createPetWindow() {
   ipcMain.on('pet-drag-start', () => {
     if (!petWindow) return;
     petDragging = true;
-    walkDir = 0; // stop walking while dragging
-    petWindow.setIgnoreMouseEvents(false); // keep receiving events during drag
+    walkDir = 0;
     const { screen } = require('electron');
     const cursor = screen.getCursorScreenPoint();
     const bounds = petWindow.getBounds();
     dragOffsetX = cursor.x - bounds.x;
     dragOffsetY = cursor.y - bounds.y;
-    // Poll cursor at 60fps and move window
     dragTimer = setInterval(() => {
       if (!petWindow || !petDragging) return;
       const { screen } = require('electron');
@@ -224,7 +210,6 @@ function createPetWindow() {
   ipcMain.on('pet-drag-end', () => {
     petDragging = false;
     clearInterval(dragTimer);
-    if (petWindow) petWindow.setIgnoreMouseEvents(true, { forward: true });
   });
 
   petWindow.on('closed', () => { petWindow = null; walkDir = 0; petDragging = false; clearInterval(dragTimer); });
