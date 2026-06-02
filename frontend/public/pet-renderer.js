@@ -141,8 +141,21 @@ function scheduleAuto() {
   }, 3000 + Math.random() * 4000);
 }
 
-// Drag handled by -webkit-app-region: drag on #pet-img (Electron native)
-// No manual drag JS needed
+// Drag: left-click on pet image to drag
+// Main process polls cursor position and moves window
+let dragging = false;
+
+img.addEventListener('mousedown', (e) => {
+  if (e.button !== 0) return;
+  dragging = true;
+  if (window.petBridge) window.petBridge.dragStart();
+});
+
+document.addEventListener('mouseup', () => {
+  if (!dragging) return;
+  dragging = false;
+  if (window.petBridge) window.petBridge.dragEnd();
+});
 
 // Walk done callback from main process
 if (window.petBridge) {

@@ -1,6 +1,9 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('petBridge', {
+  // Drag: main process tracks cursor
+  dragStart: () => ipcRenderer.send('pet-drag-start'),
+  dragEnd: () => ipcRenderer.send('pet-drag-end'),
   // Walk: tell main process to move window
   walkStart: (dir, speed) => ipcRenderer.send('pet-walk-start', dir, speed),
   walkStop: () => ipcRenderer.send('pet-walk-stop'),

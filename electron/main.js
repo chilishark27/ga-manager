@@ -183,8 +183,35 @@ function createPetWindow() {
 
   ipcMain.on('pet-walk-stop', () => { walkDir = 0; });
 
-  // Keep existing IPC handlers for resize etc
-  petWindow.on('closed', () => { petWindow = null; walkDir = 0; });
+  // Drag: main process tracks cursor and moves window
+  let petDragging = false;
+  let dragOffsetX = 0, dragOffsetY = 0;
+  let dragTimer = null;
+
+  ipcMain.on('pet-drag-start', () => {
+    if (!petWindow) return;
+    petDragging = true;
+    walkDir = 0; // stop walking while dragging
+    const { screen } = require('electron');
+    const cursor = screen.getCursorScreenPoint();
+    const [wx, wy] = petWindow.getPosition();
+    dragOffsetX = cursor.x - wx;
+    dragOffsetY = cursor.y - wy;
+    // Poll cursor at 60fps and move window
+    dragTimer = setInterval(() => {
+      if (!petWindow || !petDragging) return;
+      const { screen } = require('electron');
+      const cur = screen.getCursorScreenPoint();
+      petWindow.setPosition(cur.x - dragOffsetX, cur.y - dragOffsetY);
+    }, 16);
+  });
+
+  ipcMain.on('pet-drag-end', () => {
+    petDragging = false;
+    clearInterval(dragTimer);
+  });
+
+  petWindow.on('closed', () => { petWindow = null; walkDir = 0; petDragging = false; clearInterval(dragTimer); });
 }
 
 function createTray() {
