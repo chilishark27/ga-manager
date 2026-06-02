@@ -146,6 +146,14 @@ function scheduleAuto() {
 // Main process polls cursor position and moves window
 let dragging = false;
 
+// Toggle click-through: when mouse enters pet area, make window interactive
+container.addEventListener('mouseenter', () => {
+  if (window.petBridge) window.petBridge.mouseEnter();
+});
+container.addEventListener('mouseleave', () => {
+  if (!dragging && window.petBridge) window.petBridge.mouseLeave();
+});
+
 img.addEventListener('mousedown', (e) => {
   if (e.button !== 0) return;
   e.preventDefault(); // prevent native image drag
