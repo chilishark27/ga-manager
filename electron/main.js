@@ -3,9 +3,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
 
-// Only disable GPU compositing (fixes transparent window on Windows)
-// Much lighter than disableHardwareAcceleration — keeps GPU rendering for page content
-app.commandLine.appendSwitch('disable-gpu-compositing');
+// No GPU flags — keep full GPU acceleration for performance
 
 const PORT = 18600;
 const BACKEND_URL = `http://localhost:${PORT}`;
@@ -102,9 +100,8 @@ function createWindow() {
     minHeight: 600,
     title: 'GA Manager',
     icon: getIconPath(),
-    transparent: true,
     frame: false,
-    backgroundColor: '#00000000',
+    backgroundColor: '#1c1428',
     hasShadow: true,
     webPreferences: {
       nodeIntegration: false,
@@ -148,6 +145,7 @@ function createPetWindow() {
     skipTaskbar: true,
     hasShadow: false,
     resizable: false,
+    show: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -156,6 +154,14 @@ function createPetWindow() {
   });
 
   petWindow.loadURL(`${BACKEND_URL}/pet.html`);
+
+  // Show after content is ready — prevents black flash on transparent window
+  petWindow.once('ready-to-show', () => {
+    petWindow.show();
+    // Force compositor repaint to fix transparency on some Windows systems
+    petWindow.setOpacity(0.99);
+    setTimeout(() => { if (petWindow) petWindow.setOpacity(1); }, 50);
+  });
 
   // Walk: main process moves window periodically
   let walkDir = 0; // -1 left, 0 stop, 1 right
