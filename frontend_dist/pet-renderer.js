@@ -89,22 +89,21 @@ function setAction(name) {
   frameIdx = 0;
   stopAnim();
   updateFrame();
+
+  // Tell main process to start/stop walking
+  if (window.petBridge) {
+    if (act.need_move) {
+      const dir = act.direction === 'left' ? -1 : 1;
+      const speed = act.frame_move || 3;
+      window.petBridge.walkStart(dir, speed);
+    } else {
+      window.petBridge.walkStop();
+    }
+  }
+
   animTimer = setInterval(async () => {
     frameIdx = (frameIdx + 1) % act.frames;
     updateFrame();
-    if (act.need_move && window.petBridge) {
-      const move = act.frame_move || 3;
-      const dir = act.direction === 'left' ? -move : move;
-      try {
-        const pos = await window.petBridge.getPosition();
-        const newX = pos[0] + dir;
-        if (newX < 0 || newX > screen.width - 250) {
-          setAction('default');
-        } else {
-          await window.petBridge.moveWindow(newX, pos[1]);
-        }
-      } catch {}
-    }
   }, act.interval);
 }
 
@@ -142,30 +141,16 @@ function scheduleAuto() {
   }, 3000 + Math.random() * 4000);
 }
 
-// Manual drag - main process tracks cursor position for reliable movement
-let dragging = false;
-let dragInterval = null;
+// Drag handled by -webkit-app-region: drag on #pet-img (Electron native)
+// No manual drag JS needed
 
-container.addEventListener('mousedown', (e) => {
-  if (e.button !== 0) return;
-  dragging = true;
-  container.classList.add('dragging');
-  if (window.petBridge) {
-    window.petBridge.dragStart();
-    // Poll drag move at 60fps - main process reads cursor position
-    dragInterval = setInterval(() => {
-      if (dragging && window.petBridge) window.petBridge.dragMove();
-    }, 16);
-  }
-});
-
-document.addEventListener('mouseup', () => {
-  if (!dragging) return;
-  dragging = false;
-  container.classList.remove('dragging');
-  clearInterval(dragInterval);
-  if (window.petBridge) window.petBridge.dragEnd();
-});
+// Walk done callback from main process
+if (window.petBridge) {
+  window.petBridge.onWalkDone(() => {
+    setAction('default');
+    scheduleAuto();
+  });
+}
 
 // Toggle (hide) button
 document.getElementById('toggle-btn').addEventListener('click', (e) => {

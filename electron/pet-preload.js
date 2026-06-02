@@ -1,10 +1,10 @@
 const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('petBridge', {
-  // Drag: fire-and-forget (main process tracks cursor)
-  dragStart: () => ipcRenderer.send('pet-drag-start'),
-  dragMove: () => ipcRenderer.send('pet-drag-move'),
-  dragEnd: () => ipcRenderer.send('pet-drag-end'),
+  // Walk: tell main process to move window
+  walkStart: (dir, speed) => ipcRenderer.send('pet-walk-start', dir, speed),
+  walkStop: () => ipcRenderer.send('pet-walk-stop'),
+  onWalkDone: (cb) => ipcRenderer.on('pet-walk-done', () => cb()),
   // Window management
   moveWindow: (x, y) => ipcRenderer.invoke('pet-move-window', x, y),
   getPosition: () => ipcRenderer.invoke('pet-get-position'),

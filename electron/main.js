@@ -143,6 +143,7 @@ function createPetWindow() {
     alwaysOnTop: true,
     skipTaskbar: true,
     hasShadow: false,
+    thickFrame: false,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -152,32 +153,35 @@ function createPetWindow() {
 
   petWindow.loadURL(`${BACKEND_URL}/pet.html`);
 
-  // Drag support: track mouse in main process
-  let petDragging = false;
-  let dragOffsetX = 0, dragOffsetY = 0;
+  // Walk: main process moves window periodically
+  let walkDir = 0; // -1 left, 0 stop, 1 right
+  let walkSpeed = 3;
 
-  ipcMain.on('pet-drag-start', () => {
-    if (!petWindow) return;
-    petDragging = true;
-    const { screen } = require('electron');
-    const cursor = screen.getCursorScreenPoint();
-    const [wx, wy] = petWindow.getPosition();
-    dragOffsetX = cursor.x - wx;
-    dragOffsetY = cursor.y - wy;
+  setInterval(() => {
+    if (!petWindow || walkDir === 0) return;
+    try {
+      const [x, y] = petWindow.getPosition();
+      const { screen } = require('electron');
+      const display = screen.getPrimaryDisplay();
+      const newX = x + (walkDir * walkSpeed);
+      if (newX < 0 || newX > display.bounds.width - 250) {
+        walkDir = 0;
+        petWindow.webContents.send('pet-walk-done');
+      } else {
+        petWindow.setPosition(newX, y);
+      }
+    } catch {}
+  }, 120);
+
+  ipcMain.on('pet-walk-start', (_, dir, speed) => {
+    walkDir = dir; // -1 or 1
+    walkSpeed = speed || 3;
   });
 
-  ipcMain.on('pet-drag-move', () => {
-    if (!petWindow || !petDragging) return;
-    const { screen } = require('electron');
-    const cursor = screen.getCursorScreenPoint();
-    petWindow.setPosition(cursor.x - dragOffsetX, cursor.y - dragOffsetY);
-  });
+  ipcMain.on('pet-walk-stop', () => { walkDir = 0; });
 
-  ipcMain.on('pet-drag-end', () => {
-    petDragging = false;
-  });
-
-  petWindow.on('closed', () => { petWindow = null; });
+  // Keep existing IPC handlers for resize etc
+  petWindow.on('closed', () => { petWindow = null; walkDir = 0; });
 }
 
 function createTray() {
