@@ -202,7 +202,7 @@ body { background: transparent; color: var(--text-1); height: 100vh; overflow: h
 .top-bar-llm-wrapper { position: relative; }
 .top-bar-llm-btn { padding: 5px 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg3); color: var(--text-1); font-size: 12px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
 .top-bar-llm-btn:hover { border-color: var(--accent); }
-.top-bar-llm-dropdown { position: absolute; top: 100%; right: 0; margin-top: 4px; min-width: 240px; background: var(--card); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 10px; padding: 6px; box-shadow: var(--shadow); z-index: 100; animation: scaleIn 0.15s ease; }
+.top-bar-llm-dropdown { position: absolute; top: 100%; right: 0; margin-top: 4px; min-width: 240px; background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 6px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 100; animation: scaleIn 0.15s ease; }
 .top-bar-llm-option { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
 .top-bar-llm-option:hover { background: var(--sidebar-hover); }
 .top-bar-llm-option.active { background: rgba(236, 143, 173, 0.12); }
@@ -219,7 +219,7 @@ body { background: transparent; color: var(--text-1); height: 100vh; overflow: h
 .top-bar-project:hover { border-color: var(--accent); background: rgba(236, 143, 173, 0.06); }
 .top-bar-project-name { font-size: 12px; font-weight: 500; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .top-bar-project-chevron { font-size: 10px; color: var(--text-3); margin-left: 2px; }
-.top-bar-project-dropdown { position: absolute; top: 100%; left: 0; margin-top: 4px; min-width: 220px; background: var(--card); backdrop-filter: blur(16px); border: 1px solid var(--border); border-radius: 10px; padding: 4px; box-shadow: var(--shadow); z-index: 1000; animation: scaleIn 0.15s ease; }
+.top-bar-project-dropdown { position: absolute; top: 100%; left: 0; margin-top: 4px; min-width: 220px; background: #fff; border: 1px solid var(--border); border-radius: 10px; padding: 4px; box-shadow: 0 8px 24px rgba(0,0,0,0.12); z-index: 1000; animation: scaleIn 0.15s ease; }
 .top-bar-project-option { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; color: var(--text-2); transition: all 0.15s; }
 .top-bar-project-option:hover { background: var(--sidebar-hover); color: var(--text-1); }
 .top-bar-project-option.active { background: rgba(236, 143, 173, 0.1); color: var(--accent); font-weight: 600; }
