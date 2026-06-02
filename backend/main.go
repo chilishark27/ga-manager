@@ -751,9 +751,140 @@ return POSIX path of theFolder`)
 		io.Copy(w, resp.Body)
 	})
 
+	// staticDir is populated below; declared here so the /api/pets closure can reference it.
+	var staticDir string
+
+	// Pet discovery API
+	mux.HandleFunc("GET /api/pets", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+
+		petsDir := ""
+		candidates := []string{
+			filepath.Join(getExeDir(), "static", "pets"),
+			filepath.Join(".", "static", "pets"),
+		}
+		if cwd, err := os.Getwd(); err == nil {
+			candidates = append(candidates,
+				filepath.Join(cwd, "frontend", "public", "pets"),
+				filepath.Join(cwd, "..", "frontend", "public", "pets"),
+				filepath.Join(cwd, "static", "pets"),
+			)
+		}
+		if staticDir != "" {
+			candidates = append([]string{filepath.Join(staticDir, "pets")}, candidates...)
+		}
+		for _, c := range candidates {
+			if info, err := os.Stat(c); err == nil && info.IsDir() {
+				petsDir = c
+				break
+			}
+		}
+		if petsDir == "" {
+			json.NewEncoder(w).Encode([]interface{}{})
+			return
+		}
+
+		entries, err := os.ReadDir(petsDir)
+		if err != nil {
+			json.NewEncoder(w).Encode([]interface{}{})
+			return
+		}
+
+		type PetAction struct {
+			Images    string `json:"images"`
+			Frames    int    `json:"frames"`
+			Interval  int    `json:"interval"`
+			NeedMove  bool   `json:"need_move,omitempty"`
+			Direction string `json:"direction,omitempty"`
+			FrameMove int    `json:"frame_move,omitempty"`
+		}
+		type PetInfo struct {
+			ID      string               `json:"id"`
+			Name    string               `json:"name"`
+			Folder  string               `json:"folder"`
+			Actions map[string]PetAction `json:"actions"`
+		}
+
+		var pets []PetInfo
+		for _, entry := range entries {
+			if !entry.IsDir() {
+				continue
+			}
+			confPath := filepath.Join(petsDir, entry.Name(), "act_conf.json")
+			if _, err := os.Stat(confPath); err != nil {
+				continue
+			}
+			data, err := os.ReadFile(confPath)
+			if err != nil {
+				continue
+			}
+
+			var rawConf map[string]map[string]interface{}
+			if err := json.Unmarshal(data, &rawConf); err != nil {
+				continue
+			}
+
+			actionDir := filepath.Join(petsDir, entry.Name(), "action")
+			actions := make(map[string]PetAction)
+
+			for actionName, actionData := range rawConf {
+				images, _ := actionData["images"].(string)
+				if images == "" {
+					continue
+				}
+				frameCount := 0
+				if entries2, err := os.ReadDir(actionDir); err == nil {
+					for _, f := range entries2 {
+						if strings.HasPrefix(f.Name(), images+"_") && strings.HasSuffix(f.Name(), ".png") {
+							frameCount++
+						}
+					}
+				}
+				if frameCount == 0 {
+					continue
+				}
+
+				interval := 100
+				if fr, ok := actionData["frame_refresh"].(float64); ok && fr > 0 {
+					interval = int(fr * 1000)
+				}
+
+				act := PetAction{
+					Images:   images,
+					Frames:   frameCount,
+					Interval: interval,
+				}
+				if needMove, ok := actionData["need_move"].(bool); ok {
+					act.NeedMove = needMove
+				}
+				if dir, ok := actionData["direction"].(string); ok {
+					act.Direction = dir
+				}
+				if fm, ok := actionData["frame_move"].(float64); ok {
+					act.FrameMove = int(fm)
+				}
+
+				actions[actionName] = act
+			}
+
+			if len(actions) == 0 {
+				continue
+			}
+
+			pets = append(pets, PetInfo{
+				ID:      entry.Name(),
+				Name:    entry.Name(),
+				Folder:  "/pets/" + entry.Name(),
+				Actions: actions,
+			})
+		}
+
+		json.NewEncoder(w).Encode(pets)
+	})
+
 	// Serve frontend static files (production)
 	// Try multiple locations to find static files
-	staticDir := ""
+	staticDir = ""
 	staticCandidates := []string{
 		filepath.Join(getExeDir(), "static"),
 		filepath.Join(".", "static"),
