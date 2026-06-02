@@ -3,8 +3,7 @@ const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
 
-// Fix: transparent windows freeze on Windows when overlapping other windows
-app.disableHardwareAcceleration();
+// GPU acceleration kept enabled — needed for transparent window mouse events
 
 const PORT = 18600;
 const BACKEND_URL = `http://localhost:${PORT}`;
@@ -158,7 +157,7 @@ function createPetWindow() {
 
   // Walk: main process moves window periodically
   let walkDir = 0; // -1 left, 0 stop, 1 right
-  let walkSpeed = 3;
+  let walkSpeed = 2;
 
   setInterval(() => {
     if (!petWindow || walkDir === 0) return;
@@ -174,11 +173,11 @@ function createPetWindow() {
         petWindow.setPosition(newX, y);
       }
     } catch {}
-  }, 120);
+  }, 30);
 
   ipcMain.on('pet-walk-start', (_, dir, speed) => {
     walkDir = dir; // -1 or 1
-    walkSpeed = speed || 3;
+    walkSpeed = Math.max(2, speed || 2);
   });
 
   ipcMain.on('pet-walk-stop', () => { walkDir = 0; });
