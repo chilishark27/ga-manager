@@ -3,7 +3,9 @@ const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
 
-// GPU acceleration kept enabled — needed for transparent window mouse events
+// Disable GPU: required on Windows for transparent window to actually be transparent
+// Mouse events on the pet area are ensured by a near-invisible background in CSS
+app.disableHardwareAcceleration();
 
 const PORT = 18600;
 const BACKEND_URL = `http://localhost:${PORT}`;
