@@ -7,9 +7,6 @@ let action = 'default';
 let frameIdx = 0;
 let animTimer = null;
 let autoTimer = null;
-let isDragging = false;
-let dragStartX = 0, dragStartY = 0;
-let winStartX = 0, winStartY = 0;
 let backendUrl = 'http://localhost:18600';
 
 const img = document.getElementById('pet-img');
@@ -92,20 +89,21 @@ function setAction(name) {
   frameIdx = 0;
   stopAnim();
   updateFrame();
-  animTimer = setInterval(() => {
+  animTimer = setInterval(async () => {
     frameIdx = (frameIdx + 1) % act.frames;
     updateFrame();
-    if (act.need_move && !isDragging && window.petBridge) {
+    if (act.need_move && window.petBridge) {
       const move = act.frame_move || 3;
       const dir = act.direction === 'left' ? -move : move;
-      window.petBridge.getPosition().then(pos => {
+      try {
+        const pos = await window.petBridge.getPosition();
         const newX = pos[0] + dir;
-        if (newX < 0 || newX > screen.width - 200) {
+        if (newX < 0 || newX > screen.width - 250) {
           setAction('default');
         } else {
-          window.petBridge.moveWindow(newX, pos[1]);
+          await window.petBridge.moveWindow(newX, pos[1]);
         }
-      });
+      } catch {}
     }
   }, act.interval);
 }
