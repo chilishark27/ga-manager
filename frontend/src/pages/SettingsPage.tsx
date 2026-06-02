@@ -9,6 +9,7 @@ function SettingsPage() {
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
   const [gaPath, setGaPath] = useState('');
   const [pythonPath, setPythonPath] = useState('');
+  const [petsDir, setPetsDir] = useState('');
   const [port, setPort] = useState('18600');
   const [mykeyContent, setMykeyContent] = useState('');
   const [mykeyLoading, setMykeyLoading] = useState(false);
@@ -35,6 +36,7 @@ function SettingsPage() {
         const data = await res.json();
         setGaPath(data.ga_root || '');
         setPythonPath(data.python_path || (isMac ? 'python3' : 'python'));
+        setPetsDir(data.pets_dir || '');
         setPort(String(data.port || 18600));
       }
     } catch { /* ignore */ }
@@ -74,7 +76,7 @@ function SettingsPage() {
       const res = await fetch('/api/config/app', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ga_root: gaPath, python_path: pythonPath, port: parseInt(port) || 18600 }),
+        body: JSON.stringify({ ga_root: gaPath, python_path: pythonPath, pets_dir: petsDir, port: parseInt(port) || 18600 }),
       });
       if (res.ok) {
         showToast(lang === 'zh' ? '配置已保存' : 'Config saved');
@@ -215,6 +217,10 @@ function SettingsPage() {
               </div>
               <button className="btn-primary btn-sm" onClick={saveAppConfig}>Save</button>
               <button className="btn-danger btn-sm" onClick={() => setConfigured(false)} title={lang === 'zh' ? '重新进入配置引导' : 'Re-run setup wizard'}>{lang === 'zh' ? '重新配置' : 'Reconfigure'}</button>
+            </div>
+            <div style={{ marginTop: '10px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: 600, color: 'var(--text-3)', marginBottom: '4px' }}>{lang === 'zh' ? '宠物资源目录' : 'Pets Directory'}</label>
+              <input className="rp-input" value={petsDir} onChange={e => setPetsDir(e.target.value)} placeholder={lang === 'zh' ? '留空使用内置目录' : 'Leave empty for built-in'} style={{ width: '100%' }} />
             </div>
           </div>
         </div>

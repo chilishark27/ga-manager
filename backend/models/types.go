@@ -54,6 +54,7 @@ type AppConfig struct {
 	Port         int    `json:"port"`
 	MaxInstances int    `json:"max_instances"`
 	PythonPath   string `json:"python_path"`
+	PetsDir      string `json:"pets_dir,omitempty"`
 	BBSBaseURL   string `json:"bbs_base_url,omitempty"`
 	BBSKey       string `json:"bbs_key,omitempty"`
 }

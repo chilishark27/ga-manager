@@ -285,6 +285,7 @@ func main() {
 			"port":          cfg.Port,
 			"max_instances": cfg.MaxInstances,
 			"python_path":   cfg.PythonPath,
+			"pets_dir":      cfg.PetsDir,
 			"bbs_base_url":  cfg.BBSBaseURL,
 			"bbs_key":       cfg.BBSKey,
 			"configured":    cfgExists == nil && gaExists == nil,
@@ -303,6 +304,9 @@ func main() {
 		}
 		if update.PythonPath != "" {
 			cfg.PythonPath = update.PythonPath
+		}
+		if update.PetsDir != "" {
+			cfg.PetsDir = update.PetsDir
 		}
 		// Persist to file (user config dir)
 		configPath := filepath.Join(getConfigDir(), defaultConfigFile)
@@ -759,24 +763,33 @@ return POSIX path of theFolder`)
 		w.Header().Set("Content-Type", "application/json")
 
 		petsDir := ""
-		candidates := []string{
-			filepath.Join(getExeDir(), "static", "pets"),
-			filepath.Join(".", "static", "pets"),
+		// Check user-configured pets directory first
+		if cfg.PetsDir != "" {
+			if info, err := os.Stat(cfg.PetsDir); err == nil && info.IsDir() {
+				petsDir = cfg.PetsDir
+			}
 		}
-		if cwd, err := os.Getwd(); err == nil {
-			candidates = append(candidates,
-				filepath.Join(cwd, "frontend", "public", "pets"),
-				filepath.Join(cwd, "..", "frontend", "public", "pets"),
-				filepath.Join(cwd, "static", "pets"),
-			)
-		}
-		if staticDir != "" {
-			candidates = append([]string{filepath.Join(staticDir, "pets")}, candidates...)
-		}
-		for _, c := range candidates {
-			if info, err := os.Stat(c); err == nil && info.IsDir() {
-				petsDir = c
-				break
+		// Fallback to built-in locations
+		if petsDir == "" {
+			candidates := []string{
+				filepath.Join(getExeDir(), "static", "pets"),
+				filepath.Join(".", "static", "pets"),
+			}
+			if cwd, err := os.Getwd(); err == nil {
+				candidates = append(candidates,
+					filepath.Join(cwd, "frontend", "public", "pets"),
+					filepath.Join(cwd, "..", "frontend", "public", "pets"),
+					filepath.Join(cwd, "static", "pets"),
+				)
+			}
+			if staticDir != "" {
+				candidates = append([]string{filepath.Join(staticDir, "pets")}, candidates...)
+			}
+			for _, c := range candidates {
+				if info, err := os.Stat(c); err == nil && info.IsDir() {
+					petsDir = c
+					break
+				}
 			}
 		}
 		if petsDir == "" {
@@ -921,6 +934,27 @@ return POSIX path of theFolder`)
 	}
 	if staticDir != "" {
 		log.Printf("[GA Manager] Serving static files from: %s", staticDir)
+
+		// Serve custom pets directory if configured
+		mux.HandleFunc("GET /pets/", func(w http.ResponseWriter, r *http.Request) {
+			petPath := strings.TrimPrefix(r.URL.Path, "/pets/")
+			// Try custom pets dir first
+			if cfg.PetsDir != "" {
+				fullPath := filepath.Join(cfg.PetsDir, filepath.Clean(petPath))
+				if _, err := os.Stat(fullPath); err == nil {
+					http.ServeFile(w, r, fullPath)
+					return
+				}
+			}
+			// Fallback to static dir
+			fullPath := filepath.Join(staticDir, "pets", filepath.Clean(petPath))
+			if _, err := os.Stat(fullPath); err == nil {
+				http.ServeFile(w, r, fullPath)
+				return
+			}
+			http.NotFound(w, r)
+		})
+
 		mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
 			// SPA fallback: serve file if exists, otherwise index.html
 			path := r.URL.Path

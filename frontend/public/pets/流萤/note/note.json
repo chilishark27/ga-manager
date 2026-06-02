@@ -1,0 +1,42 @@
+{
+  "system":{
+    "image": "nxd.png"
+  },
+  "greeting_1": {
+    "image": "nxd.png",
+    "sound": "开机语音-你回来啦.wav"
+  },
+  "greeting_2": {
+    "image": "nxd.png",
+    "sound": "开机语音-好耶，大玩特玩.wav"
+  },
+  "greeting_3": {
+    "image": "nxd.png",
+    "sound": "开机语音-你回来啦.wav"
+  },
+  "greeting_4": {
+    "image": "nxd.png",
+    "sound": "开机语音-好耶，大玩特玩.wav"
+  },
+  "greeting_5": {
+    "image": "nxd.png",
+    "sound": "开机语音-你回来啦.wav"
+  },
+    "on_floor": {
+    "image": "nxd.png",
+    "sound": "落地语音-就此离开，没人会受伤.wav"
+  },
+  "feed_1": {
+    "image": "nxd.png",
+    "sound": "投喂蛋糕卷语音-我最喜欢这家店的橡木蛋糕卷，每天都要吃一个.wav"
+  },
+  "feed_2": {
+    "image": "nxd.png",
+    "sound": "投喂语音-我知道，受人恩惠，就要付出回报.wav"
+  },
+  "feed_3": {
+    "image": "nxd.png",
+    "sound": "投喂语音-我知道，受人恩惠，就要付出回报.wav"
+  }
+
+}

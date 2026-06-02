@@ -48,6 +48,8 @@
 | **Skills** | Skill tree visualization + SOP file editor |
 | **TODO Widget** | Floating task list — manual add, auto-detect from Agent replies, execute via Agent/Hive |
 | **Rewind** | Time-travel through conversation history, fork branches, switch between timelines |
+| **Desktop Pet** | Animated pixel pet that roams the screen with DyberPet-style frame animations |
+| **Sakura Theme** | Glassmorphism UI with transparent window, subtle pink accent, customizable opacity |
 | **Auto Update** | Automatic update detection, download, and silent install |
 
 ---
@@ -189,14 +191,43 @@ A floating task card that stays visible on all pages:
 
 ### 12. Settings
 
-- **Theme**: Dark / Light
+- **Theme**: Dark / Light (Sakura Bloom glassmorphism style)
+- **Window Opacity**: Slider to adjust transparency (50%-100%)
 - **Language**: English / Chinese
-- **App Config**: GA Root, Python path, Port
+- **App Config**: GA Root, Python path, Port, Pets Directory
 - **mykey.py Editor**: Edit LLM API keys directly
 - **Check Updates**: Manual update check
 - **Reconfigure**: Re-enter Setup Wizard
 
-### 13. Auto Update
+### 13. Desktop Pet
+
+Animated pixel pet that lives on your screen, inspired by [DyberPet](https://github.com/ChaozhongLiu/DyberPet).
+
+**Behaviors:**
+- **Idle**: Loops default animation
+- **Walk**: Randomly walks left/right across the screen
+- **Sleep**: Occasional sleep animation
+- **Click**: Dialogue bubble + patpat reaction animation
+- **Drag**: Drag animation, fall on release
+- **Working**: Special animation when Agent is busy
+
+**Pet Selection:** Right-click the pet to open the character selector (13+ bundled pets).
+
+**Custom Pets:** Place DyberPet-compatible character folders in Settings → Pets Directory:
+```
+YourPetsDir/
+└── 角色名/
+    ├── act_conf.json    (action configuration)
+    └── action/          (PNG frame sequences)
+        ├── stand_0.png
+        ├── stand_1.png
+        ├── walk_0.png
+        └── ...
+```
+
+**Desktop Mode (Electron):** Pet runs in an independent transparent window — drag it anywhere on screen, not confined to the app window.
+
+### 14. Auto Update
 
 - App checks for updates on startup (after 15s) and every hour
 - When a new version is found, a notification appears at bottom-right
@@ -251,12 +282,15 @@ cd backend && go run . --no-gui
 ```
 ┌─────────────────────────────────────────────┐
 │  Electron (Desktop Shell)                   │
+│  - Main Window (transparent, frameless)     │
+│  - Pet Window (always-on-top, independent)  │
 │  - Auto-update (electron-updater)           │
 │  - System tray, folder picker               │
 ├─────────────────────────────────────────────┤
 │  Go Backend (port 18600)                    │
 │  - REST API + WebSocket                     │
 │  - Instance lifecycle management            │
+│  - Pet discovery API (/api/pets)            │
 │  - Conductor/Hive process management        │
 │  - Cost persistence (~/.ga-manager/)        │
 ├─────────────────────────────────────────────┤
@@ -279,4 +313,5 @@ cd backend && go run . --no-gui
 ## Credits
 
 - [GenericAgent](https://github.com/lsdefine/GenericAgent) — the AI agent framework
+- [DyberPet](https://github.com/ChaozhongLiu/DyberPet) — desktop pet animation assets
 - Built with Go, React, TypeScript, Electron
