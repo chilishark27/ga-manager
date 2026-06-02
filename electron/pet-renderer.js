@@ -41,13 +41,15 @@ async function init() {
   buildSelector();
   startPet();
 
-  window.petBridge.onStateChange((state) => {
-    if (state === 'working' && pets[currentPetIdx]?.actions?.work) {
-      setAction('work');
-    } else if (state === 'idle' && action === 'work') {
-      setAction('default');
-    }
-  });
+  if (window.petBridge) {
+    window.petBridge.onStateChange((state) => {
+      if (state === 'working' && pets[currentPetIdx]?.actions?.work) {
+        setAction('work');
+      } else if (state === 'idle' && action === 'work') {
+        setAction('default');
+      }
+    });
+  }
 }
 
 function currentPet() { return pets[currentPetIdx]; }
@@ -213,12 +215,21 @@ container.addEventListener('click', (e) => {
 // Right-click: selector
 container.addEventListener('contextmenu', (e) => {
   e.preventDefault();
+  const showing = !selector.classList.contains('show');
   selector.classList.toggle('show');
+  if (window.petBridge) {
+    if (showing) {
+      window.petBridge.resizeWindow(300, 350);
+    } else {
+      window.petBridge.resizeWindow(250, 250);
+    }
+  }
 });
 
 document.addEventListener('click', (e) => {
   if (!selector.contains(e.target) && selector.classList.contains('show')) {
     selector.classList.remove('show');
+    if (window.petBridge) window.petBridge.resizeWindow(250, 250);
   }
 });
 

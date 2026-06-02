@@ -204,6 +204,10 @@ ipcMain.handle('pet-get-position', () => {
   return [0, 0];
 });
 
+ipcMain.handle('pet-resize-window', (_, w, h) => {
+  if (petWindow) petWindow.setSize(Math.round(w), Math.round(h));
+});
+
 ipcMain.handle('pet-save-selection', (_, petId) => {
   global.selectedPet = petId;
 });
