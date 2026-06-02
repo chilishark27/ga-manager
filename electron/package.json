@@ -1,6 +1,6 @@
 {
   "name": "ga-manager",
-  "version": "2.17.8",
+  "version": "2.17.9",
   "description": "GA Manager - Multi-instance GenericAgent Desktop Manager",
   "main": "main.js",
   "scripts": {
@@ -46,11 +46,17 @@
       {
         "from": "../bridge",
         "to": "bridge",
-        "filter": ["**/*", "!__pycache__", "!*.log"]
+        "filter": [
+          "**/*",
+          "!__pycache__",
+          "!*.log"
+        ]
       }
     ],
     "win": {
-      "target": ["nsis"],
+      "target": [
+        "nsis"
+      ],
       "icon": "icon.ico",
       "extraResources": [
         {
@@ -71,7 +77,10 @@
       "perMachine": false
     },
     "mac": {
-      "target": ["dmg", "zip"],
+      "target": [
+        "dmg",
+        "zip"
+      ],
       "icon": "icon.png",
       "category": "public.app-category.developer-tools",
       "identity": "-",
@@ -87,7 +96,9 @@
       ]
     },
     "linux": {
-      "target": ["AppImage"],
+      "target": [
+        "AppImage"
+      ],
       "icon": "icon.png",
       "category": "Development",
       "extraResources": [
@@ -103,5 +114,3 @@
     }
   }
 }
-
-

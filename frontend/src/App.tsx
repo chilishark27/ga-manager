@@ -4,7 +4,6 @@ import NavBar from './components/NavBar';
 import TopBar from './components/TopBar';
 import SetupPage from './components/SetupPage';
 import TodoPanel from './components/TodoPanel';
-import DesktopPet from './components/DesktopPet';
 import SakuraPetals from './components/SakuraPetals';
 import ChatPage from './pages/ChatPage';
 import ConductorPage from './pages/ConductorPage';
@@ -91,7 +90,6 @@ function AppInner() {
         </div>
       )}
       {showTodoPanel && <TodoPanel />}
-      <DesktopPet />
       <UpdateNotifier />
     </div>
   );

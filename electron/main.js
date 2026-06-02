@@ -1,5 +1,4 @@
 const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, dialog } = require('electron');
-const { autoUpdater } = require('electron-updater');
 const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
@@ -132,11 +131,11 @@ function createWindow() {
 function createPetWindow() {
   const { screen } = require('electron');
   const display = screen.getPrimaryDisplay();
-  const savedPos = { x: display.bounds.width - 250, y: display.bounds.height - 250 };
+  const savedPos = { x: display.bounds.width - 300, y: display.bounds.height - 300 };
 
   petWindow = new BrowserWindow({
-    width: 200,
-    height: 200,
+    width: 250,
+    height: 250,
     x: savedPos.x,
     y: savedPos.y,
     transparent: true,
@@ -224,6 +223,8 @@ ipcMain.handle('open-external', (_, url) => {
 
 // --- Auto Updater ---
 function setupAutoUpdater() {
+  let autoUpdater;
+  try { autoUpdater = require('electron-updater').autoUpdater; } catch (e) { console.warn('Auto-updater not available:', e.message); return; }
   autoUpdater.autoDownload = false;
   autoUpdater.autoInstallOnAppQuit = true;
 
