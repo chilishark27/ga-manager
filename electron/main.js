@@ -3,6 +3,9 @@ const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
 
+// Fix: transparent windows freeze on Windows when overlapping other windows
+app.disableHardwareAcceleration();
+
 const PORT = 18600;
 const BACKEND_URL = `http://localhost:${PORT}`;
 
