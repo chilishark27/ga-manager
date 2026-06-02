@@ -67,6 +67,7 @@ function selectPet(idx) {
   currentPetIdx = idx;
   if (window.petBridge) window.petBridge.savePet(pets[idx].id);
   selector.classList.remove('show');
+  if (window.petBridge) window.petBridge.resizeWindow(250, 250);
   buildSelector();
   stopAnim();
   startPet();
@@ -92,9 +93,9 @@ function setAction(name) {
 
   // Tell main process to start/stop walking
   if (window.petBridge) {
-    if (act.need_move) {
-      const dir = act.direction === 'left' ? -1 : 1;
-      const speed = act.frame_move || 3;
+    if (act.need_move || name.includes('walk')) {
+      const dir = (act.direction === 'left' || name.includes('left')) ? -1 : 1;
+      const speed = act.frame_move || 2;
       window.petBridge.walkStart(dir, speed);
     } else {
       window.petBridge.walkStop();
@@ -125,20 +126,20 @@ function scheduleAuto() {
     const pet = currentPet();
     if (!pet) return;
     const rand = Math.random();
-    if (rand < 0.25 && pet.actions.left_walk) {
+    if (rand < 0.3 && pet.actions.left_walk) {
       setAction('left_walk');
-      setTimeout(() => { setAction('default'); scheduleAuto(); }, 3000);
-    } else if (rand < 0.5 && pet.actions.right_walk) {
+      setTimeout(() => { setAction('default'); scheduleAuto(); }, 5000 + Math.random() * 4000);
+    } else if (rand < 0.6 && pet.actions.right_walk) {
       setAction('right_walk');
-      setTimeout(() => { setAction('default'); scheduleAuto(); }, 3000);
-    } else if (rand < 0.65 && pet.actions.sleep) {
+      setTimeout(() => { setAction('default'); scheduleAuto(); }, 5000 + Math.random() * 4000);
+    } else if (rand < 0.75 && pet.actions.sleep) {
       setAction('sleep');
       setTimeout(() => { setAction('default'); scheduleAuto(); }, 5000);
     } else {
       setAction('default');
       scheduleAuto();
     }
-  }, 3000 + Math.random() * 4000);
+  }, 2000 + Math.random() * 3000);
 }
 
 // Drag: left-click on pet image to drag
@@ -147,6 +148,7 @@ let dragging = false;
 
 img.addEventListener('mousedown', (e) => {
   if (e.button !== 0) return;
+  e.preventDefault(); // prevent native image drag
   dragging = true;
   if (window.petBridge) window.petBridge.dragStart();
 });
@@ -155,6 +157,14 @@ document.addEventListener('mouseup', () => {
   if (!dragging) return;
   dragging = false;
   if (window.petBridge) window.petBridge.dragEnd();
+});
+
+// Safety net: detect missed mouseup (cursor left window during drag)
+document.addEventListener('mousemove', (e) => {
+  if (dragging && e.buttons === 0) {
+    dragging = false;
+    if (window.petBridge) window.petBridge.dragEnd();
+  }
 });
 
 // Walk done callback from main process
@@ -198,7 +208,7 @@ container.addEventListener('contextmenu', (e) => {
   selector.classList.toggle('show');
   if (window.petBridge) {
     if (showing) {
-      window.petBridge.resizeWindow(400, 400);
+      window.petBridge.resizeWindow(250, 300);
     } else {
       window.petBridge.resizeWindow(250, 250);
     }
