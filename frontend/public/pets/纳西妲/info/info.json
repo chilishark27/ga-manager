@@ -1,0 +1,20 @@
+{
+    "coverImages": ["cp0.jpg","cp3.jpg"],
+    "pfp":"nxd.png",
+    "petName": "纳西妲",
+    "tages": {
+        "原神":"#C5E0B4",
+        "附属宠物":"#BDD7EE",
+        "语音":"#FFE699"
+    },
+    "intro": "纳西妲，米哈游出品的游戏《原神》及其衍生作品中的角色，真名布耶尔，“尘世七执政”中的草神，被须弥人给予“小吉祥草王”的爱称。",
+    "author":{
+        "name":"栎咕咕",
+        "pfp":"cgg.png",
+        "frameColor":"#8FAADC",
+        "links":{
+            "BiliBili":"14004864"
+        }
+    }
+
+}

@@ -35,20 +35,20 @@ const PETS: PetConfig[] = [
       angry: { prefix: 'onfloor', frames: 8, interval: 150 },
     },
   },
-  { name: 'Nahida', nameZh: '纳西妲', folder: '/pets', actions: { stand: { prefix: 'nahida', frames: 1, interval: 1000 } } },
-  { name: 'Xiao Dai', nameZh: '小呆', folder: '/pets', actions: { stand: { prefix: 'xiao_dai', frames: 1, interval: 1000 } } },
-  { name: 'Xiao', nameZh: '魈', folder: '/pets', actions: { stand: { prefix: 'xiao', frames: 1, interval: 1000 } } },
-  { name: 'Wanderer', nameZh: '流浪者', folder: '/pets', actions: { stand: { prefix: 'wanderer', frames: 1, interval: 1000 } } },
-  { name: 'Firefly', nameZh: '流萤', folder: '/pets', actions: { stand: { prefix: 'firefly', frames: 1, interval: 1000 } } },
-  { name: 'Lucia', nameZh: '露西亚', folder: '/pets', actions: { stand: { prefix: 'lucia', frames: 1, interval: 1000 } } },
-  { name: 'Shore Keeper', nameZh: '守岸人', folder: '/pets', actions: { stand: { prefix: 'shorekeeper', frames: 1, interval: 1000 } } },
-  { name: 'Chun', nameZh: '椿', folder: '/pets', actions: { stand: { prefix: 'chun', frames: 1, interval: 1000 } } },
-  { name: 'Yinyue', nameZh: '饮月', folder: '/pets', actions: { stand: { prefix: 'yinyue', frames: 1, interval: 1000 } } },
-  { name: 'Pixel Cat', nameZh: '像素猫', folder: '/pets', actions: { stand: { prefix: 'pixel_cat', frames: 1, interval: 1000 } } },
-  { name: 'Pixel Simei', nameZh: '像素四妹', folder: '/pets', actions: { stand: { prefix: 'pixel_simei', frames: 1, interval: 1000 } } },
-  { name: 'Paimon', nameZh: '派蒙', folder: '/pets', actions: { stand: { prefix: 'paimon', frames: 1, interval: 1000 } } },
-  { name: 'Lanaluo', nameZh: '兰纳罗', folder: '/pets', actions: { stand: { prefix: 'lanaluo', frames: 1, interval: 1000 } } },
-  { name: 'Pikeqiu', nameZh: '皮克啾', folder: '/pets', actions: { stand: { prefix: 'pikeqiu', frames: 1, interval: 1000 } } },
+  { name: 'Nahida', nameZh: '纳西妲', folder: '/pets', actions: { stand: { prefix: 'nahida', frames: 1, interval: 1000 }, left_walk: { prefix: 'nahida', frames: 1, interval: 200, move: -2, direction: 'left' }, right_walk: { prefix: 'nahida', frames: 1, interval: 200, move: 2, direction: 'right' }, sleep: { prefix: 'nahida', frames: 1, interval: 1000 } } },
+  { name: 'Xiao Dai', nameZh: '小呆', folder: '/pets', actions: { stand: { prefix: 'xiao_dai', frames: 1, interval: 1000 }, left_walk: { prefix: 'xiao_dai', frames: 1, interval: 200, move: -2, direction: 'left' }, right_walk: { prefix: 'xiao_dai', frames: 1, interval: 200, move: 2, direction: 'right' }, sleep: { prefix: 'xiao_dai', frames: 1, interval: 1000 } } },
+  { name: 'Xiao', nameZh: '魈', folder: '/pets', actions: { stand: { prefix: 'xiao', frames: 1, interval: 1000 }, left_walk: { prefix: 'xiao', frames: 1, interval: 200, move: -2, direction: 'left' }, right_walk: { prefix: 'xiao', frames: 1, interval: 200, move: 2, direction: 'right' }, sleep: { prefix: 'xiao', frames: 1, interval: 1000 } } },
+  { name: 'Wanderer', nameZh: '流浪者', folder: '/pets', actions: { stand: { prefix: 'wanderer', frames: 1, interval: 1000 }, left_walk: { prefix: 'wanderer', frames: 1, interval: 200, move: -2, direction: 'left' }, right_walk: { prefix: 'wanderer', frames: 1, interval: 200, move: 2, direction: 'right' }, sleep: { prefix: 'wanderer', frames: 1, interval: 1000 } } },
+  { name: 'Firefly', nameZh: '流萤', folder: '/pets', actions: { stand: { prefix: 'firefly', frames: 1, interval: 1000 }, left_walk: { prefix: 'firefly', frames: 1, interval: 200, move: -2, direction: 'left' }, right_walk: { prefix: 'firefly', frames: 1, interval: 200, move: 2, direction: 'right' }, sleep: { prefix: 'firefly', frames: 1, interval: 1000 } } },
+  { name: 'Lucia', nameZh: '露西亚', folder: '/pets', actions: { stand: { prefix: 'lucia', frames: 1, interval: 1000 }, left_walk: { prefix: 'lucia', frames: 1, interval: 200, move: -2, direction: 'left' }, right_walk: { prefix: 'lucia', frames: 1, interval: 200, move: 2, direction: 'right' }, sleep: { prefix: 'lucia', frames: 1, interval: 1000 } } },
+  { name: 'Shore Keeper', nameZh: '守岸人', folder: '/pets', actions: { stand: { prefix: 'shorekeeper', frames: 1, interval: 1000 }, left_walk: { prefix: 'shorekeeper', frames: 1, interval: 200, move: -2, direction: 'left' }, right_walk: { prefix: 'shorekeeper', frames: 1, interval: 200, move: 2, direction: 'right' }, sleep: { prefix: 'shorekeeper', frames: 1, interval: 1000 } } },
+  { name: 'Chun', nameZh: '椿', folder: '/pets', actions: { stand: { prefix: 'chun', frames: 1, interval: 1000 }, left_walk: { prefix: 'chun', frames: 1, interval: 200, move: -2, direction: 'left' }, right_walk: { prefix: 'chun', frames: 1, interval: 200, move: 2, direction: 'right' }, sleep: { prefix: 'chun', frames: 1, interval: 1000 } } },
+  { name: 'Yinyue', nameZh: '饮月', folder: '/pets', actions: { stand: { prefix: 'yinyue', frames: 1, interval: 1000 }, left_walk: { prefix: 'yinyue', frames: 1, interval: 200, move: -2, direction: 'left' }, right_walk: { prefix: 'yinyue', frames: 1, interval: 200, move: 2, direction: 'right' }, sleep: { prefix: 'yinyue', frames: 1, interval: 1000 } } },
+  { name: 'Pixel Cat', nameZh: '像素猫', folder: '/pets', actions: { stand: { prefix: 'pixel_cat', frames: 1, interval: 1000 }, left_walk: { prefix: 'pixel_cat', frames: 1, interval: 200, move: -2, direction: 'left' }, right_walk: { prefix: 'pixel_cat', frames: 1, interval: 200, move: 2, direction: 'right' }, sleep: { prefix: 'pixel_cat', frames: 1, interval: 1000 } } },
+  { name: 'Pixel Simei', nameZh: '像素四妹', folder: '/pets', actions: { stand: { prefix: 'pixel_simei', frames: 1, interval: 1000 }, left_walk: { prefix: 'pixel_simei', frames: 1, interval: 200, move: -2, direction: 'left' }, right_walk: { prefix: 'pixel_simei', frames: 1, interval: 200, move: 2, direction: 'right' }, sleep: { prefix: 'pixel_simei', frames: 1, interval: 1000 } } },
+  { name: 'Paimon', nameZh: '派蒙', folder: '/pets', actions: { stand: { prefix: 'paimon', frames: 1, interval: 1000 }, left_walk: { prefix: 'paimon', frames: 1, interval: 200, move: -2, direction: 'left' }, right_walk: { prefix: 'paimon', frames: 1, interval: 200, move: 2, direction: 'right' }, sleep: { prefix: 'paimon', frames: 1, interval: 1000 } } },
+  { name: 'Lanaluo', nameZh: '兰纳罗', folder: '/pets', actions: { stand: { prefix: 'lanaluo', frames: 1, interval: 1000 }, left_walk: { prefix: 'lanaluo', frames: 1, interval: 200, move: -2, direction: 'left' }, right_walk: { prefix: 'lanaluo', frames: 1, interval: 200, move: 2, direction: 'right' }, sleep: { prefix: 'lanaluo', frames: 1, interval: 1000 } } },
+  { name: 'Pikeqiu', nameZh: '皮克啾', folder: '/pets', actions: { stand: { prefix: 'pikeqiu', frames: 1, interval: 1000 }, left_walk: { prefix: 'pikeqiu', frames: 1, interval: 200, move: -2, direction: 'left' }, right_walk: { prefix: 'pikeqiu', frames: 1, interval: 200, move: 2, direction: 'right' }, sleep: { prefix: 'pikeqiu', frames: 1, interval: 1000 } } },
 ];
 
 const CLICK_DIALOGUES_ZH = [
@@ -223,6 +223,7 @@ export default function DesktopPet() {
     <>
       <div
         className={`desktop-pet ${isWorking ? 'working' : 'idle'} ${clickAnim ? 'pet-clicked' : ''}`}
+        data-action={action}
         style={{ left: position.x, top: position.y, bottom: 'auto' }}
         onMouseDown={handleMouseDown}
         onClick={handleClick}
