@@ -142,28 +142,20 @@ function scheduleAuto() {
   }, 3000 + Math.random() * 4000);
 }
 
-// Manual drag - track mouse position and move window
+// Manual drag - main process tracks cursor position for reliable movement
 let dragging = false;
-let lastScreenX = 0, lastScreenY = 0;
+let dragInterval = null;
 
 container.addEventListener('mousedown', (e) => {
   if (e.button !== 0) return;
   dragging = true;
-  lastScreenX = e.screenX;
-  lastScreenY = e.screenY;
   container.classList.add('dragging');
-});
-
-document.addEventListener('mousemove', (e) => {
-  if (!dragging) return;
-  const dx = e.screenX - lastScreenX;
-  const dy = e.screenY - lastScreenY;
-  lastScreenX = e.screenX;
-  lastScreenY = e.screenY;
-  if (window.petBridge && (dx !== 0 || dy !== 0)) {
-    window.petBridge.getPosition().then(pos => {
-      window.petBridge.moveWindow(pos[0] + dx, pos[1] + dy);
-    });
+  if (window.petBridge) {
+    window.petBridge.dragStart();
+    // Poll drag move at 60fps - main process reads cursor position
+    dragInterval = setInterval(() => {
+      if (dragging && window.petBridge) window.petBridge.dragMove();
+    }, 16);
   }
 });
 
@@ -171,6 +163,8 @@ document.addEventListener('mouseup', () => {
   if (!dragging) return;
   dragging = false;
   container.classList.remove('dragging');
+  clearInterval(dragInterval);
+  if (window.petBridge) window.petBridge.dragEnd();
 });
 
 // Toggle (hide) button

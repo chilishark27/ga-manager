@@ -142,10 +142,7 @@ function createPetWindow() {
     frame: false,
     alwaysOnTop: true,
     skipTaskbar: true,
-    resizable: true,
-    movable: true,
     hasShadow: false,
-    focusable: true,
     webPreferences: {
       nodeIntegration: false,
       contextIsolation: true,
@@ -154,7 +151,32 @@ function createPetWindow() {
   });
 
   petWindow.loadURL(`${BACKEND_URL}/pet.html`);
-  petWindow.setIgnoreMouseEvents(false);
+
+  // Drag support: track mouse in main process
+  let petDragging = false;
+  let dragOffsetX = 0, dragOffsetY = 0;
+
+  ipcMain.on('pet-drag-start', () => {
+    if (!petWindow) return;
+    petDragging = true;
+    const { screen } = require('electron');
+    const cursor = screen.getCursorScreenPoint();
+    const [wx, wy] = petWindow.getPosition();
+    dragOffsetX = cursor.x - wx;
+    dragOffsetY = cursor.y - wy;
+  });
+
+  ipcMain.on('pet-drag-move', () => {
+    if (!petWindow || !petDragging) return;
+    const { screen } = require('electron');
+    const cursor = screen.getCursorScreenPoint();
+    petWindow.setPosition(cursor.x - dragOffsetX, cursor.y - dragOffsetY);
+  });
+
+  ipcMain.on('pet-drag-end', () => {
+    petDragging = false;
+  });
+
   petWindow.on('closed', () => { petWindow = null; });
 }
 
