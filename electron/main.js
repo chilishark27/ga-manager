@@ -165,7 +165,7 @@ function createPetWindow() {
 
   // Walk: main process moves window periodically
   let walkDir = 0; // -1 left, 0 stop, 1 right
-  let walkSpeed = 2;
+  let walkSpeed = 1;
 
   setInterval(() => {
     if (!petWindow || walkDir === 0) return;
@@ -181,11 +181,11 @@ function createPetWindow() {
         petWindow.setBounds({ x: newX, y: bounds.y, width: bounds.width, height: bounds.height });
       }
     } catch {}
-  }, 30);
+  }, 50);
 
   ipcMain.on('pet-walk-start', (_, dir, speed) => {
     walkDir = dir; // -1 or 1
-    walkSpeed = Math.max(2, speed || 2);
+    walkSpeed = Math.max(1, speed || 1);
   });
 
   ipcMain.on('pet-walk-stop', () => { walkDir = 0; });
