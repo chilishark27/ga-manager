@@ -153,7 +153,7 @@ function createPetWindow() {
     },
   });
 
-  petWindow.loadFile(path.join(__dirname, 'pet.html'));
+  petWindow.loadURL(`${BACKEND_URL}/pet.html`);
   petWindow.setIgnoreMouseEvents(false);
   petWindow.on('closed', () => { petWindow = null; });
 }
