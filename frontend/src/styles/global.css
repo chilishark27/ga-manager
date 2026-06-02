@@ -224,9 +224,9 @@ body { background: transparent; color: var(--text-1); height: 100vh; overflow: h
 .top-bar-project-option:hover { background: var(--sidebar-hover); color: var(--text-1); }
 .top-bar-project-option.active { background: rgba(236, 143, 173, 0.1); color: var(--accent); font-weight: 600; }
 .top-bar-project-opt-icon { font-size: 10px; color: var(--text-3); width: 14px; text-align: center; }
-.top-bar-project-del { display: none; font-size: 11px; color: var(--text-3); padding: 2px 4px; border-radius: 4px; cursor: pointer; }
-.top-bar-project-option:hover .top-bar-project-del { display: block; }
+.top-bar-project-del { display: none; font-size: 12px; color: var(--text-3); cursor: pointer; padding: 2px 4px; border-radius: 4px; line-height: 1; }
 .top-bar-project-del:hover { color: var(--red); background: rgba(239, 68, 68, 0.08); }
+.top-bar-project-option:hover .top-bar-project-del { display: block; }
 .top-bar-project-divider { height: 1px; background: var(--border); margin: 4px 8px; }
 
 /* Window Controls (frameless) */
