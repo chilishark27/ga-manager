@@ -57,7 +57,7 @@ function buildSelector() {
     const div = document.createElement('div');
     div.className = `sel-item ${idx === currentPetIdx ? 'active' : ''}`;
     const act = p.actions.default || Object.values(p.actions)[0];
-    div.innerHTML = `<img src="${backendUrl}${p.folder}/action/${act.images}_${padNum(0, act.pad)}.png"><span>${p.name}</span>`;
+    div.innerHTML = `<img src="${encodeURI(backendUrl + p.folder + '/action/' + act.images + '_' + padNum(0, act.pad) + '.png')}"><span>${p.name}</span>`;
     div.onclick = (e) => { e.stopPropagation(); selectPet(idx); };
     selector.appendChild(div);
   });
@@ -115,7 +115,7 @@ function padNum(n, pad) {
 function updateFrame() {
   const pet = currentPet();
   const act = pet.actions[action] || pet.actions.default;
-  img.src = `${backendUrl}${pet.folder}/action/${act.images}_${padNum(frameIdx, act.pad)}.png`;
+  img.src = encodeURI(`${backendUrl}${pet.folder}/action/${act.images}_${padNum(frameIdx, act.pad)}.png`);
 }
 
 function stopAnim() { clearInterval(animTimer); animTimer = null; }
