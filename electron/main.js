@@ -11,6 +11,7 @@ let mainWindow = null;
 let tray = null;
 let backendProcess = null;
 let isQuitting = false;
+let petWindow = null;
 
 function getBackendPath() {
   const isPackaged = app.isPackaged;
@@ -128,6 +129,35 @@ function createWindow() {
   });
 }
 
+function createPetWindow() {
+  const { screen } = require('electron');
+  const display = screen.getPrimaryDisplay();
+  const savedPos = { x: display.bounds.width - 250, y: display.bounds.height - 250 };
+
+  petWindow = new BrowserWindow({
+    width: 200,
+    height: 200,
+    x: savedPos.x,
+    y: savedPos.y,
+    transparent: true,
+    frame: false,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    resizable: false,
+    hasShadow: false,
+    focusable: true,
+    webPreferences: {
+      nodeIntegration: false,
+      contextIsolation: true,
+      preload: path.join(__dirname, 'pet-preload.js'),
+    },
+  });
+
+  petWindow.loadFile(path.join(__dirname, 'pet.html'));
+  petWindow.setIgnoreMouseEvents(false);
+  petWindow.on('closed', () => { petWindow = null; });
+}
+
 function createTray() {
   const iconPath = getIconPath();
   const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
@@ -164,6 +194,28 @@ ipcMain.handle('show-notification', (_, title, body) => {
 ipcMain.handle('window-minimize', () => { if (mainWindow) mainWindow.minimize(); });
 ipcMain.handle('window-maximize', () => { if (mainWindow) { mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize(); } });
 ipcMain.handle('window-close', () => { if (mainWindow) mainWindow.close(); });
+
+// --- Pet Window IPC ---
+ipcMain.handle('pet-move-window', (_, x, y) => {
+  if (petWindow) petWindow.setPosition(Math.round(x), Math.round(y));
+});
+
+ipcMain.handle('pet-get-position', () => {
+  if (petWindow) return petWindow.getPosition();
+  return [0, 0];
+});
+
+ipcMain.handle('pet-save-selection', (_, petId) => {
+  global.selectedPet = petId;
+});
+
+ipcMain.handle('pet-get-selection', () => {
+  return global.selectedPet || '';
+});
+
+ipcMain.handle('pet-get-backend-url', () => {
+  return BACKEND_URL;
+});
 
 ipcMain.handle('open-external', (_, url) => {
   const { shell } = require('electron');
@@ -240,6 +292,7 @@ app.whenReady().then(async () => {
 
   createTray();
   createWindow();
+  createPetWindow();
   setupAutoUpdater();
 });
 
@@ -254,6 +307,7 @@ app.on('activate', () => {
 
 app.on('before-quit', (e) => {
   isQuitting = true;
+  if (petWindow) { petWindow.destroy(); petWindow = null; }
   if (backendProcess) {
     try { backendProcess.kill(); } catch {}
     backendProcess = null;
