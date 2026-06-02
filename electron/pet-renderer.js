@@ -208,7 +208,7 @@ container.addEventListener('contextmenu', (e) => {
   selector.classList.toggle('show');
   if (window.petBridge) {
     if (showing) {
-      window.petBridge.resizeWindow(400, 400);
+      window.petBridge.resizeWindow(250, 300);
     } else {
       window.petBridge.resizeWindow(250, 250);
     }
