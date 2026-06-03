@@ -6,19 +6,19 @@ html, body, #root { font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMa
 
 /* ===== Dark Theme Variables (Sakura Night) ===== */
 [data-theme="dark"] {
-  --bg: #1c1428; --bg2: #241a32; --bg3: rgba(42, 31, 56, 0.5);
-  --card: rgba(40, 28, 56, 0.4); --card-hover: rgba(50, 35, 70, 0.55);
-  --border: rgba(236, 143, 173, 0.1); --border-hover: rgba(236, 143, 173, 0.28); --border-glow: rgba(236, 143, 173, 0.15);
+  --bg: #1a1225; --bg2: #221832; --bg3: rgba(38, 26, 52, 0.85);
+  --card: rgba(36, 24, 50, 0.75); --card-hover: rgba(48, 32, 68, 0.85);
+  --border: rgba(200, 140, 170, 0.2); --border-hover: rgba(236, 143, 173, 0.4); --border-glow: rgba(236, 143, 173, 0.2);
   --accent: #f0a0ba; --accent2: #e087a5; --accent3: #b8a0f0;
   --green: #6ee7b7; --yellow: #fbbf24; --red: #fb7185;
-  --text-1: #f5eef4; --text-2: #c4b0d0; --text-3: #7a6090;
-  --sidebar-bg: rgba(28, 20, 40, 0.65); --sidebar-hover: rgba(236, 143, 173, 0.06);
-  --input-bg: rgba(26, 18, 37, 0.35); --msg-user: rgba(236, 143, 173, 0.06); --msg-agent: rgba(40, 28, 56, 0.3);
-  --shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
-  --toggle-bg: rgba(61, 42, 80, 0.5); --toggle-on: #f0a0ba;
+  --text-1: #f5eef4; --text-2: #d0bfe0; --text-3: #8a70a0;
+  --sidebar-bg: rgba(22, 14, 34, 0.9); --sidebar-hover: rgba(236, 143, 173, 0.1);
+  --input-bg: rgba(22, 14, 34, 0.7); --msg-user: rgba(236, 143, 173, 0.1); --msg-agent: rgba(32, 22, 48, 0.7);
+  --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+  --toggle-bg: rgba(61, 42, 80, 0.7); --toggle-on: #f0a0ba;
   --gradient: linear-gradient(135deg, #f0a0ba 0%, #e087a5 100%);
-  --glow: 0 0 20px rgba(236, 143, 173, 0.08);
-  --glass: rgba(40, 28, 56, 0.35); --glass-border: rgba(236, 143, 173, 0.08); --glass-blur: 22px;
+  --glow: 0 0 20px rgba(236, 143, 173, 0.12);
+  --glass: rgba(28, 18, 42, 0.7); --glass-border: rgba(200, 140, 170, 0.15); --glass-blur: 20px;
 }
 
 /* ===== Light Theme Variables (Sakura Bloom) ===== */
