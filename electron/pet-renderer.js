@@ -128,24 +128,37 @@ function scheduleAuto() {
     const pet = currentPet();
     if (!pet) return;
 
-    // Collect available idle actions (non-walk, non-system)
-    const skipActions = ['default', 'drag', 'work', 'hide', 'up', 'down', 'left', 'right'];
+    // Actions to never auto-play (transitional/system/one-shot)
+    const skipActions = [
+      'default', 'drag', 'work', 'hide', 'up', 'down', 'left', 'right',
+      'faint', 'fall', 'onfloor', 'prefall', 'edge'
+    ];
     const walkActions = Object.keys(pet.actions).filter(a => a.includes('walk'));
-    const idleActions = Object.keys(pet.actions).filter(a =>
-      !skipActions.includes(a) && !a.includes('walk') && !a.startsWith('feed')
-    );
+    const idleActions = Object.keys(pet.actions).filter(a => {
+      if (skipActions.includes(a)) return false;
+      if (a.includes('walk')) return false;
+      if (a.startsWith('feed')) return false;
+      if (a.startsWith('patpat')) return false;
+      // Skip very short animations (< 6 frames with fast interval) — they're one-shot
+      const act = pet.actions[a];
+      if (act.frames < 6 && act.interval < 200) return false;
+      return true;
+    });
 
     const rand = Math.random();
-    if (rand < 0.3 && walkActions.length > 0) {
+    if (rand < 0.35 && walkActions.length > 0) {
       // Walk in a random direction
       const walkAction = walkActions[Math.floor(Math.random() * walkActions.length)];
       setAction(walkAction);
       setTimeout(() => { setAction('default'); scheduleAuto(); }, 8000 + Math.random() * 6000);
-    } else if (rand < 0.7 && idleActions.length > 0) {
-      // Play a random idle animation (dance, sleep, happy, cc, yb, etc.)
+    } else if (rand < 0.75 && idleActions.length > 0) {
+      // Play a random idle animation, duration = 2 full loops minimum
       const idleAction = idleActions[Math.floor(Math.random() * idleActions.length)];
+      const act = pet.actions[idleAction];
+      const oneCycle = act.frames * act.interval;
+      const duration = Math.max(oneCycle * 2, 4000);
       setAction(idleAction);
-      setTimeout(() => { setAction('default'); scheduleAuto(); }, 4000 + Math.random() * 4000);
+      setTimeout(() => { setAction('default'); scheduleAuto(); }, duration);
     } else {
       // Stay in default, just reschedule
       scheduleAuto();
