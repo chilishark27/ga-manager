@@ -183,15 +183,15 @@ function createPetWindow() {
   setInterval(() => {
     if (!petWindow || walkDir === 0) return;
     try {
-      const bounds = petWindow.getBounds();
+      const [x, y] = petWindow.getPosition();
       const { screen } = require('electron');
       const display = screen.getPrimaryDisplay();
-      const newX = bounds.x + (walkDir * walkSpeed);
-      if (newX < 0 || newX > display.bounds.width - bounds.width) {
+      const newX = x + (walkDir * walkSpeed);
+      if (newX < 0 || newX > display.bounds.width - 150) {
         walkDir = 0;
         petWindow.webContents.send('pet-walk-done');
       } else {
-        petWindow.setBounds({ x: newX, y: bounds.y, width: bounds.width, height: bounds.height });
+        petWindow.setPosition(newX, y);
       }
     } catch {}
   }, 50);
@@ -221,8 +221,7 @@ function createPetWindow() {
       if (!petWindow || !petDragging) return;
       const { screen } = require('electron');
       const cur = screen.getCursorScreenPoint();
-      const b = petWindow.getBounds();
-      petWindow.setBounds({ x: cur.x - dragOffsetX, y: cur.y - dragOffsetY, width: b.width, height: b.height });
+      petWindow.setPosition(cur.x - dragOffsetX, cur.y - dragOffsetY);
     }, 16);
   });
 
@@ -277,8 +276,7 @@ ipcMain.handle('window-close', () => { if (mainWindow) mainWindow.close(); });
 // --- Pet Window IPC ---
 ipcMain.handle('pet-move-window', (_, x, y) => {
   if (petWindow) {
-    const [w, h] = petWindow.getSize();
-    petWindow.setBounds({ x: Math.round(x), y: Math.round(y), width: w, height: h });
+    petWindow.setPosition(Math.round(x), Math.round(y));
   }
 });
 

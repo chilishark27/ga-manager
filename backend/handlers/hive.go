@@ -207,6 +207,16 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	// Start workers (with faster check interval)
 	h.addLog(fmt.Sprintf("Starting %d workers...", body.Workers))
 	workerReflect := filepath.Join(gaRoot, "reflect", "agent_team_worker.py")
+
+	// Create a patched copy with shorter poll interval for faster startup
+	patchedReflect := filepath.Join(bbsCwd, "agent_team_worker_fast.py")
+	if origData, err := os.ReadFile(workerReflect); err == nil {
+		patched := strings.Replace(string(origData), "INTERVAL = 60", "INTERVAL = 10", 1)
+		os.WriteFile(patchedReflect, []byte(patched), 0644)
+		workerReflect = patchedReflect
+		h.addLog("Worker poll interval: 10s (patched from 60s)")
+	}
+
 	h.workers = nil
 	workerNames := []string{"Alpha", "Beta", "Gamma", "Delta", "Epsilon"}
 	for i := 0; i < body.Workers; i++ {

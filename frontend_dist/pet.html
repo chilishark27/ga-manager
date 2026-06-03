@@ -31,9 +31,18 @@ html, body { background: transparent; overflow: hidden; width: 150px; height: 15
   <div id="pet-bubble"></div>
   <img id="pet-img" src="" alt="pet" draggable="false">
   <div id="pet-name"></div>
-  <button id="toggle-btn" title="Hide pet">脳</button>
+  <button id="toggle-btn" title="Hide pet">×</button>
   <div id="selector"></div>
 </div>
-<script src="pet-renderer.js"></script>
+<script>
+window.onerror = function(msg, url, line) {
+  document.getElementById('pet-name').textContent = msg + ' @' + line;
+  document.getElementById('pet-name').style.opacity = '1';
+  document.getElementById('pet-name').style.color = 'red';
+  document.getElementById('pet-name').style.fontSize = '9px';
+  document.getElementById('pet-name').style.bottom = '2px';
+};
+</script>
+<script src="pet-renderer.js" onerror="document.getElementById('pet-name').textContent='SCRIPT LOAD FAILED';document.getElementById('pet-name').style.opacity='1';document.getElementById('pet-name').style.color='red';"></script>
 </body>
 </html>

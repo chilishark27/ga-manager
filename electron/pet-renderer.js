@@ -16,38 +16,40 @@ const selector = document.getElementById('selector');
 const container = document.getElementById('pet-container');
 
 async function init() {
-  if (window.petBridge) {
-    backendUrl = await window.petBridge.getBackendUrl();
-    const savedPet = await window.petBridge.getSavedPet();
-    try {
+  try {
+    if (window.petBridge) {
+      backendUrl = await window.petBridge.getBackendUrl() || '';
+      const savedPet = await window.petBridge.getSavedPet();
       const res = await fetch(`${backendUrl}/api/pets`);
       pets = await res.json();
-    } catch { pets = []; }
-    if (pets.length === 0) { img.alt = 'No pets found'; return; }
-    currentPetIdx = Math.max(0, pets.findIndex(p => p.id === savedPet));
-  } else {
-    // Fallback: running in browser without petBridge
-    try {
-      const res = await fetch('/api/pets');
+      if (pets.length === 0) { img.alt = 'No pets'; return; }
+      currentPetIdx = Math.max(0, pets.findIndex(p => p.id === savedPet));
+    } else {
+      // No petBridge — use page origin
+      backendUrl = window.location.origin || '';
+      const res = await fetch(`${backendUrl}/api/pets`);
       pets = await res.json();
-    } catch { pets = []; }
-    if (pets.length === 0) { img.alt = 'No pets found'; return; }
-    backendUrl = '';
-    currentPetIdx = 0;
-  }
-  buildSelector();
-  startPet();
+      if (pets.length === 0) { img.alt = 'No pets'; return; }
+      currentPetIdx = 0;
+    }
+    buildSelector();
+    startPet();
 
-  if (window.petBridge) {
-    window.petBridge.onStateChange((state) => {
-      if (state === 'working' && pets[currentPetIdx]?.actions?.work) {
-        clearTimeout(autoTimer);
-        setAction('work');
-      } else if (state === 'idle' && action === 'work') {
-        setAction('default');
-        scheduleAuto();
-      }
-    });
+    if (window.petBridge) {
+      window.petBridge.onStateChange((state) => {
+        if (state === 'working' && pets[currentPetIdx]?.actions?.work) {
+          clearTimeout(autoTimer);
+          setAction('work');
+        } else if (state === 'idle' && action === 'work') {
+          setAction('default');
+          scheduleAuto();
+        }
+      });
+    }
+  } catch (e) {
+    document.getElementById('pet-name').textContent = 'ERR:' + e.message;
+    document.getElementById('pet-name').style.opacity = '1';
+    document.getElementById('pet-name').style.color = 'red';
   }
 }
 
@@ -119,8 +121,11 @@ function padNum(n, pad) {
 
 function updateFrame() {
   const pet = currentPet();
+  if (!pet) return;
   const act = pet.actions[action] || pet.actions.default;
-  img.src = encodeURI(`${backendUrl}${pet.folder}/action/${act.images}_${padNum(frameIdx, act.pad)}.png`);
+  if (!act) return;
+  const url = `${backendUrl}${pet.folder}/action/${act.images}_${padNum(frameIdx, act.pad)}.png`;
+  img.src = url;
 }
 
 function stopAnim() { clearInterval(animTimer); animTimer = null; }
@@ -206,8 +211,6 @@ if (window.petBridge) {
     clearTimeout(autoTimer);
     setAction('default');
     scheduleAuto();
-  });
-}
   });
 }
 
