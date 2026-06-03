@@ -106,25 +106,11 @@ function setAction(name) {
     }
   }
 
-  const oneCycle = act.frames * act.interval;
-  if (oneCycle < 2000 && name !== 'default') {
-    // Short animation: play ONE cycle then stop on last frame (no loop)
-    animTimer = setInterval(() => {
-      frameIdx++;
-      if (frameIdx >= act.frames) {
-        frameIdx = act.frames - 1;
-        clearInterval(animTimer);
-        animTimer = null;
-      }
-      updateFrame();
-    }, act.interval);
-  } else {
-    // Normal/long animation: loop continuously
-    animTimer = setInterval(() => {
-      frameIdx = (frameIdx + 1) % act.frames;
-      updateFrame();
-    }, act.interval);
-  }
+  // All animations loop continuously
+  animTimer = setInterval(() => {
+    frameIdx = (frameIdx + 1) % act.frames;
+    updateFrame();
+  }, act.interval);
 }
 
 function padNum(n, pad) {
@@ -152,6 +138,9 @@ function scheduleAuto() {
       if (skipActions.includes(a)) return false;
       if (a.includes('walk')) return false;
       if (a.startsWith('feed')) return false;
+      // Filter out very short animations (< 1.5s cycle) that look glitchy
+      const act = pet.actions[a];
+      if (act.frames * act.interval < 1500) return false;
       return true;
     });
 
@@ -165,10 +154,7 @@ function scheduleAuto() {
     } else if (rand < 0.8 && idleActions.length > 0) {
       const idleAction = idleActions[Math.floor(Math.random() * idleActions.length)];
       const act = pet.actions[idleAction];
-      const oneCycle = act.frames * act.interval;
-      // Short animations (< 2s): play exactly once then back to default
-      // Long animations (>= 2s): play once, naturally lasts long enough
-      const duration = Math.max(oneCycle, 2000);
+      const duration = act.frames * act.interval;
       setAction(idleAction);
       clearTimeout(autoTimer);
       autoTimer = setTimeout(() => { setAction('default'); scheduleAuto(); }, duration);
@@ -214,23 +200,14 @@ document.addEventListener('mousemove', (e) => {
   }
 });
 
-// Walk done callback from main process (hit screen edge — reverse direction)
+// Walk done callback from main process (hit screen edge)
 if (window.petBridge) {
   window.petBridge.onWalkDone(() => {
-    // Clear the walk timeout so it doesn't also fire
     clearTimeout(autoTimer);
-    const pet = currentPet();
-    if (!pet) return;
-    if (action === 'left_walk' && pet.actions.right_walk) {
-      setAction('right_walk');
-      autoTimer = setTimeout(() => { setAction('default'); scheduleAuto(); }, 6000 + Math.random() * 4000);
-    } else if (action === 'right_walk' && pet.actions.left_walk) {
-      setAction('left_walk');
-      autoTimer = setTimeout(() => { setAction('default'); scheduleAuto(); }, 6000 + Math.random() * 4000);
-    } else {
-      setAction('default');
-      scheduleAuto();
-    }
+    setAction('default');
+    scheduleAuto();
+  });
+}
   });
 }
 
