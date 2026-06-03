@@ -41,9 +41,11 @@ async function init() {
   if (window.petBridge) {
     window.petBridge.onStateChange((state) => {
       if (state === 'working' && pets[currentPetIdx]?.actions?.work) {
+        clearTimeout(autoTimer);
         setAction('work');
       } else if (state === 'idle' && action === 'work') {
         setAction('default');
+        scheduleAuto();
       }
     });
   }
