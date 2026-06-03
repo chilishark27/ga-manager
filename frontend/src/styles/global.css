@@ -2,23 +2,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&display=swap');
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body, #root { font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; height: 100%; background: transparent; }
+html, body, #root { font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; height: 100%; }
 
 /* ===== Dark Theme Variables (Sakura Night) ===== */
 [data-theme="dark"] {
-  --bg: #1a1225; --bg2: #221832; --bg3: rgba(38, 26, 52, 0.85);
-  --card: rgba(36, 24, 50, 0.75); --card-hover: rgba(48, 32, 68, 0.85);
+  --bg: #1a1225; --bg2: #221832; --bg3: #2a1e38;
+  --card: #241a34; --card-hover: #302046;
   --border: rgba(200, 140, 170, 0.2); --border-hover: rgba(236, 143, 173, 0.4); --border-glow: rgba(236, 143, 173, 0.2);
   --accent: #f0a0ba; --accent2: #e087a5; --accent3: #b8a0f0;
   --green: #6ee7b7; --yellow: #fbbf24; --red: #fb7185;
   --text-1: #f5eef4; --text-2: #d0bfe0; --text-3: #8a70a0;
-  --sidebar-bg: rgba(22, 14, 34, 0.9); --sidebar-hover: rgba(236, 143, 173, 0.1);
-  --input-bg: rgba(22, 14, 34, 0.7); --msg-user: rgba(236, 143, 173, 0.1); --msg-agent: rgba(32, 22, 48, 0.7);
+  --sidebar-bg: #16102a; --sidebar-hover: rgba(236, 143, 173, 0.1);
+  --input-bg: #1a1230; --msg-user: #2a1838; --msg-agent: #201630;
   --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
-  --toggle-bg: rgba(61, 42, 80, 0.7); --toggle-on: #f0a0ba;
+  --toggle-bg: #3d2a50; --toggle-on: #f0a0ba;
   --gradient: linear-gradient(135deg, #f0a0ba 0%, #e087a5 100%);
   --glow: 0 0 20px rgba(236, 143, 173, 0.12);
-  --glass: rgba(28, 18, 42, 0.7); --glass-border: rgba(200, 140, 170, 0.15); --glass-blur: 20px;
+  --glass: #1c1230; --glass-border: rgba(200, 140, 170, 0.15); --glass-blur: 20px;
 }
 
 /* ===== Light Theme Variables (Sakura Bloom) ===== */
@@ -58,7 +58,7 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 #root { width: 100%; height: 100vh; }
 
 /* ===== NEW LAYOUT ===== */
-.app-layout { display: flex; height: 100vh; width: 100%; overflow: hidden; border-radius: 12px; background: var(--glass); backdrop-filter: blur(var(--glass-blur)); -webkit-app-region: no-drag; }
+.app-layout { display: flex; height: 100vh; width: 100%; overflow: hidden; border-radius: 12px; background: var(--bg2); -webkit-app-region: no-drag; }
 
 /* ===== Icon Rail (48px) ===== */
 .icon-rail { width: 64px; min-width: 64px; height: 100vh; display: flex; flex-direction: column; align-items: center; background: var(--sidebar-bg); backdrop-filter: blur(16px); border-right: 1px solid var(--border); flex-shrink: 0; padding: 6px 0; }

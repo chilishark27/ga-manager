@@ -134,9 +134,10 @@ function scheduleAuto() {
       if (skipActions.includes(a)) return false;
       if (a.includes('walk')) return false;
       if (a.startsWith('feed')) return false;
-      // Skip single-frame or 2-frame animations with fast interval (glitchy when looped)
+      // Only use animations that last at least 2 seconds per cycle
       const act = pet.actions[a];
-      if (act.frames <= 2 && act.interval < 300) return false;
+      const cycleDuration = act.frames * act.interval;
+      if (cycleDuration < 2000) return false;
       return true;
     });
 
