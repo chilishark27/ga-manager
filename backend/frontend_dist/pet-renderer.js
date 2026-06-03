@@ -126,20 +126,20 @@ function scheduleAuto() {
     const pet = currentPet();
     if (!pet) return;
     const rand = Math.random();
-    if (rand < 0.3 && pet.actions.left_walk) {
+    if (rand < 0.25 && pet.actions.left_walk) {
       setAction('left_walk');
-      setTimeout(() => { setAction('default'); scheduleAuto(); }, 5000 + Math.random() * 4000);
-    } else if (rand < 0.6 && pet.actions.right_walk) {
+      setTimeout(() => { setAction('default'); scheduleAuto(); }, 8000 + Math.random() * 6000);
+    } else if (rand < 0.5 && pet.actions.right_walk) {
       setAction('right_walk');
-      setTimeout(() => { setAction('default'); scheduleAuto(); }, 5000 + Math.random() * 4000);
-    } else if (rand < 0.75 && pet.actions.sleep) {
+      setTimeout(() => { setAction('default'); scheduleAuto(); }, 8000 + Math.random() * 6000);
+    } else if (rand < 0.65 && pet.actions.sleep) {
       setAction('sleep');
-      setTimeout(() => { setAction('default'); scheduleAuto(); }, 5000);
+      setTimeout(() => { setAction('default'); scheduleAuto(); }, 8000 + Math.random() * 5000);
     } else {
       setAction('default');
       scheduleAuto();
     }
-  }, 2000 + Math.random() * 3000);
+  }, 5000 + Math.random() * 5000);
 }
 
 // Drag: left-click on pet image to drag
@@ -167,11 +167,20 @@ document.addEventListener('mousemove', (e) => {
   }
 });
 
-// Walk done callback from main process
+// Walk done callback from main process (hit screen edge — reverse direction)
 if (window.petBridge) {
   window.petBridge.onWalkDone(() => {
-    setAction('default');
-    scheduleAuto();
+    const pet = currentPet();
+    if (!pet) return;
+    // Reverse: if was walking left, walk right and vice versa
+    if (action === 'left_walk' && pet.actions.right_walk) {
+      setAction('right_walk');
+    } else if (action === 'right_walk' && pet.actions.left_walk) {
+      setAction('left_walk');
+    } else {
+      setAction('default');
+      scheduleAuto();
+    }
   });
 }
 
