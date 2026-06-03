@@ -132,11 +132,11 @@ function createWindow() {
 function createPetWindow() {
   const { screen } = require('electron');
   const display = screen.getPrimaryDisplay();
-  const savedPos = { x: display.bounds.width - 220, y: display.bounds.height - 220 };
+  const savedPos = { x: display.bounds.width - 170, y: display.bounds.height - 170 };
 
   petWindow = new BrowserWindow({
-    width: 170,
-    height: 170,
+    width: 120,
+    height: 120,
     x: savedPos.x,
     y: savedPos.y,
     transparent: true,
@@ -228,7 +228,7 @@ function createTray() {
 
   const contextMenu = Menu.buildFromTemplate([
     { label: '打开管理面板', click: () => { if (mainWindow) mainWindow.show(); else createWindow(); } },
-    { label: '显示宠物', click: () => { if (petWindow) { petWindow.show(); const { screen } = require('electron'); const display = screen.getPrimaryDisplay(); const bounds = petWindow.getBounds(); if (bounds.x < -9000) petWindow.setBounds({ x: display.bounds.width - 220, y: display.bounds.height - 220, width: bounds.width, height: bounds.height }); } else { createPetWindow(); } } },
+    { label: '显示宠物', click: () => { if (petWindow) { petWindow.show(); const { screen } = require('electron'); const display = screen.getPrimaryDisplay(); const bounds = petWindow.getBounds(); if (bounds.x < -9000) petWindow.setBounds({ x: display.bounds.width - 170, y: display.bounds.height - 170, width: bounds.width, height: bounds.height }); } else { createPetWindow(); } } },
     { type: 'separator' },
     { label: '退出', click: () => { isQuitting = true; tray = null; app.quit(); } },
   ]);
