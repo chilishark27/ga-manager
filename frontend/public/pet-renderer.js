@@ -86,6 +86,8 @@ function setAction(name) {
   if (!pet) return;
   const act = pet.actions[name] || pet.actions.default;
   if (!act) return;
+  // Don't restart if already playing same action
+  if (action === name && animTimer) return;
   action = name;
   frameIdx = 0;
   stopAnim();
@@ -95,14 +97,14 @@ function setAction(name) {
   if (window.petBridge) {
     if (act.need_move || name.includes('walk')) {
       const dir = (act.direction === 'left' || name.includes('left')) ? -1 : 1;
-      const speed = act.frame_move || 2;
+      const speed = act.frame_move || 1;
       window.petBridge.walkStart(dir, speed);
     } else {
       window.petBridge.walkStop();
     }
   }
 
-  animTimer = setInterval(async () => {
+  animTimer = setInterval(() => {
     frameIdx = (frameIdx + 1) % act.frames;
     updateFrame();
   }, act.interval);
@@ -125,21 +127,30 @@ function scheduleAuto() {
   autoTimer = setTimeout(() => {
     const pet = currentPet();
     if (!pet) return;
+
+    // Collect available idle actions (non-walk, non-system)
+    const skipActions = ['default', 'drag', 'work', 'hide', 'up', 'down', 'left', 'right'];
+    const walkActions = Object.keys(pet.actions).filter(a => a.includes('walk'));
+    const idleActions = Object.keys(pet.actions).filter(a =>
+      !skipActions.includes(a) && !a.includes('walk') && !a.startsWith('feed')
+    );
+
     const rand = Math.random();
-    if (rand < 0.25 && pet.actions.left_walk) {
-      setAction('left_walk');
+    if (rand < 0.3 && walkActions.length > 0) {
+      // Walk in a random direction
+      const walkAction = walkActions[Math.floor(Math.random() * walkActions.length)];
+      setAction(walkAction);
       setTimeout(() => { setAction('default'); scheduleAuto(); }, 8000 + Math.random() * 6000);
-    } else if (rand < 0.5 && pet.actions.right_walk) {
-      setAction('right_walk');
-      setTimeout(() => { setAction('default'); scheduleAuto(); }, 8000 + Math.random() * 6000);
-    } else if (rand < 0.65 && pet.actions.sleep) {
-      setAction('sleep');
-      setTimeout(() => { setAction('default'); scheduleAuto(); }, 8000 + Math.random() * 5000);
+    } else if (rand < 0.7 && idleActions.length > 0) {
+      // Play a random idle animation (dance, sleep, happy, cc, yb, etc.)
+      const idleAction = idleActions[Math.floor(Math.random() * idleActions.length)];
+      setAction(idleAction);
+      setTimeout(() => { setAction('default'); scheduleAuto(); }, 4000 + Math.random() * 4000);
     } else {
-      setAction('default');
+      // Stay in default, just reschedule
       scheduleAuto();
     }
-  }, 5000 + Math.random() * 5000);
+  }, 6000 + Math.random() * 6000);
 }
 
 // Drag: left-click on pet image to drag
