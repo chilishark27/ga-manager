@@ -100,8 +100,9 @@ function createWindow() {
     minHeight: 600,
     title: 'GA Manager',
     icon: getIconPath(),
+    transparent: true,
     frame: false,
-    backgroundColor: '#1c1428',
+    backgroundColor: '#00000000',
     hasShadow: true,
     webPreferences: {
       nodeIntegration: false,

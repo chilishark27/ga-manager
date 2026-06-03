@@ -147,11 +147,11 @@ function scheduleAuto() {
       setAction(walkAction);
       setTimeout(() => { setAction('default'); scheduleAuto(); }, 8000 + Math.random() * 6000);
     } else if (rand < 0.8 && idleActions.length > 0) {
-      // Play a random idle animation, duration = 2 full loops minimum
+      // Play a random idle animation for exactly ONE full cycle
       const idleAction = idleActions[Math.floor(Math.random() * idleActions.length)];
       const act = pet.actions[idleAction];
       const oneCycle = act.frames * act.interval;
-      const duration = Math.max(oneCycle * 2, 4000);
+      const duration = Math.max(oneCycle, 2000);
       setAction(idleAction);
       setTimeout(() => { setAction('default'); scheduleAuto(); }, duration);
     } else {
