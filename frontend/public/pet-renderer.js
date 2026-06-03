@@ -128,30 +128,26 @@ function scheduleAuto() {
     const pet = currentPet();
     if (!pet) return;
 
-    // Actions to never auto-play (transitional/system/one-shot)
-    const skipActions = [
-      'default', 'drag', 'work', 'hide', 'up', 'down', 'left', 'right',
-      'faint', 'fall', 'onfloor', 'prefall', 'edge'
-    ];
+    // Only skip truly system/transitional actions
+    const skipActions = ['default', 'drag', 'work', 'hide', 'faint', 'fall', 'onfloor', 'prefall', 'edge'];
     const walkActions = Object.keys(pet.actions).filter(a => a.includes('walk'));
     const idleActions = Object.keys(pet.actions).filter(a => {
       if (skipActions.includes(a)) return false;
       if (a.includes('walk')) return false;
       if (a.startsWith('feed')) return false;
-      if (a.startsWith('patpat')) return false;
-      // Skip very short animations (< 6 frames with fast interval) — they're one-shot
+      // Skip single-frame or 2-frame animations with fast interval (glitchy when looped)
       const act = pet.actions[a];
-      if (act.frames < 6 && act.interval < 200) return false;
+      if (act.frames <= 2 && act.interval < 300) return false;
       return true;
     });
 
     const rand = Math.random();
-    if (rand < 0.35 && walkActions.length > 0) {
+    if (rand < 0.3 && walkActions.length > 0) {
       // Walk in a random direction
       const walkAction = walkActions[Math.floor(Math.random() * walkActions.length)];
       setAction(walkAction);
       setTimeout(() => { setAction('default'); scheduleAuto(); }, 8000 + Math.random() * 6000);
-    } else if (rand < 0.75 && idleActions.length > 0) {
+    } else if (rand < 0.8 && idleActions.length > 0) {
       // Play a random idle animation, duration = 2 full loops minimum
       const idleAction = idleActions[Math.floor(Math.random() * idleActions.length)];
       const act = pet.actions[idleAction];
@@ -163,7 +159,7 @@ function scheduleAuto() {
       // Stay in default, just reschedule
       scheduleAuto();
     }
-  }, 6000 + Math.random() * 6000);
+  }, 5000 + Math.random() * 5000);
 }
 
 // Drag: left-click on pet image to drag
