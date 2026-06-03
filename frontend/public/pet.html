@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-html, body { background: transparent; overflow: hidden; width: 120px; height: 120px; user-select: none; }
-#pet-container { position: relative; width: 120px; height: 120px; display: flex; align-items: center; justify-content: center; }
+html, body { background: transparent; overflow: hidden; width: 150px; height: 150px; user-select: none; }
+#pet-container { position: relative; width: 150px; height: 150px; display: flex; align-items: center; justify-content: center; }
 #pet-container.dragging { cursor: grabbing; }
-#pet-img { width: 110px; height: 110px; object-fit: contain; image-rendering: pixelated; cursor: grab; -webkit-user-drag: none; }
+#pet-img { width: 140px; height: 140px; object-fit: contain; image-rendering: pixelated; cursor: grab; -webkit-user-drag: none; }
 #pet-bubble { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); background: #fff; border: 1px solid #e0c0d0; border-radius: 12px; padding: 6px 12px; font-size: 13px; font-family: -apple-system, sans-serif; color: #333; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.1); display: none; z-index: 10; }
 #pet-bubble::after { content:''; position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); border-left: 6px solid transparent; border-right: 6px solid transparent; border-top: 6px solid #fff; }
 #pet-name { position: absolute; bottom: 10px; left: 50%; transform: translateX(-50%); font-size: 11px; color: #666; font-family: -apple-system, sans-serif; opacity: 0; transition: opacity 0.2s; }

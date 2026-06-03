@@ -146,7 +146,7 @@ function scheduleAuto() {
     if (!pet) return;
 
     // Only skip truly system/transitional actions
-    const skipActions = ['default', 'drag', 'work', 'hide', 'faint', 'fall', 'onfloor', 'prefall', 'edge'];
+    const skipActions = ['default', 'drag', 'work', 'hide', 'faint', 'fall', 'onfloor', 'prefall', 'edge', 'left', 'right', 'up', 'down'];
     const walkActions = Object.keys(pet.actions).filter(a => a.includes('walk'));
     const idleActions = Object.keys(pet.actions).filter(a => {
       if (skipActions.includes(a)) return false;
