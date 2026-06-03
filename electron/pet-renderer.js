@@ -161,6 +161,15 @@ function scheduleAuto() {
   }, 5000 + Math.random() * 5000);
 }
 
+// Click-through: window is transparent to clicks by default.
+// Only become interactive when mouse is directly over the pet image.
+img.addEventListener('mouseenter', () => {
+  if (window.petBridge) window.petBridge.setIgnoreMouseEvents(false);
+});
+img.addEventListener('mouseleave', () => {
+  if (!dragging && window.petBridge) window.petBridge.setIgnoreMouseEvents(true);
+});
+
 // Drag: left-click on pet image to drag
 // Main process polls cursor position and moves window
 let dragging = false;

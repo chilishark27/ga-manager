@@ -155,10 +155,23 @@ function createPetWindow() {
 
   petWindow.loadURL(`${BACKEND_URL}/pet.html`);
 
+  // Default: click-through (clicks pass to windows behind)
+  // Renderer toggles this when mouse enters/leaves the pet sprite
+  petWindow.setIgnoreMouseEvents(true, { forward: true });
+
+  // IPC: toggle click-through
+  ipcMain.on('pet-ignore-mouse', (_, ignore) => {
+    if (!petWindow) return;
+    if (ignore) {
+      petWindow.setIgnoreMouseEvents(true, { forward: true });
+    } else {
+      petWindow.setIgnoreMouseEvents(false);
+    }
+  });
+
   // Show after content is ready — prevents black flash on transparent window
   petWindow.once('ready-to-show', () => {
     petWindow.show();
-    // Force compositor repaint to fix transparency on some Windows systems
     petWindow.setOpacity(0.99);
     setTimeout(() => { if (petWindow) petWindow.setOpacity(1); }, 50);
   });
@@ -216,6 +229,8 @@ function createPetWindow() {
   ipcMain.on('pet-drag-end', () => {
     petDragging = false;
     clearInterval(dragTimer);
+    // Restore click-through after drag
+    if (petWindow) petWindow.setIgnoreMouseEvents(true, { forward: true });
   });
 
   petWindow.on('closed', () => { petWindow = null; walkDir = 0; petDragging = false; clearInterval(dragTimer); });

@@ -8,10 +8,11 @@ contextBridge.exposeInMainWorld('petBridge', {
   walkStart: (dir, speed) => ipcRenderer.send('pet-walk-start', dir, speed),
   walkStop: () => ipcRenderer.send('pet-walk-stop'),
   onWalkDone: (cb) => ipcRenderer.on('pet-walk-done', () => cb()),
+  // Click-through toggle
+  setIgnoreMouseEvents: (ignore) => ipcRenderer.send('pet-ignore-mouse', ignore),
   // Window management
   moveWindow: (x, y) => ipcRenderer.invoke('pet-move-window', x, y),
   getPosition: () => ipcRenderer.invoke('pet-get-position'),
-  resizeWindow: (w, h) => ipcRenderer.invoke('pet-resize-window', w, h),
   // Pet selection
   savePet: (petId) => ipcRenderer.invoke('pet-save-selection', petId),
   getSavedPet: () => ipcRenderer.invoke('pet-get-selection'),
