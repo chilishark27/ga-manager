@@ -54,7 +54,7 @@ html, body, #root { font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMa
 @keyframes sakuraPetal { 0% { transform: translateY(-20px) rotate(0deg); opacity: 0; } 10% { opacity: 0.6; } 90% { opacity: 0.4; } 100% { transform: translateY(100vh) rotate(360deg); opacity: 0; } }
 
 /* ===== Base ===== */
-body { background: transparent; color: var(--text-1); height: 100vh; overflow: hidden; transition: color 0.3s; }
+body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hidden; transition: color 0.3s, background 0.3s; }
 #root { width: 100%; height: 100vh; }
 
 /* ===== NEW LAYOUT ===== */
