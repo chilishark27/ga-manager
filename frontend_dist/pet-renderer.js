@@ -134,10 +134,6 @@ function scheduleAuto() {
       if (skipActions.includes(a)) return false;
       if (a.includes('walk')) return false;
       if (a.startsWith('feed')) return false;
-      // Only use animations that last at least 2 seconds per cycle
-      const act = pet.actions[a];
-      const cycleDuration = act.frames * act.interval;
-      if (cycleDuration < 2000) return false;
       return true;
     });
 
@@ -148,11 +144,13 @@ function scheduleAuto() {
       setAction(walkAction);
       setTimeout(() => { setAction('default'); scheduleAuto(); }, 8000 + Math.random() * 6000);
     } else if (rand < 0.8 && idleActions.length > 0) {
-      // Play a random idle animation for exactly ONE full cycle
+      // Play a random idle animation — short ones loop longer, long ones play once
       const idleAction = idleActions[Math.floor(Math.random() * idleActions.length)];
       const act = pet.actions[idleAction];
       const oneCycle = act.frames * act.interval;
-      const duration = Math.max(oneCycle, 2000);
+      // At least 3 seconds, at most 8 seconds
+      const loops = Math.max(1, Math.ceil(3000 / oneCycle));
+      const duration = Math.min(oneCycle * loops, 8000);
       setAction(idleAction);
       setTimeout(() => { setAction('default'); scheduleAuto(); }, duration);
     } else {
