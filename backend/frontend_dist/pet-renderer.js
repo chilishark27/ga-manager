@@ -67,7 +67,6 @@ function selectPet(idx) {
   currentPetIdx = idx;
   if (window.petBridge) window.petBridge.savePet(pets[idx].id);
   selector.classList.remove('show');
-  if (window.petBridge) window.petBridge.resizeWindow(250, 250);
   buildSelector();
   stopAnim();
   startPet();
@@ -233,21 +232,12 @@ container.addEventListener('click', (e) => {
 // Right-click: selector
 container.addEventListener('contextmenu', (e) => {
   e.preventDefault();
-  const showing = !selector.classList.contains('show');
   selector.classList.toggle('show');
-  if (window.petBridge) {
-    if (showing) {
-      window.petBridge.resizeWindow(250, 300);
-    } else {
-      window.petBridge.resizeWindow(250, 250);
-    }
-  }
 });
 
 document.addEventListener('click', (e) => {
   if (!selector.contains(e.target) && selector.classList.contains('show')) {
     selector.classList.remove('show');
-    if (window.petBridge) window.petBridge.resizeWindow(250, 250);
   }
 });
 
