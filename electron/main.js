@@ -276,9 +276,7 @@ ipcMain.handle('pet-get-position', () => {
   return [0, 0];
 });
 
-ipcMain.handle('pet-resize-window', (_, w, h) => {
-  if (petWindow) petWindow.setSize(Math.round(w), Math.round(h));
-});
+// pet-resize-window removed — window stays fixed at 170x170
 
 ipcMain.handle('pet-save-selection', (_, petId) => {
   global.selectedPet = petId;
