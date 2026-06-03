@@ -139,22 +139,21 @@ function scheduleAuto() {
 
     const rand = Math.random();
     if (rand < 0.3 && walkActions.length > 0) {
-      // Walk in a random direction
       const walkAction = walkActions[Math.floor(Math.random() * walkActions.length)];
       setAction(walkAction);
-      setTimeout(() => { setAction('default'); scheduleAuto(); }, 8000 + Math.random() * 6000);
+      // Walk timer — will be cleared if onWalkDone fires first
+      clearTimeout(autoTimer);
+      autoTimer = setTimeout(() => { setAction('default'); scheduleAuto(); }, 8000 + Math.random() * 6000);
     } else if (rand < 0.8 && idleActions.length > 0) {
-      // Play a random idle animation — short ones loop longer, long ones play once
       const idleAction = idleActions[Math.floor(Math.random() * idleActions.length)];
       const act = pet.actions[idleAction];
       const oneCycle = act.frames * act.interval;
-      // At least 3 seconds, at most 8 seconds
       const loops = Math.max(1, Math.ceil(3000 / oneCycle));
       const duration = Math.min(oneCycle * loops, 8000);
       setAction(idleAction);
-      setTimeout(() => { setAction('default'); scheduleAuto(); }, duration);
+      clearTimeout(autoTimer);
+      autoTimer = setTimeout(() => { setAction('default'); scheduleAuto(); }, duration);
     } else {
-      // Stay in default, just reschedule
       scheduleAuto();
     }
   }, 5000 + Math.random() * 5000);
@@ -188,13 +187,16 @@ document.addEventListener('mousemove', (e) => {
 // Walk done callback from main process (hit screen edge — reverse direction)
 if (window.petBridge) {
   window.petBridge.onWalkDone(() => {
+    // Clear the walk timeout so it doesn't also fire
+    clearTimeout(autoTimer);
     const pet = currentPet();
     if (!pet) return;
-    // Reverse: if was walking left, walk right and vice versa
     if (action === 'left_walk' && pet.actions.right_walk) {
       setAction('right_walk');
+      autoTimer = setTimeout(() => { setAction('default'); scheduleAuto(); }, 6000 + Math.random() * 4000);
     } else if (action === 'right_walk' && pet.actions.left_walk) {
       setAction('left_walk');
+      autoTimer = setTimeout(() => { setAction('default'); scheduleAuto(); }, 6000 + Math.random() * 4000);
     } else {
       setAction('default');
       scheduleAuto();
@@ -222,8 +224,9 @@ container.addEventListener('click', (e) => {
     const pet = currentPet();
     const patpat = pet?.actions?.patpat || pet?.actions?.patpat_1;
     if (patpat) {
+      clearTimeout(autoTimer);
       setAction(pet.actions.patpat ? 'patpat' : 'patpat_1');
-      setTimeout(() => { setAction('default'); scheduleAuto(); }, 2000);
+      autoTimer = setTimeout(() => { setAction('default'); scheduleAuto(); }, 2000);
     }
   }
 });
