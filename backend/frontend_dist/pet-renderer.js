@@ -106,10 +106,25 @@ function setAction(name) {
     }
   }
 
-  animTimer = setInterval(() => {
-    frameIdx = (frameIdx + 1) % act.frames;
-    updateFrame();
-  }, act.interval);
+  const oneCycle = act.frames * act.interval;
+  if (oneCycle < 2000 && name !== 'default') {
+    // Short animation: play ONE cycle then stop on last frame (no loop)
+    animTimer = setInterval(() => {
+      frameIdx++;
+      if (frameIdx >= act.frames) {
+        frameIdx = act.frames - 1;
+        clearInterval(animTimer);
+        animTimer = null;
+      }
+      updateFrame();
+    }, act.interval);
+  } else {
+    // Normal/long animation: loop continuously
+    animTimer = setInterval(() => {
+      frameIdx = (frameIdx + 1) % act.frames;
+      updateFrame();
+    }, act.interval);
+  }
 }
 
 function padNum(n, pad) {
@@ -151,8 +166,9 @@ function scheduleAuto() {
       const idleAction = idleActions[Math.floor(Math.random() * idleActions.length)];
       const act = pet.actions[idleAction];
       const oneCycle = act.frames * act.interval;
-      const loops = Math.max(1, Math.ceil(3000 / oneCycle));
-      const duration = Math.min(oneCycle * loops, 8000);
+      // Short animations (< 2s): play exactly once then back to default
+      // Long animations (>= 2s): play once, naturally lasts long enough
+      const duration = Math.max(oneCycle, 2000);
       setAction(idleAction);
       clearTimeout(autoTimer);
       autoTimer = setTimeout(() => { setAction('default'); scheduleAuto(); }, duration);
