@@ -69,6 +69,7 @@ function selectPet(idx) {
   currentPetIdx = idx;
   if (window.petBridge) window.petBridge.savePet(pets[idx].id);
   selector.classList.remove('show');
+  if (window.petBridge) window.petBridge.setIgnoreMouseEvents(true);
   buildSelector();
   stopAnim();
   startPet();
@@ -167,7 +168,9 @@ img.addEventListener('mouseenter', () => {
   if (window.petBridge) window.petBridge.setIgnoreMouseEvents(false);
 });
 img.addEventListener('mouseleave', () => {
-  if (!dragging && window.petBridge) window.petBridge.setIgnoreMouseEvents(true);
+  if (!dragging && !selector.classList.contains('show') && window.petBridge) {
+    window.petBridge.setIgnoreMouseEvents(true);
+  }
 });
 
 // Drag: left-click on pet image to drag
@@ -245,12 +248,21 @@ container.addEventListener('click', (e) => {
 // Right-click: selector
 container.addEventListener('contextmenu', (e) => {
   e.preventDefault();
+  const showing = !selector.classList.contains('show');
   selector.classList.toggle('show');
+  if (window.petBridge) {
+    if (showing) {
+      window.petBridge.setIgnoreMouseEvents(false);
+    } else {
+      window.petBridge.setIgnoreMouseEvents(true);
+    }
+  }
 });
 
 document.addEventListener('click', (e) => {
   if (!selector.contains(e.target) && selector.classList.contains('show')) {
     selector.classList.remove('show');
+    if (window.petBridge) window.petBridge.setIgnoreMouseEvents(true);
   }
 });
 
