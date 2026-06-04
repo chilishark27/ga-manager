@@ -12,6 +12,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -59,6 +60,7 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		Objective string `json:"objective"`
 		Budget    int    `json:"budget_minutes"`
 		Workers   int    `json:"workers"`
+		LLMNo     int    `json:"llm_no"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Objective == "" {
 		writeError(w, http.StatusBadRequest, "objective is required")
@@ -235,7 +237,7 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		name := fmt.Sprintf("Worker-%s", suffix)
 		h.addLog(fmt.Sprintf("⏳ Initializing %s (agent loading LLM, may take 30-60s)...", name))
 		cmd := exec.Command(python, "-u", filepath.Join(gaRoot, "agentmain.py"),
-			"--reflect", workerReflect,
+			"--reflect", workerReflect, "--llm_no", strconv.Itoa(body.LLMNo),
 			"--base_url", baseURL, "--board_key", h.boardKey, "--name", name)
 		cmd.Dir = gaRoot
 		cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "PYTHONIOENCODING=utf-8")
@@ -325,7 +327,7 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	os.WriteFile(goalPath, goalData, 0644)
 
 	goalReflect := filepath.Join(gaRoot, "reflect", "goal_mode.py")
-	h.masterCmd = exec.Command(python, "-u", filepath.Join(gaRoot, "agentmain.py"), "--reflect", goalReflect)
+	h.masterCmd = exec.Command(python, "-u", filepath.Join(gaRoot, "agentmain.py"), "--reflect", goalReflect, "--llm_no", strconv.Itoa(body.LLMNo))
 	h.masterCmd.Dir = gaRoot
 	h.masterCmd.Env = append(os.Environ(), "GOAL_STATE="+goalPath)
 	h.masterCmd.Stdout = os.Stdout

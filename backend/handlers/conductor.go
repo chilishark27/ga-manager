@@ -159,10 +159,29 @@ func (h *ConductorHandler) Start(w http.ResponseWriter, r *http.Request) {
 
 	// conductor.py uses uvicorn.run("conductor:app"), so cwd must be frontends/
 	frontendsDir := filepath.Join(h.gaRoot, "frontends")
+
+	// Read llm_no from request body (optional)
+	var reqBody struct {
+		LLMNo int `json:"llm_no"`
+	}
+	json.NewDecoder(r.Body).Decode(&reqBody)
+
 	// Monkey-patch webbrowser.open to prevent conductor.py from opening a browser window.
 	// Define __file__ so conductor.py can resolve ROOT via os.path.abspath(__file__).
-	// Use encoding='utf-8' to avoid GBK decode errors on Windows.
-	script := "import webbrowser, os\nwebbrowser.open = lambda *a, **k: None\n__file__ = os.path.abspath('conductor.py')\nexec(compile(open('conductor.py', encoding='utf-8').read(), 'conductor.py', 'exec'))\n"
+	// Patch GenericAgent to use selected LLM if specified.
+	script := fmt.Sprintf(`import webbrowser, os
+webbrowser.open = lambda *a, **k: None
+__file__ = os.path.abspath('conductor.py')
+_llm_no = %d
+if _llm_no > 0:
+    import agentmain
+    _orig_init = agentmain.GenericAgent.__init__
+    def _patched_init(self, *a, **kw):
+        _orig_init(self, *a, **kw)
+        self.next_llm(_llm_no)
+    agentmain.GenericAgent.__init__ = _patched_init
+exec(compile(open('conductor.py', encoding='utf-8').read(), 'conductor.py', 'exec'))
+`, reqBody.LLMNo)
 	cmd := exec.Command(h.python, "-u", "-c", script)
 	cmd.Dir = frontendsDir
 	cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "PYTHONIOENCODING=utf-8", "PYTHONPATH="+h.gaRoot)

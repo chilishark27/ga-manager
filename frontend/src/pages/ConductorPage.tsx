@@ -107,7 +107,7 @@ function ConductorPage() {
     setStatus('loading');
     setErrorMsg('');
     try {
-      const r = await fetch(`${API}/start`, { method: 'POST' });
+      const r = await fetch(`${API}/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ llm_no: getActiveInstance()?.llm_no || 0 }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) {
         setStatus('error');

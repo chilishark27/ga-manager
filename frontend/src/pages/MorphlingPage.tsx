@@ -10,6 +10,7 @@ const MORPHLING_TYPES = [
 
 export default function MorphlingPage() {
   const { setPage } = useStore();
+  const activeInstance = useStore(s => s.activeInstance());
   const { lang } = useI18n();
   const isZh = lang === 'zh';
 
@@ -53,6 +54,7 @@ export default function MorphlingPage() {
           objective: buildObjective(),
           budget_minutes: budget,
           workers: workers,
+          llm_no: activeInstance?.llm_no || 0,
         }),
       });
       if (res.ok) {

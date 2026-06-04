@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useStore } from '../store';
 
 const API = '/api/conductor';
 
@@ -44,7 +45,8 @@ export default function ConductorPanel() {
 
   const startConductor = async () => {
     setStatus('loading');
-    const r = await fetch(`${API}/start`, { method: 'POST' });
+    const activeInst = useStore.getState().activeInstance();
+    const r = await fetch(`${API}/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ llm_no: activeInst?.llm_no || 0 }) });
     const d = await r.json();
     if (d.status === 'running') {
       setStatus('running');

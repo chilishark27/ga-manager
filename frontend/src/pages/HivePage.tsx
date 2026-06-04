@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
+import { useStore } from '../store';
 import { useI18n } from '../i18n';
 
 interface HiveStatus {
@@ -14,6 +15,7 @@ interface HiveStatus {
 
 function HivePage() {
   const { lang } = useI18n();
+  const activeInstance = useStore(s => s.activeInstance());
   const [status, setStatus] = useState<HiveStatus | null>(null);
   const [objective, setObjective] = useState('');
   const [budget, setBudget] = useState(60);
@@ -100,7 +102,7 @@ function HivePage() {
       const res = await fetch('/api/hive/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ objective: objective.trim(), budget_minutes: budget, workers }),
+        body: JSON.stringify({ objective: objective.trim(), budget_minutes: budget, workers, llm_no: activeInstance?.llm_no || 0 }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) setError(d.error || 'Start failed');
