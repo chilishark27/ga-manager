@@ -134,11 +134,11 @@ function createWindow() {
 function createPetWindow() {
   const { screen } = require('electron');
   const display = screen.getPrimaryDisplay();
-  const savedPos = { x: display.bounds.width - 200, y: display.bounds.height - 200 };
+  const savedPos = { x: display.bounds.width - 250, y: display.bounds.height - 250 };
 
   petWindow = new BrowserWindow({
-    width: 150,
-    height: 150,
+    width: 200,
+    height: 200,
     x: savedPos.x,
     y: savedPos.y,
     transparent: true,
@@ -189,7 +189,7 @@ function createPetWindow() {
       const { screen } = require('electron');
       const display = screen.getPrimaryDisplay();
       const newX = x + (walkDir * walkSpeed);
-      if (newX < 0 || newX > display.bounds.width - 150) {
+      if (newX < 0 || newX > display.bounds.width - 200) {
         walkDir = 0;
         petWindow.webContents.send('pet-walk-done');
       } else {
@@ -205,7 +205,7 @@ function createPetWindow() {
     const { screen } = require('electron');
     const display = screen.getPrimaryDisplay();
     if (dir === -1 && x <= 0) return;
-    if (dir === 1 && x >= display.bounds.width - 150) return;
+    if (dir === 1 && x >= display.bounds.width - 200) return;
     walkDir = dir;
     // Scale speed to screen width: ~3px/50ms per 1920px, scales up for larger screens
     walkSpeed = Math.max(2, Math.round(display.bounds.width / 640));
@@ -269,7 +269,7 @@ function createTray() {
 
   const contextMenu = Menu.buildFromTemplate([
     { label: '打开管理面板', click: () => { if (mainWindow) mainWindow.show(); else createWindow(); } },
-    { label: '显示宠物', click: () => { if (petWindow) { petWindow.show(); const { screen } = require('electron'); const display = screen.getPrimaryDisplay(); const bounds = petWindow.getBounds(); if (bounds.x < -9000) petWindow.setBounds({ x: display.bounds.width - 200, y: display.bounds.height - 200, width: bounds.width, height: bounds.height }); } else { createPetWindow(); } } },
+    { label: '显示宠物', click: () => { if (petWindow) { petWindow.show(); const { screen } = require('electron'); const display = screen.getPrimaryDisplay(); const bounds = petWindow.getBounds(); if (bounds.x < -9000) petWindow.setBounds({ x: display.bounds.width - 250, y: display.bounds.height - 250, width: bounds.width, height: bounds.height }); } else { createPetWindow(); } } },
     { type: 'separator' },
     { label: '退出', click: () => { isQuitting = true; tray = null; app.quit(); } },
   ]);
