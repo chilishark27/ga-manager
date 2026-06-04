@@ -193,7 +193,7 @@ function createPetWindow() {
         walkDir = 0;
         petWindow.webContents.send('pet-walk-done');
       } else {
-        petWindow.setPosition(newX, y);
+        petWindow.setBounds({ x: newX, y, width: 200, height: 200 });
       }
     } catch {}
   }, 50);
@@ -231,7 +231,7 @@ function createPetWindow() {
       if (!petWindow || !petDragging) return;
       const { screen } = require('electron');
       const cur = screen.getCursorScreenPoint();
-      petWindow.setPosition(cur.x - dragOffsetX, cur.y - dragOffsetY);
+      petWindow.setBounds({ x: cur.x - dragOffsetX, y: cur.y - dragOffsetY, width: 200, height: 200 });
     }, 16);
   });
 
@@ -303,7 +303,7 @@ ipcMain.handle('window-close', () => { if (mainWindow) mainWindow.close(); });
 // --- Pet Window IPC ---
 ipcMain.handle('pet-move-window', (_, x, y) => {
   if (petWindow) {
-    petWindow.setPosition(Math.round(x), Math.round(y));
+    petWindow.setBounds({ x: Math.round(x), y: Math.round(y), width: 200, height: 200 });
   }
 });
 
