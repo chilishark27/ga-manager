@@ -233,6 +233,7 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	for i := 0; i < body.Workers; i++ {
 		suffix := workerNames[i%len(workerNames)]
 		name := fmt.Sprintf("Worker-%s", suffix)
+		h.addLog(fmt.Sprintf("⏳ Initializing %s (agent loading LLM, may take 30-60s)...", name))
 		cmd := exec.Command(python, "-u", filepath.Join(gaRoot, "agentmain.py"),
 			"--reflect", workerReflect,
 			"--base_url", baseURL, "--board_key", h.boardKey, "--name", name)
@@ -245,24 +246,34 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		stderr, _ := cmd.StderrPipe()
 
 		if err := cmd.Start(); err != nil {
-			h.addLog(fmt.Sprintf("Worker %s failed: %v", name, err))
+			h.addLog(fmt.Sprintf("❌ %s failed to start: %v", name, err))
 			continue
 		}
 		h.workers = append(h.workers, cmd)
 		h.addLog(fmt.Sprintf("Worker %s started (PID %d)", name, cmd.Process.Pid))
 
 		// Stream worker output to hive logs
-		go func(wname string, r io.Reader) {
+		stdoutReady := make(chan bool, 1)
+		go func(wname string, r io.Reader, ready chan<- bool) {
 			scanner := bufio.NewScanner(r)
+			notified := false
 			for scanner.Scan() {
 				line := scanner.Text()
-				if line != "" {
-					h.mu.Lock()
-					h.addLog(fmt.Sprintf("[%s] %s", wname, line))
-					h.mu.Unlock()
+				if line == "" {
+					continue
+				}
+				h.mu.Lock()
+				h.addLog(fmt.Sprintf("[%s] %s", wname, line))
+				h.mu.Unlock()
+				if !notified && strings.Contains(line, "[Reflect] loaded") {
+					ready <- true
+					notified = true
 				}
 			}
-		}(workerName, stdout)
+			if !notified {
+				ready <- false
+			}
+		}(workerName, stdout, stdoutReady)
 		go func(wname string, r io.Reader) {
 			scanner := bufio.NewScanner(r)
 			for scanner.Scan() {
@@ -275,13 +286,27 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 			}
 		}(workerName, stderr)
 
+		// Wait for this worker to be ready before starting next (max 90s)
+		if i < body.Workers-1 {
+			select {
+			case ok := <-stdoutReady:
+				if ok {
+					h.addLog(fmt.Sprintf("✅ %s ready", name))
+				} else {
+					h.addLog(fmt.Sprintf("⚠️ %s process ended without ready signal", name))
+				}
+			case <-time.After(90 * time.Second):
+				h.addLog(fmt.Sprintf("⚠️ %s init timeout (90s), starting next worker anyway", name))
+			}
+		}
+
 		// Monitor worker exit
 		go func(c *exec.Cmd, wname string) {
 			err := c.Wait()
 			h.mu.Lock()
 			if h.running {
 				if err != nil {
-					h.addLog(fmt.Sprintf("Worker %s exited with error: %v", wname, err))
+					h.addLog(fmt.Sprintf("❌ %s exited with error: %v", wname, err))
 				} else {
 					h.addLog(fmt.Sprintf("Worker %s finished", wname))
 				}
