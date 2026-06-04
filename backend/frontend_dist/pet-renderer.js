@@ -143,9 +143,9 @@ function scheduleAuto() {
       if (skipActions.includes(a)) return false;
       if (a.includes('walk')) return false;
       if (a.startsWith('feed')) return false;
-      // Filter out very short animations (< 1.5s cycle) that look glitchy
+      // Filter out ultra-short animations (< 500ms) that are glitchy
       const act = pet.actions[a];
-      if (act.frames * act.interval < 1500) return false;
+      if (act.frames * act.interval < 500) return false;
       return true;
     });
 
