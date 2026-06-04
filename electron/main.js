@@ -245,21 +245,19 @@ function createPetWindow() {
   petWindow.on('closed', () => { petWindow = null; walkDir = 0; petDragging = false; clearInterval(dragTimer); });
 
   // User activity detection for curious state
+  let lastCuriousTime = 0;
   setInterval(() => {
     if (!petWindow || petState === 'working') return;
     const idleTime = powerMonitor.getSystemIdleTime();
-    if (idleTime < 3 && userWasIdle) {
-      // User just became active
-      userWasIdle = false;
+    const now = Date.now();
+    if (idleTime < 2 && now - lastCuriousTime > 30000) {
+      // User is actively typing, trigger curious every 30s at most
+      lastCuriousTime = now;
       petState = 'curious';
       petWindow.webContents.send('pet-state-change', 'curious');
-    } else if (idleTime > 10 && !userWasIdle) {
-      // User went idle
-      userWasIdle = true;
-      if (petState === 'curious') {
-        petState = 'idle';
-        petWindow.webContents.send('pet-state-change', 'idle');
-      }
+    } else if (idleTime > 10 && petState === 'curious') {
+      petState = 'idle';
+      petWindow.webContents.send('pet-state-change', 'idle');
     }
   }, 3000);
 }
