@@ -199,7 +199,14 @@ function createPetWindow() {
   }, 50);
 
   ipcMain.on('pet-walk-start', (_, dir, speed) => {
-    walkDir = dir; // -1 or 1
+    if (!petWindow) return;
+    // Don't start walking if already at the edge in that direction
+    const [x] = petWindow.getPosition();
+    const { screen } = require('electron');
+    const display = screen.getPrimaryDisplay();
+    if (dir === -1 && x <= 0) return;
+    if (dir === 1 && x >= display.bounds.width - 150) return;
+    walkDir = dir;
     walkSpeed = Math.max(1, speed || 1);
   });
 
