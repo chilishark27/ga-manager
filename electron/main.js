@@ -181,33 +181,31 @@ function createPetWindow() {
   // Walk: main process moves window periodically
   let walkDir = 0; // -1 left, 0 stop, 1 right
   let walkSpeed = 1;
+  let petX = savedPos.x, petY = savedPos.y;
 
   setInterval(() => {
     if (!petWindow || walkDir === 0) return;
     try {
-      const [x, y] = petWindow.getPosition();
       const { screen } = require('electron');
       const display = screen.getPrimaryDisplay();
-      const newX = x + (walkDir * walkSpeed);
-      if (newX < 0 || newX > display.bounds.width - 200) {
+      petX += (walkDir * walkSpeed);
+      if (petX < 0 || petX > display.bounds.width - 200) {
+        petX = Math.max(0, Math.min(petX, display.bounds.width - 200));
         walkDir = 0;
         petWindow.webContents.send('pet-walk-done');
       } else {
-        petWindow.setBounds({ x: newX, y, width: 200, height: 200 });
+        petWindow.setBounds({ x: Math.round(petX), y: Math.round(petY), width: 200, height: 200 });
       }
     } catch {}
   }, 50);
 
   ipcMain.on('pet-walk-start', (_, dir, speed) => {
     if (!petWindow) return;
-    // Don't start walking if already at the edge in that direction
-    const [x] = petWindow.getPosition();
     const { screen } = require('electron');
     const display = screen.getPrimaryDisplay();
-    if (dir === -1 && x <= 0) return;
-    if (dir === 1 && x >= display.bounds.width - 200) return;
+    if (dir === -1 && petX <= 0) return;
+    if (dir === 1 && petX >= display.bounds.width - 200) return;
     walkDir = dir;
-    // Scale speed to screen width: ~3px/50ms per 1920px, scales up for larger screens
     walkSpeed = Math.max(2, Math.round(display.bounds.width / 640));
   });
 
@@ -224,14 +222,15 @@ function createPetWindow() {
     walkDir = 0;
     const { screen } = require('electron');
     const cursor = screen.getCursorScreenPoint();
-    const bounds = petWindow.getBounds();
-    dragOffsetX = cursor.x - bounds.x;
-    dragOffsetY = cursor.y - bounds.y;
+    dragOffsetX = cursor.x - petX;
+    dragOffsetY = cursor.y - petY;
     dragTimer = setInterval(() => {
       if (!petWindow || !petDragging) return;
       const { screen } = require('electron');
       const cur = screen.getCursorScreenPoint();
-      petWindow.setBounds({ x: cur.x - dragOffsetX, y: cur.y - dragOffsetY, width: 200, height: 200 });
+      petX = cur.x - dragOffsetX;
+      petY = cur.y - dragOffsetY;
+      petWindow.setBounds({ x: Math.round(petX), y: Math.round(petY), width: 200, height: 200 });
     }, 16);
   });
 
@@ -269,7 +268,8 @@ function createTray() {
 
   const contextMenu = Menu.buildFromTemplate([
     { label: '打开管理面板', click: () => { if (mainWindow) mainWindow.show(); else createWindow(); } },
-    { label: '显示宠物', click: () => { if (petWindow) { petWindow.show(); const { screen } = require('electron'); const display = screen.getPrimaryDisplay(); const bounds = petWindow.getBounds(); if (bounds.x < -9000) petWindow.setBounds({ x: display.bounds.width - 250, y: display.bounds.height - 250, width: bounds.width, height: bounds.height }); } else { createPetWindow(); } } },
+    { label: '显示宠物', click: () => { if (petWindow) { petWindow.show(); if (petX < -9000) { const { screen } = require('electron'); const display = screen.getPrimaryDisplay(); petX = display.bounds.width - 250; petY = display.bounds.height - 250; } petWindow.setBounds({ x: Math.round(petX), y: Math.round(petY), width: 200, height: 200 }); } else { createPetWindow(); } } },
+    { label: '隐藏宠物', click: () => { if (petWindow) petWindow.hide(); } },
     { type: 'separator' },
     { label: '退出', click: () => { isQuitting = true; tray = null; app.quit(); } },
   ]);
@@ -303,6 +303,7 @@ ipcMain.handle('window-close', () => { if (mainWindow) mainWindow.close(); });
 // --- Pet Window IPC ---
 ipcMain.handle('pet-move-window', (_, x, y) => {
   if (petWindow) {
+    petX = x; petY = y;
     petWindow.setBounds({ x: Math.round(x), y: Math.round(y), width: 200, height: 200 });
   }
 });
