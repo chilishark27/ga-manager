@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"bufio"
 	"bytes"
 	"encoding/json"
 	"fmt"
@@ -211,10 +212,20 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	// Create a patched copy with shorter poll interval for faster startup
 	patchedReflect := filepath.Join(bbsCwd, "agent_team_worker_fast.py")
 	if origData, err := os.ReadFile(workerReflect); err == nil {
-		patched := strings.Replace(string(origData), "INTERVAL = 60", "INTERVAL = 10", 1)
-		os.WriteFile(patchedReflect, []byte(patched), 0644)
-		workerReflect = patchedReflect
-		h.addLog("Worker poll interval: 10s (patched from 60s)")
+		origStr := string(origData)
+		if strings.Contains(origStr, "INTERVAL = 60") {
+			patched := strings.Replace(origStr, "INTERVAL = 60", "INTERVAL = 10", 1)
+			os.WriteFile(patchedReflect, []byte(patched), 0644)
+			workerReflect = patchedReflect
+			h.addLog("Worker poll interval: 10s (patched from 60s)")
+		} else if strings.Contains(origStr, "INTERVAL") {
+			// Different interval value, try generic patch
+			h.addLog("WARN: INTERVAL != 60 in worker script, using original interval")
+		} else {
+			h.addLog("WARN: No INTERVAL found in worker script")
+		}
+	} else {
+		h.addLog(fmt.Sprintf("WARN: Cannot read worker script: %v", err))
 	}
 
 	h.workers = nil
@@ -227,14 +238,43 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 			"--base_url", baseURL, "--board_key", h.boardKey, "--name", name)
 		cmd.Dir = gaRoot
 		cmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "PYTHONIOENCODING=utf-8")
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
+
+		// Capture worker output to hive logs
+		workerName := name
+		stdout, _ := cmd.StdoutPipe()
+		stderr, _ := cmd.StderrPipe()
+
 		if err := cmd.Start(); err != nil {
 			h.addLog(fmt.Sprintf("Worker %s failed: %v", name, err))
 			continue
 		}
 		h.workers = append(h.workers, cmd)
 		h.addLog(fmt.Sprintf("Worker %s started (PID %d)", name, cmd.Process.Pid))
+
+		// Stream worker output to hive logs
+		go func(wname string, r io.Reader) {
+			scanner := bufio.NewScanner(r)
+			for scanner.Scan() {
+				line := scanner.Text()
+				if line != "" {
+					h.mu.Lock()
+					h.addLog(fmt.Sprintf("[%s] %s", wname, line))
+					h.mu.Unlock()
+				}
+			}
+		}(workerName, stdout)
+		go func(wname string, r io.Reader) {
+			scanner := bufio.NewScanner(r)
+			for scanner.Scan() {
+				line := scanner.Text()
+				if line != "" {
+					h.mu.Lock()
+					h.addLog(fmt.Sprintf("[%s:err] %s", wname, line))
+					h.mu.Unlock()
+				}
+			}
+		}(workerName, stderr)
+
 		// Monitor worker exit
 		go func(c *exec.Cmd, wname string) {
 			err := c.Wait()
