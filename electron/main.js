@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, dialog } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, dialog, powerMonitor, Notification } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
@@ -13,6 +13,8 @@ let tray = null;
 let backendProcess = null;
 let isQuitting = false;
 let petWindow = null;
+let petState = 'idle'; // idle | curious | working | done
+let userWasIdle = true;
 
 function getBackendPath() {
   const isPackaged = app.isPackaged;
@@ -233,6 +235,25 @@ function createPetWindow() {
   });
 
   petWindow.on('closed', () => { petWindow = null; walkDir = 0; petDragging = false; clearInterval(dragTimer); });
+
+  // User activity detection for curious state
+  setInterval(() => {
+    if (!petWindow || petState === 'working') return;
+    const idleTime = powerMonitor.getSystemIdleTime();
+    if (idleTime < 3 && userWasIdle) {
+      // User just became active
+      userWasIdle = false;
+      petState = 'curious';
+      petWindow.webContents.send('pet-state-change', 'curious');
+    } else if (idleTime > 10 && !userWasIdle) {
+      // User went idle
+      userWasIdle = true;
+      if (petState === 'curious') {
+        petState = 'idle';
+        petWindow.webContents.send('pet-state-change', 'idle');
+      }
+    }
+  }, 3000);
 }
 
 function createTray() {
@@ -305,6 +326,28 @@ ipcMain.handle('pet-get-backend-url', () => {
 ipcMain.handle('open-external', (_, url) => {
   const { shell } = require('electron');
   shell.openExternal(url);
+});
+
+ipcMain.on('ga-state-change', (_, state) => {
+  if (!petWindow) return;
+  if (state === 'working') {
+    petState = 'working';
+    petWindow.webContents.send('pet-state-change', 'working');
+  } else if (state === 'done') {
+    petState = 'done';
+    petWindow.webContents.send('pet-state-change', 'done');
+    // System notification
+    if (Notification.isSupported()) {
+      new Notification({ title: 'GA Manager', body: '任务完成' }).show();
+    }
+    // Reset to idle after 5 seconds
+    setTimeout(() => {
+      if (petState === 'done') {
+        petState = 'idle';
+        if (petWindow) petWindow.webContents.send('pet-state-change', 'idle');
+      }
+    }, 5000);
+  }
 });
 
 // --- Auto Updater ---

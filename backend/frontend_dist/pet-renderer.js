@@ -37,12 +37,44 @@ async function init() {
 
     if (window.petBridge) {
       window.petBridge.onStateChange((state) => {
-        if (state === 'working' && pets[currentPetIdx]?.actions?.work) {
+        const pet = currentPet();
+        if (!pet) return;
+
+        if (state === 'working') {
           clearTimeout(autoTimer);
-          setAction('work');
-        } else if (state === 'idle' && action === 'work') {
-          setAction('default');
-          scheduleAuto();
+          if (pet.actions.work) setAction('work');
+          bubble.textContent = '正在工作中...';
+          bubble.style.display = 'block';
+        } else if (state === 'done') {
+          clearTimeout(autoTimer);
+          const doneAction = pet.actions.happy || pet.actions.dance || pet.actions.patpat;
+          if (doneAction) {
+            const name = pet.actions.happy ? 'happy' : pet.actions.dance ? 'dance' : 'patpat';
+            setAction(name);
+          }
+          bubble.textContent = '任务完成啦~';
+          bubble.style.display = 'block';
+          setTimeout(() => { bubble.style.display = 'none'; }, 5000);
+          autoTimer = setTimeout(() => { setAction('default'); scheduleAuto(); }, 5000);
+        } else if (state === 'curious') {
+          // Only react if in idle state (not working/done)
+          if (action === 'default' || action === 'idle') {
+            clearTimeout(autoTimer);
+            const idleActions = getIdleActions(pet);
+            if (idleActions.length > 0) {
+              const pick = idleActions[Math.floor(Math.random() * idleActions.length)];
+              const act = pet.actions[pick];
+              setAction(pick);
+              const duration = act.frames * act.interval;
+              autoTimer = setTimeout(() => { setAction('default'); scheduleAuto(); }, duration);
+            }
+          }
+        } else if (state === 'idle') {
+          bubble.style.display = 'none';
+          if (action === 'work') {
+            setAction('default');
+            scheduleAuto();
+          }
         }
       });
     }
@@ -130,24 +162,26 @@ function updateFrame() {
 
 function stopAnim() { clearInterval(animTimer); animTimer = null; }
 
+function getIdleActions(pet) {
+  const skipActions = ['default', 'drag', 'work', 'hide', 'faint', 'fall', 'onfloor', 'prefall', 'edge', 'left', 'right', 'up', 'down'];
+  return Object.keys(pet.actions).filter(a => {
+    if (skipActions.includes(a)) return false;
+    if (a.includes('walk')) return false;
+    if (a.startsWith('feed')) return false;
+    const act = pet.actions[a];
+    if (act.frames * act.interval < 1500) return false;
+    return true;
+  });
+}
+
 function scheduleAuto() {
   clearTimeout(autoTimer);
   autoTimer = setTimeout(() => {
     const pet = currentPet();
     if (!pet) return;
 
-    // Only skip truly system/transitional actions
-    const skipActions = ['default', 'drag', 'work', 'hide', 'faint', 'fall', 'onfloor', 'prefall', 'edge', 'left', 'right', 'up', 'down'];
     const walkActions = Object.keys(pet.actions).filter(a => a.includes('walk'));
-    const idleActions = Object.keys(pet.actions).filter(a => {
-      if (skipActions.includes(a)) return false;
-      if (a.includes('walk')) return false;
-      if (a.startsWith('feed')) return false;
-      // Filter out ultra-short animations (< 500ms) that are glitchy
-      const act = pet.actions[a];
-      if (act.frames * act.interval < 500) return false;
-      return true;
-    });
+    const idleActions = getIdleActions(pet);
 
     const rand = Math.random();
     if (rand < 0.3 && walkActions.length > 0) {
