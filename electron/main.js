@@ -207,7 +207,8 @@ function createPetWindow() {
     if (dir === -1 && x <= 0) return;
     if (dir === 1 && x >= display.bounds.width - 150) return;
     walkDir = dir;
-    walkSpeed = Math.max(1, speed || 1);
+    // Scale speed to screen width: ~3px/50ms per 1920px, scales up for larger screens
+    walkSpeed = Math.max(2, Math.round(display.bounds.width / 640));
   });
 
   ipcMain.on('pet-walk-stop', () => { walkDir = 0; });
