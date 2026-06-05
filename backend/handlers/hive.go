@@ -61,6 +61,7 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		Budget    int    `json:"budget_minutes"`
 		Workers   int    `json:"workers"`
 		LLMNo     int    `json:"llm_no"`
+		Mode      string `json:"mode"` // "hive" (default) or "checklist"
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Objective == "" {
 		writeError(w, http.StatusBadRequest, "objective is required")
@@ -317,7 +318,7 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		}(cmd, name)
 	}
 
-	// Start master
+	// Start master (choose reflect script based on mode)
 	goalState := map[string]interface{}{
 		"objective": body.Objective, "budget_seconds": body.Budget * 60,
 		"start_time": time.Now().Unix(), "turns_used": 0, "max_turns": 200, "status": "running",
@@ -327,6 +328,17 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	os.WriteFile(goalPath, goalData, 0644)
 
 	goalReflect := filepath.Join(gaRoot, "reflect", "goal_mode.py")
+	if body.Mode == "checklist" {
+		checklistReflect := filepath.Join(gaRoot, "reflect", "checklist_master.py")
+		if _, err := os.Stat(checklistReflect); err == nil {
+			goalReflect = checklistReflect
+			h.addLog("Mode: checklist (structured task decomposition)")
+		} else {
+			h.addLog("WARN: checklist_master.py not found, falling back to goal_mode")
+		}
+	} else {
+		h.addLog("Mode: hive (goal-driven coordination)")
+	}
 	h.masterCmd = exec.Command(python, "-u", filepath.Join(gaRoot, "agentmain.py"), "--reflect", goalReflect, "--llm_no", strconv.Itoa(body.LLMNo))
 	h.masterCmd.Dir = gaRoot
 	h.masterCmd.Env = append(os.Environ(), "GOAL_STATE="+goalPath)

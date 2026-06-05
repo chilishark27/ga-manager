@@ -20,6 +20,7 @@ function HivePage() {
   const [objective, setObjective] = useState('');
   const [budget, setBudget] = useState(60);
   const [workers, setWorkers] = useState(2);
+  const [mode, setMode] = useState<'hive' | 'checklist'>('hive');
   const [posts, setPosts] = useState<any[]>([]);
   const [authors, setAuthors] = useState<string[]>([]);
   const [starting, setStarting] = useState(false);
@@ -102,7 +103,7 @@ function HivePage() {
       const res = await fetch('/api/hive/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ objective: objective.trim(), budget_minutes: budget, workers, llm_no: activeInstance?.llm_no || 0 }),
+        body: JSON.stringify({ objective: objective.trim(), budget_minutes: budget, workers, llm_no: activeInstance?.llm_no || 0, mode }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) setError(d.error || 'Start failed');
@@ -200,6 +201,15 @@ function HivePage() {
                   <label style={{ fontSize: '11px', color: 'var(--text-3)', display: 'block', marginBottom: '4px' }}>Workers</label>
                   <input className="hive-input" type="number" value={workers} onChange={e => setWorkers(Number(e.target.value))} min={1} max={5} />
                 </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '11px', color: 'var(--text-3)', display: 'block', marginBottom: '4px' }}>
+                    {lang === 'zh' ? '模式' : 'Mode'}
+                  </label>
+                  <select className="hive-input" value={mode} onChange={e => setMode(e.target.value as 'hive' | 'checklist')} style={{ height: '32px' }}>
+                    <option value="hive">Hive</option>
+                    <option value="checklist">Checklist</option>
+                  </select>
+                </div>
               </div>
               {error && <div style={{ color: 'var(--red)', fontSize: '12px' }}>{error}</div>}
               <button className="setup-btn" onClick={handleStart} disabled={starting}>
@@ -241,7 +251,7 @@ function HivePage() {
                 <div className="hive-posts" style={{ maxHeight: '400px', overflowY: 'auto' }}>
                   {posts.length === 0 ? (
                     <div style={{ color: 'var(--text-3)', fontSize: '12px', padding: '20px 0', textAlign: 'center' }}>
-                      {lang === 'zh' ? 'Workers 每 60 秒检查一次任务，请稍候...' : 'Workers check every 60s, please wait...'}
+                      {lang === 'zh' ? 'Agent 初始化中，首次检查会在加载完成后立即执行...' : 'Agent initializing, first check runs immediately after load...'}
                     </div>
                   ) : posts.map((p: any) => (
                     <div key={p.id} className="hive-post-item">
