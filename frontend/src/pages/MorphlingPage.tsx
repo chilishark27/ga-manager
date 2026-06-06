@@ -11,6 +11,7 @@ const MORPHLING_TYPES = [
 export default function MorphlingPage() {
   const { setPage } = useStore();
   const activeInstance = useStore(s => s.activeInstance());
+  const llmConfigs = useStore(s => s.llmConfigs);
   const { lang } = useI18n();
   const isZh = lang === 'zh';
 
@@ -20,6 +21,7 @@ export default function MorphlingPage() {
   const [components, setComponents] = useState('');
   const [workers, setWorkers] = useState(3);
   const [budget, setBudget] = useState(60);
+  const [llmNo, setLlmNo] = useState(activeInstance?.llm_no || 0);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
 
@@ -54,7 +56,7 @@ export default function MorphlingPage() {
           objective: buildObjective(),
           budget_minutes: budget,
           workers: workers,
-          llm_no: activeInstance?.llm_no || 0,
+          llm_no: llmNo,
         }),
       });
       if (res.ok) {
@@ -139,6 +141,14 @@ export default function MorphlingPage() {
             <div className="form-group" style={{ flex: 1 }}>
               <label>Workers</label>
               <input type="number" value={workers} onChange={e => setWorkers(Number(e.target.value))} min={1} max={5} />
+            </div>
+            <div className="form-group" style={{ flex: 1 }}>
+              <label>LLM</label>
+              <select value={llmNo} onChange={e => setLlmNo(Number(e.target.value))}>
+                {llmConfigs.length > 0 ? llmConfigs.map(c => (
+                  <option key={c.index} value={c.index}>#{c.index} {c.name}</option>
+                )) : <option value={0}>#0 Default</option>}
+              </select>
             </div>
           </div>
 

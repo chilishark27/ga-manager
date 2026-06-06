@@ -26,13 +26,14 @@ interface ChatMsg {
 }
 
 function ConductorPage() {
-  const { activeInstance: getActiveInstance } = useStore();
+  const { activeInstance: getActiveInstance, llmConfigs } = useStore();
   const { lang } = useI18n();
   const inst = getActiveInstance();
   const devMode = !!(inst as any)?.dev_mode;
 
   const [status, setStatus] = useState<'stopped' | 'running' | 'loading' | 'error'>('loading');
   const [errorMsg, setErrorMsg] = useState('');
+  const [conductorLlm, setConductorLlm] = useState(inst?.llm_no || 0);
   const [subagents, setSubagents] = useState<Subagent[]>([]);
   const [chat, setChat] = useState<ChatMsg[]>([]);
   const [newPrompt, setNewPrompt] = useState('');
@@ -107,7 +108,7 @@ function ConductorPage() {
     setStatus('loading');
     setErrorMsg('');
     try {
-      const r = await fetch(`${API}/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ llm_no: getActiveInstance()?.llm_no || 0 }) });
+      const r = await fetch(`${API}/start`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ llm_no: conductorLlm }) });
       const d = await r.json().catch(() => ({}));
       if (!r.ok) {
         setStatus('error');
@@ -276,6 +277,14 @@ function ConductorPage() {
           {errorMsg && (
             <p style={{ fontSize: '12px', color: 'var(--red)', marginBottom: '12px' }}>{errorMsg}</p>
           )}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: '12px' }}>
+            <label style={{ fontSize: '11px', color: 'var(--text-3)', whiteSpace: 'nowrap' }}>LLM:</label>
+            <select className="hive-input" value={conductorLlm} onChange={e => setConductorLlm(Number(e.target.value))} style={{ height: '30px', flex: 1, maxWidth: '200px' }}>
+              {llmConfigs.length > 0 ? llmConfigs.map(c => (
+                <option key={c.index} value={c.index}>#{c.index} {c.name}</option>
+              )) : <option value={0}>#0 Default</option>}
+            </select>
+          </div>
           <button className="conductor-start-btn" onClick={startConductor}>
             {lang === 'zh' ? '启动编排' : 'Start Conductor'}
           </button>

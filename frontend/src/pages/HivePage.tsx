@@ -16,11 +16,13 @@ interface HiveStatus {
 function HivePage() {
   const { lang } = useI18n();
   const activeInstance = useStore(s => s.activeInstance());
+  const llmConfigs = useStore(s => s.llmConfigs);
   const [status, setStatus] = useState<HiveStatus | null>(null);
   const [objective, setObjective] = useState('');
   const [budget, setBudget] = useState(60);
   const [workers, setWorkers] = useState(2);
   const [mode, setMode] = useState<'hive' | 'checklist'>('hive');
+  const [llmNo, setLlmNo] = useState(activeInstance?.llm_no || 0);
   const [posts, setPosts] = useState<any[]>([]);
   const [authors, setAuthors] = useState<string[]>([]);
   const [starting, setStarting] = useState(false);
@@ -103,7 +105,7 @@ function HivePage() {
       const res = await fetch('/api/hive/start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ objective: objective.trim(), budget_minutes: budget, workers, llm_no: activeInstance?.llm_no || 0, mode }),
+        body: JSON.stringify({ objective: objective.trim(), budget_minutes: budget, workers, llm_no: llmNo, mode }),
       });
       const d = await res.json().catch(() => ({}));
       if (!res.ok) setError(d.error || 'Start failed');
@@ -208,6 +210,14 @@ function HivePage() {
                   <select className="hive-input" value={mode} onChange={e => setMode(e.target.value as 'hive' | 'checklist')} style={{ height: '32px' }}>
                     <option value="hive">Hive</option>
                     <option value="checklist">Checklist</option>
+                  </select>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '11px', color: 'var(--text-3)', display: 'block', marginBottom: '4px' }}>LLM</label>
+                  <select className="hive-input" value={llmNo} onChange={e => setLlmNo(Number(e.target.value))} style={{ height: '32px' }}>
+                    {llmConfigs.length > 0 ? llmConfigs.map(c => (
+                      <option key={c.index} value={c.index}>#{c.index} {c.name}</option>
+                    )) : <option value={0}>#0 Default</option>}
                   </select>
                 </div>
               </div>
