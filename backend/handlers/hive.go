@@ -36,7 +36,7 @@ type HiveHandler struct {
 }
 
 func NewHiveHandler(cfg *models.AppConfig) *HiveHandler {
-	return &HiveHandler{cfg: cfg, port: 58800}
+	return &HiveHandler{cfg: cfg, port: 39800}
 }
 
 func (h *HiveHandler) addLog(msg string) {
@@ -131,7 +131,7 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		h.addLog("Dependencies installed")
 	}
 
-	h.port = 58800 + rand.Intn(100)
+	h.port = 39800 + rand.Intn(100)
 	h.boardKey = fmt.Sprintf("hive-%d", time.Now().Unix())
 	h.objective = body.Objective
 	h.budget = body.Budget
