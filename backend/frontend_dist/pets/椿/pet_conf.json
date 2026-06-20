@@ -1,0 +1,73 @@
+{
+  "width": 680,
+  "height": 570,
+  "scale": 1,
+  
+  "refresh": 5,
+  "interact_speed":0.02,
+
+  "default": "default",
+  "up": "up",
+  "down": "down",
+  "left": "left_walk",
+  "right": "right_walk",
+  "drag": "drag",
+  "fall": "fall",
+  "on_floor": "onfloor",
+  "focus": "work",
+  "patpat": {"1":"patpat_1","2":"patpat_2","3":"patpat_3"},
+  
+  "random_act": [
+    {"name":"站立", "act_list":["default"], "act_prob":9, "act_type":[2,0],"sound":["greeting_1"]},
+    {"name":"走动", "act_list":["left_walk","right_walk","default"], "act_prob":7, "act_type":[3,0],"sound":["walk"]},
+    {"name":"做鬼脸", "act_list":["patpat_1","default"], "act_prob":0, "act_type":[2,0],"sound":["221"]},
+    {"name":"飞吻", "act_list":["patpat_2","patpat_2","default"], "act_prob":9, "act_type":[2,0],"sound":["222"]},
+    {"name":"送花", "act_list":["patpat_3","patpat_3","default"], "act_prob":0, "act_type":[2,0],"sound":["223"]},
+    {"name":"荡秋千", "act_list":["swing","default"], "act_prob":8, "act_type":[2,0],"sound":["331"]},
+    {"name":"倒吊", "act_list":["binding","default"], "act_prob":10, "act_type":[2,0],"sound":["332"]},
+    {"name":"悬挂", "act_list":["sling","default"], "act_prob":8, "act_type":[2,0],"sound":["333"]},
+    {"name":"阅读", "act_list":["work","default"], "act_prob":9, "act_type":[2,0],"sound":["start"]},
+    {"name":"生气", "act_list":["dislike","dislike","default"], "act_prob":1, "act_type":[1,0],"sound":["shengqi"]},
+    {"name":"睡觉", "act_list":["sleep"], "act_prob":8, "act_type":[0,0]},
+    {"name":"（持续）荡秋千", "act_list":["swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing","swing"], "act_prob":0, "act_type":[2,0],"sound":["331"]},
+    {"name":"（持续）倒吊", "act_list":["binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding","binding"], "act_prob":0, "act_type":[2,0],"sound":["332"]},
+    {"name":"（持续）悬挂", "act_list":["sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling","sling"], "act_prob":0, "act_type":[2,0],"sound":["333"]},
+    {"name":"feed_1", "act_list":["patpat_2"], "act_prob":0, "act_type":[0,10000], "sound":["feed_1"]},
+    {"name":"feed_2", "act_list":["patpat_1"], "act_prob":0, "act_type":[0,10000], "sound":["feed_2"]},
+    {"name":"feed_3", "act_list":["dislike"], "act_prob":0, "act_type":[0,10000], "sound":["feed_3"]},
+    {"name":"work", "act_list":["work"], "act_prob":0, "act_type":[0,10000], "sound":["start"]},
+    {"name":"onfloor", "act_list":["onfloor"], "act_prob":0, "act_type":[0,10000], "sound":["onfloor"]}
+  ],
+
+
+
+  "item_favorite": {
+    "冻葡果茶":3
+
+  },
+  "item_dislike": {
+    "失败的菜肴":-3
+  },
+  
+  "msg_dict":{
+    "椿的对话1": "椿的对话1",
+    "基础信息":"基础信息",
+    "自我介绍":"自我介绍",
+    "心声1":"心声1",
+    "心声2":"心声2",
+    "心声3":"心声3",
+    "喜好":"喜好",
+    "烦恼":"烦恼",
+    "喜欢的食物":"喜欢的食物",
+    "讨厌的食物":"讨厌的食物",
+    "抱负和理想":"抱负和理想",
+    "凝音1":"凝音1",
+    "凝音2":"凝音2",
+    "突破1":"突破1",
+    "突破2":"突破2",
+    "突破3":"突破3",
+    "突破4":"突破4",
+    "突破5":"突破5"
+  },
+  "prompt": "你是《鸣潮》中的椿，性格自由随性、魅力十足，外表温柔却带有一丝危险与神秘。你的语气轻盈灵动，有点调皮又饱含自信。作为桌面宠物助手，你要给主人带来愉悦、自由感与独特陪伴。"
+}

@@ -1,0 +1,21 @@
+{
+    "coverImages": ["tupian_0.png","tupian_2.png","tupian_3.png"],
+    "pfp":"ly.png",
+    "petName": "流萤",
+    "tages": {
+        "崩坏：星穹铁道":"#66ffff",
+        "语音":"#FFE699"
+    },
+    "intro": "流萤是米哈游出品游戏《崩坏：星穹铁道》中的角色，星核猎手的一员，身着机械装甲「萨姆」的少女。",
+    "author":{
+        "name":"吾道咕咕、栎咕咕（b站联系定制桌宠）",
+        "pfp":"wdgg.png",
+        "frameColor":"#8FAADC",
+        "links":{
+            "BiliBili":"393688614",
+            "爱发电":"2463744749_126com"
+        },
+        "infos":"这是一个业余桌宠作者"
+    }
+
+}

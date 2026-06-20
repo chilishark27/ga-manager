@@ -1,0 +1,88 @@
+{
+  "default": {
+    "images": "daiji",
+    "act_num": 10,
+    "frame_refresh": 0.2
+  },
+  "up" : {
+    "images": "daiji",
+    "act_num": 1,
+    "frame_refresh": 0.2
+  },
+  "down" : {
+    "images": "daiji",
+    "act_num": 1,
+    "frame_refresh": 0.2
+  },
+  "left": {
+    "images": "daiji",
+    "act_num": 10,
+    "frame_refresh": 0.2
+  },
+  "right": {
+    "images": "daiji2",
+    "act_num": 4,
+    "frame_refresh": 0.2
+  },
+  "sleep": {
+    "images": "yumen",
+    "act_num": 5,
+    "frame_refresh": 0.2
+  },
+    "shuijiao": {
+    "images": "shuijiao",
+    "act_num": 20,
+    "frame_refresh": 0.2
+  },
+  "left_walk": {
+    "images": "zuozoudong",
+    "act_num": 5,
+    "need_move": true,
+    "direction": "left",
+    "frame_move": 10,
+    "frame_refresh": 0.2
+  },
+  "right_walk": {
+    "images": "zoudong",
+    "act_num": 5,
+    "need_move": true,
+    "direction": "right",
+    "frame_move": 10,
+    "frame_refresh": 0.2
+  },
+  "drag": {
+    "images": "linqi",
+    "act_num": 1,
+    "frame_refresh": 0.2
+  },
+  "fall": {
+    "images": "zhikong",
+    "act_num": 1,
+    "frame_refresh": 0.2
+  },
+  "onfloor": {
+    "images": "luodi",
+    "act_num": 1,
+    "frame_refresh": 0.2
+  },
+  "patpat": {
+    "images": "bixin",
+    "act_num": 1,
+    "frame_refresh": 0.2
+  },
+  "feed_1":{
+    "images": "dangaojuan",
+    "act_num": 5,
+    "frame_refresh": 0.2
+  },
+  "feed_2":{
+    "images": "dangaojuan",
+    "act_num": 5,
+    "frame_refresh": 0.2
+  },
+  "feed_3":{
+    "images": "dangaojuan",
+    "act_num": 5,
+    "frame_refresh": 0.2
+  }
+}

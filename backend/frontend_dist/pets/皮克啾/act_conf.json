@@ -1,0 +1,7 @@
+{
+  "default":{
+    "images": "pikechuu",
+    "act_num": 1,
+    "frame_refresh": 0.2
+  }
+}

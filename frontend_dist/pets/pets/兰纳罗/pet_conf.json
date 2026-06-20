@@ -1,0 +1,30 @@
+{
+  "width": 175,
+  "height": 175,
+  "scale": 1.0,
+  "interact_speed":0.02,
+
+  "default": "default",
+  "up": "up",
+  "down": "down",
+  "left": "left_walk",
+  "right": "right_walk",
+  "drag": "drag",
+  "fall": "fall",
+  "on_floor": "onfloor",
+  "patpat":"patpat",
+
+  "follow_main_x":false,
+  "follow_main_y":false,
+
+  "buff":{"HP":[0,0], "FV":[0,0], "coin":[0,0]},
+  
+  "random_act": [
+    {"name":"onfloor", "act_list":["onfloor"], "act_prob":0, "act_type":[0,10000]},
+    {"name":"左右行走", "act_list":["left_walk", "left_walk","left_walk","default","right_walk","default"], "act_prob":0.4, "act_type":[3,1]}
+  ],
+
+  "main_interact":{}
+}
+
+

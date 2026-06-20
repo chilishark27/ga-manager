@@ -1,0 +1,131 @@
+{
+  "default": {
+    "images": "stand",
+    "act_num": 5,
+    "frame_refresh": 0.08
+  },
+  "up" : {
+    "images": "stand",
+    "act_num": 1,
+    "frame_refresh": 0.08
+  },
+  "down" : {
+    "images": "stand",
+    "act_num": 1,
+    "frame_refresh": 0.08
+  },
+  "left": {
+    "images": "stand",
+    "act_num": 5,
+    "frame_refresh": 0.08
+  },
+  "right": {
+    "images": "stand",
+    "act_num": 5,
+    "frame_refresh": 0.08
+  },
+  "sleep": {
+    "images": "sleep",
+    "act_num": 5,
+    "frame_refresh": 0.08,
+    "anchor": [0, 18]
+  },
+  "left_walk": {
+    "images": "leftwalk",
+    "act_num": 3,
+    "need_move": true,
+    "direction": "left",
+    "frame_move": 3,
+    "frame_refresh": 0.08
+  },
+  "right_walk": {
+    "images": "rightwalk",
+    "act_num": 3,
+    "need_move": true,
+    "direction": "right",
+    "frame_move": 3,
+    "frame_refresh": 0.08
+  },
+  "drag": {
+    "images": "drag",
+    "act_num": 1,
+    "frame_refresh": 0.08
+  },
+  "edge": {
+    "images": "edge",
+    "act_num": 1,
+    "frame_refresh": 0.08
+  },
+  "fall": {
+    "images": "fall",
+    "act_num": 1,
+    "frame_refresh": 0.08
+  },
+  "onfloor": {
+    "images": "onfloor",
+    "act_num": 1,
+    "frame_refresh": 0.02
+  },
+  "patpat1": {
+    "images": "patpat",
+    "act_num": 1,
+    "frame_refresh": 0.08,
+    "anchor": [0, 18]
+  },
+  "patpat2": {
+    "images": "patpat2",
+    "act_num": 1,
+    "frame_refresh": 0.08,
+    "anchor": [0, 18]
+  },
+  "sleepy": {
+    "images": "sleepy",
+    "act_num": 1,
+    "frame_refresh": 0.08
+  },
+  "focus": {
+    "images": "focus",
+    "act_num": 1,
+    "frame_refresh": 0.08,
+    "anchor": [0, 18]
+  },
+  "feed_1":{
+    "images": "feed",
+    "act_num": 1,
+    "frame_refresh": 0.08,
+    "anchor": [0, 18]
+  },
+  "feed_2":{
+    "images": "feed",
+    "act_num": 1,
+    "frame_refresh": 0.08,
+    "anchor": [0, 18]
+  },
+  "feed_3":{
+    "images": "feed",
+    "act_num": 1,
+    "frame_refresh": 0.08,
+    "anchor": [0, 18]
+  },
+  "playball":{
+    "images": "playball",
+    "act_num": 1,
+    "frame_refresh": 0.08
+  },
+  "hy1":{
+    "images": "hy1",
+    "act_num": 1,
+    "frame_refresh": 0.08
+  },
+  "hy1end":{
+    "images": "hy1end",
+    "act_num": 1,
+    "frame_refresh": 0.08
+  },
+  "disturbed":{
+    "images": "disturbed",
+    "act_num": 1,
+    "frame_refresh": 0.08,
+    "anchor": [0, 18]
+  }
+}

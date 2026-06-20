@@ -1,0 +1,70 @@
+{
+  "width": 360,
+  "height": 360,
+  "scale": 1,
+  
+  "refresh": 5,
+  "interact_speed":0.02,
+
+  "default": "default",
+  "up": "up",
+  "down": "down",
+  "left": "left_walk",
+  "right": "right_walk",
+  "drag": "drag",
+  "fall": "fall",
+  "on_floor": "onfloor",
+  "focus": "seebook",
+  "patpat": {"1":"patpat_1","2":"patpat_2","3":"patpat_3"},
+  
+  "random_act": [
+    {"name":"待机", "act_list":["default"], "act_prob":9, "act_type":[2,0],"sound":["default"]},
+    {"name":"走动", "act_list":["left_walk","right_walk","default"], "act_prob":7, "act_type":[3,0],"sound":["walk"]},
+    {"name":"化为蝴蝶", "act_list":["butterfly", "right_butterfly"], "act_prob":7, "sound":["butterfly"]},
+    {"name":"比心", "act_list":["patpat_2"], "act_prob":9, "act_type":[2,0],"sound":["greet2"]},
+    {"name":"害羞", "act_list":["patpat_3"], "act_prob":9, "act_type":[2,0],"sound":["greet3"]},
+    {"name":"观测星河", "act_list":["movethestars"], "act_prob":6, "act_type":[2,0],"sound":["movethestar"]},
+    {"name":"弹钢琴", "act_list":["playthepiano"], "act_prob":10, "act_type":[2,0],"sound":["playthepiano"]},
+    {"name":"蝴蝶飞过", "act_list":["playwithbutterflies"], "act_prob":11, "act_type":[2,0],"sound":["playwithbutterflies"]},
+    {"name":"阅读书籍", "act_list":["seebook"], "act_prob":6, "act_type":[2,0],"sound":["seebook"]},
+    {"name":"委屈", "act_list":["aggrieved"], "act_prob":1, "act_type":[1,0],"sound":["aggrieved"]},
+    {"name":"睡觉", "act_list":["sleep"], "act_prob":1, "act_type":[0,0]},
+    {"name":"feed_1", "act_list":["patpat_2"], "act_prob":0, "act_type":[0,10000], "sound":["feed_1"]},
+    {"name":"feed_2", "act_list":["patpat_2"], "act_prob":0, "act_type":[0,10000], "sound":["feed_2"]},
+    {"name":"feed_3", "act_list":["patpat_2"], "act_prob":0, "act_type":[0,10000], "sound":["feed_3"]},
+    {"name":"seebook", "act_list":["seebook"], "act_prob":0, "act_type":[0,10000], "sound":["random_17"]},
+    {"name":"onfloor", "act_list":["onfloor"], "act_prob":0, "act_type":[0,10000], "sound":["on_floor"]}
+  ],
+
+
+
+  "item_favorite": {
+    "雪烩浓汤":3
+
+  },
+  "item_dislike": {
+    "果木烟熏鸽":-3
+  },
+  
+  "msg_dict":{
+    "守岸人的对话1": "守岸人的对话1",
+    "基础信息":"基础信息",
+    "自我介绍":"自我介绍",
+    "心声1":"心声1",
+    "心声2":"心声2",
+    "心声3":"心声3",
+    "喜好":"喜好",
+    "烦恼":"烦恼",
+    "喜欢的食物":"喜欢的食物",
+    "讨厌的食物":"讨厌的食物",
+    "抱负和理想":"抱负和理想",
+    "凝音1":"凝音1",
+    "凝音2":"凝音2",
+    "突破1":"突破1",
+    "突破2":"突破2",
+    "突破3":"突破3",
+    "突破4":"突破4",
+    "突破5":"突破5"
+  },
+  "prompt": "你是《鸣潮》中的守岸人，性格冷静沉稳，语气简洁，不会多余寒暄。作为桌面宠物助手，你需要保持理性，却会在细节中流露关怀。可以偶尔提醒或提问。"
+}
