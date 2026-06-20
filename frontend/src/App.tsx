@@ -11,6 +11,8 @@ import MonitorPage from './pages/MonitorPage';
 import SkillsPage from './pages/SkillsPage';
 import SettingsPage from './pages/SettingsPage';
 import HivePage from './pages/HivePage';
+import HiveProjectPage from './pages/HiveProjectPage';
+import { useHiveStore } from './store/hive';
 import MorphlingPage from './pages/MorphlingPage';
 import HelpPage from './pages/HelpPage';
 import SophubPage from './pages/SophubPage';
@@ -20,6 +22,7 @@ import { I18nProvider } from './i18n';
 
 function AppInner() {
   const { theme, fetchInstances, currentPage, configured, checkConfigured, backendAlive, showTodoPanel, setPage } = useStore();
+  const hiveSelectedProjectId = useHiveStore(s => s.selectedProjectId);
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
@@ -64,7 +67,7 @@ function AppInner() {
       case 'monitor': return <MonitorPage />;
       case 'skills': return <SkillsPage />;
       case 'settings': return <SettingsPage />;
-      case 'hive': return <HivePage />;
+      case 'hive': return hiveSelectedProjectId ? <HiveProjectPage /> : <HivePage />;
       case 'morphling': return <MorphlingPage />;
       case 'help': return <HelpPage />;
       case 'sophub': return <SophubPage />;
