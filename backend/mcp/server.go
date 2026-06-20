@@ -102,36 +102,7 @@ func (s *Server) HandleSingleRequest(data []byte) []byte {
 }
 
 func (s *Server) handleRequest(req Request) {
-	var resp Response
-	resp.JSONRPC = "2.0"
-	resp.ID = req.ID
-
-	switch req.Method {
-	case "initialize":
-		resp.Result = map[string]interface{}{
-			"protocolVersion": "2024-11-05",
-			"capabilities": map[string]interface{}{
-				"tools":     map[string]interface{}{},
-				"resources": map[string]interface{}{},
-			},
-			"serverInfo": map[string]interface{}{
-				"name":    "ga-hive",
-				"version": "1.0.0",
-			},
-		}
-	case "tools/list":
-		resp.Result = s.listTools()
-	case "tools/call":
-		resp.Result = s.callTool(req.Params)
-	case "resources/list":
-		resp.Result = s.listResources()
-	case "resources/read":
-		resp.Result = s.readResource(req.Params)
-	default:
-		resp.Error = &RPCError{Code: -32601, Message: fmt.Sprintf("Method not found: %s", req.Method)}
-	}
-
-	data, _ := json.Marshal(resp)
+	data := s.handleRequestBytes(req)
 	fmt.Fprintf(s.output, "%s\n", data)
 }
 

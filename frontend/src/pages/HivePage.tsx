@@ -11,9 +11,6 @@ function HivePage() {
   useEffect(() => {
     fetchProjects();
     fetchPoolStats();
-  }, []);
-
-  useEffect(() => {
     const t = setInterval(() => {
       fetchProjects();
       fetchPoolStats();

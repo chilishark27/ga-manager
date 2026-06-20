@@ -1,14 +1,15 @@
 import { useState, useEffect } from 'react';
 
-export default function TaskDetail({ tasks, projectId }: { tasks: any[]; projectId: string }) {
-  const [selectedId, setSelectedId] = useState(tasks[0]?.id || null);
+export default function TaskDetail({
+  tasks,
+  projectId,
+  selectedId,
+}: {
+  tasks: any[];
+  projectId: string;
+  selectedId: string | null;
+}) {
   const [log, setLog] = useState('');
-
-  useEffect(() => {
-    const handler = (e: Event) => setSelectedId((e as CustomEvent).detail);
-    window.addEventListener('hive-select-task', handler);
-    return () => window.removeEventListener('hive-select-task', handler);
-  }, []);
 
   useEffect(() => {
     if (!selectedId) return;

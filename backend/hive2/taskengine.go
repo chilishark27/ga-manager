@@ -8,8 +8,9 @@ import (
 // TaskEngine manages DAG scheduling for tasks within a project.
 // It operates on a ProjectStore and publishes lifecycle events to an EventBus.
 type TaskEngine struct {
-	store    *ProjectStore
-	eventBus *EventBus
+	store       *ProjectStore
+	eventBus    *EventBus
+	stopTimeout chan struct{}
 }
 
 // NewTaskEngine creates a TaskEngine backed by store and eventBus.
@@ -218,6 +219,42 @@ func (te *TaskEngine) AddTasks(projectID string, tasks []*Task) error {
 		return err
 	}
 	return te.updateTaskCount(projectID)
+}
+
+// StartTimeoutChecker runs CheckTimeouts for every project on the given interval.
+// It is idempotent: calling it again while a checker is running stops the old one first.
+func (te *TaskEngine) StartTimeoutChecker(interval time.Duration) {
+	te.StopTimeoutChecker()
+	stop := make(chan struct{})
+	te.stopTimeout = stop
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ticker.C:
+				projects, err := te.store.List()
+				if err != nil {
+					continue
+				}
+				for _, p := range projects {
+					if p.Status == ProjectStatusRunning {
+						te.CheckTimeouts(p.ID) //nolint:errcheck
+					}
+				}
+			case <-stop:
+				return
+			}
+		}
+	}()
+}
+
+// StopTimeoutChecker halts the background timeout ticker if it is running.
+func (te *TaskEngine) StopTimeoutChecker() {
+	if te.stopTimeout != nil {
+		close(te.stopTimeout)
+		te.stopTimeout = nil
+	}
 }
 
 // ---------- private helpers ----------

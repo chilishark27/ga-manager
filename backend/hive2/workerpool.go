@@ -69,65 +69,6 @@ func (wp *WorkerPool) ReleaseWorker(workerID string) {
 	delete(wp.workers, workerID)
 }
 
-// AssignTask marks a worker as busy with a specific task
-func (wp *WorkerPool) AssignTask(workerID, taskID string) error {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
-
-	w, ok := wp.workers[workerID]
-	if !ok {
-		return fmt.Errorf("worker %s not found", workerID)
-	}
-	w.TaskID = taskID
-	w.Status = "busy"
-	return nil
-}
-
-// FreeWorker marks a worker as idle (task completed)
-func (wp *WorkerPool) FreeWorker(workerID string) {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
-
-	if w, ok := wp.workers[workerID]; ok {
-		w.TaskID = ""
-		w.Status = "idle"
-	}
-}
-
-// GetNextTaskForWorker finds the best task across all projects for a given worker.
-// Priority order: high > normal > low projects, then FIFO within same priority.
-func (wp *WorkerPool) GetNextTaskForWorker(workerID string) (projectID string, task *Task, err error) {
-	wp.mu.Lock()
-	w, ok := wp.workers[workerID]
-	wp.mu.Unlock()
-	if !ok {
-		return "", nil, fmt.Errorf("worker %s not found", workerID)
-	}
-
-	if !wp.config.WorkerPoolShared {
-		// Non-shared mode: only look at worker's own project
-		t, err := wp.engine.GetNextTask(w.ProjectID, ExecutorGA)
-		return w.ProjectID, t, err
-	}
-
-	// Shared mode: look across all running projects by priority
-	projects, _ := wp.store.List()
-	priorityOrder := []Priority{PriorityHigh, PriorityNormal, PriorityLow}
-
-	for _, pri := range priorityOrder {
-		for _, p := range projects {
-			if p.Status != ProjectStatusRunning || p.Priority != pri {
-				continue
-			}
-			t, err := wp.engine.GetNextTask(p.ID, ExecutorGA)
-			if err == nil && t != nil {
-				return p.ID, t, nil
-			}
-		}
-	}
-	return "", nil, nil
-}
-
 // GetWorkers returns all current workers
 func (wp *WorkerPool) GetWorkers() []WorkerInfo {
 	wp.mu.Lock()
@@ -136,20 +77,6 @@ func (wp *WorkerPool) GetWorkers() []WorkerInfo {
 	var result []WorkerInfo
 	for _, w := range wp.workers {
 		result = append(result, *w)
-	}
-	return result
-}
-
-// GetWorkersForProject returns workers assigned to a specific project
-func (wp *WorkerPool) GetWorkersForProject(projectID string) []WorkerInfo {
-	wp.mu.Lock()
-	defer wp.mu.Unlock()
-
-	var result []WorkerInfo
-	for _, w := range wp.workers {
-		if w.ProjectID == projectID {
-			result = append(result, *w)
-		}
 	}
 	return result
 }

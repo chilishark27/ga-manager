@@ -6,13 +6,11 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 	"time"
 )
 
 type ContextStore struct {
 	store *ProjectStore
-	mu    sync.RWMutex
 }
 
 func NewContextStore(store *ProjectStore) *ContextStore {
@@ -24,9 +22,6 @@ func (cs *ContextStore) contextDir(projectID string) string {
 }
 
 func (cs *ContextStore) Write(projectID, key, contentType, content, sourceTask string, tags []string) error {
-	cs.mu.Lock()
-	defer cs.mu.Unlock()
-
 	dir := cs.contextDir(projectID)
 	os.MkdirAll(dir, 0755)
 
@@ -52,9 +47,6 @@ func (cs *ContextStore) Write(projectID, key, contentType, content, sourceTask s
 }
 
 func (cs *ContextStore) Read(projectID, key string) (string, error) {
-	cs.mu.RLock()
-	defer cs.mu.RUnlock()
-
 	entries, _ := cs.loadIndex(projectID)
 	for _, e := range entries {
 		if e.Key == key {
@@ -79,15 +71,10 @@ func (cs *ContextStore) ReadBody(projectID, key string) (string, error) {
 }
 
 func (cs *ContextStore) List(projectID string) ([]ContextEntry, error) {
-	cs.mu.RLock()
-	defer cs.mu.RUnlock()
 	return cs.loadIndex(projectID)
 }
 
 func (cs *ContextStore) Search(projectID, contentType string, tags []string) ([]ContextEntry, error) {
-	cs.mu.RLock()
-	defer cs.mu.RUnlock()
-
 	entries, err := cs.loadIndex(projectID)
 	if err != nil {
 		return nil, err
@@ -121,9 +108,6 @@ func (cs *ContextStore) Search(projectID, contentType string, tags []string) ([]
 }
 
 func (cs *ContextStore) Delete(projectID, key string) error {
-	cs.mu.Lock()
-	defer cs.mu.Unlock()
-
 	entries, _ := cs.loadIndex(projectID)
 	for _, e := range entries {
 		if e.Key == key {

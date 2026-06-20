@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useHiveStore } from '../store/hive';
 import { useI18n } from '../i18n';
 import TaskList from '../components/hive/TaskList';
@@ -9,6 +9,7 @@ import ContextBar from '../components/hive/ContextBar';
 function HiveProjectPage() {
   const { lang } = useI18n();
   const { selectedProjectId, projectDetail, fetchProjectDetail, selectProject } = useHiveStore();
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
   useEffect(() => {
     if (selectedProjectId) {
@@ -55,8 +56,8 @@ function HiveProjectPage() {
             gap: 12, minHeight: 0,
           }}
         >
-          <TaskList tasks={tasks} />
-          <TaskDetail tasks={tasks} projectId={project.id} />
+          <TaskList tasks={tasks} selectedId={selectedTaskId} onSelect={setSelectedTaskId} />
+          <TaskDetail tasks={tasks} projectId={project.id} selectedId={selectedTaskId} />
           <ArtifactPanel artifacts={artifacts} projectId={project.id} />
         </div>
 

@@ -143,19 +143,6 @@ func (h *Hive2Handler) GetProject(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// --- Task endpoints ---
-
-// ListTasks handles GET /api/hive2/projects/{id}/tasks
-func (h *Hive2Handler) ListTasks(w http.ResponseWriter, r *http.Request) {
-	id := r.PathValue("id")
-	tasks, err := h.store.GetTasks(id)
-	if err != nil {
-		writeError(w, 500, err.Error())
-		return
-	}
-	writeJSON(w, 200, tasks)
-}
-
 // AddTasks handles POST /api/hive2/projects/{id}/tasks
 func (h *Hive2Handler) AddTasks(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
