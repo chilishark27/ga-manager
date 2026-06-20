@@ -13,6 +13,7 @@ export default function NewProjectDialog({ onClose }: { onClose: () => void }) {
   const [llmNo, setLlmNo] = useState(0);
   const [template, setTemplate] = useState('');
   const [vars, setVars] = useState<Record<string, string>>({});
+  const isZh = lang === 'zh';
 
   useEffect(() => { fetchTemplates(); }, []);
 
@@ -33,36 +34,37 @@ export default function NewProjectDialog({ onClose }: { onClose: () => void }) {
   };
 
   return (
-    <div className="hv2-dialog-overlay" onClick={onClose}>
-      <div className="hv2-dialog" onClick={e => e.stopPropagation()}>
-        <h3>{lang === 'zh' ? '新建 Hive 项目' : 'New Hive Project'}</h3>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-box" onClick={e => e.stopPropagation()} style={{ maxWidth: 520 }}>
+        <h3>{isZh ? '新建 Hive 项目' : 'New Hive Project'}</h3>
 
         {/* Objective */}
-        <div className="hv2-field">
-          <label>{lang === 'zh' ? '目标描述' : 'Objective'}</label>
+        <div className="form-group">
+          <label>{isZh ? '目标描述' : 'Objective'}</label>
           <textarea
-            className="hv2-input"
-            placeholder={lang === 'zh' ? '描述你想要完成的任务...' : 'Describe what you want to accomplish...'}
+            className="modal-input"
+            placeholder={isZh ? '描述你想要完成的任务...' : 'Describe what you want to accomplish...'}
             value={objective}
             onChange={e => setObjective(e.target.value)}
+            style={{ minHeight: 80, resize: 'vertical' }}
           />
         </div>
 
         {/* Settings row */}
         <div style={{ display: 'flex', gap: 12 }}>
-          <div className="hv2-field" style={{ flex: 1 }}>
-            <label>{lang === 'zh' ? '时间预算 (分钟)' : 'Budget (min)'}</label>
+          <div className="form-group" style={{ flex: 1 }}>
+            <label>{isZh ? '时间预算 (分钟)' : 'Budget (min)'}</label>
             <input
-              className="hv2-input"
+              className="modal-input"
               type="number"
               value={budget}
               onChange={e => setBudget(+e.target.value)}
             />
           </div>
-          <div className="hv2-field" style={{ flex: 1 }}>
+          <div className="form-group" style={{ flex: 1 }}>
             <label>Workers</label>
             <input
-              className="hv2-input"
+              className="modal-input"
               type="number"
               value={workers}
               onChange={e => setWorkers(+e.target.value)}
@@ -70,10 +72,10 @@ export default function NewProjectDialog({ onClose }: { onClose: () => void }) {
               max={5}
             />
           </div>
-          <div className="hv2-field" style={{ flex: 1 }}>
+          <div className="form-group" style={{ flex: 1 }}>
             <label>LLM</label>
             <select
-              className="hv2-input"
+              className="modal-input"
               value={llmNo}
               onChange={e => setLlmNo(+e.target.value)}
             >
@@ -90,37 +92,27 @@ export default function NewProjectDialog({ onClose }: { onClose: () => void }) {
 
         {/* Template selection */}
         {templates.length > 0 && (
-          <div className="hv2-field">
-            <label>{lang === 'zh' ? '模板 (可选)' : 'Template (optional)'}</label>
-            <div className="hv2-template-grid">
-              {/* No template option */}
-              <div
-                className={`hv2-template-card ${template === '' ? 'selected' : ''}`}
-                onClick={() => { setTemplate(''); setVars({}); }}
-              >
-                <div className="name">{lang === 'zh' ? '自动拆解' : 'Auto-decompose'}</div>
-                <div className="desc">{lang === 'zh' ? '无模板' : 'No template'}</div>
-              </div>
+          <div className="form-group">
+            <label>{isZh ? '模板 (可选)' : 'Template (optional)'}</label>
+            <select
+              className="modal-input"
+              value={template}
+              onChange={e => { setTemplate(e.target.value); setVars({}); }}
+            >
+              <option value="">{isZh ? '自动拆解 (无模板)' : 'Auto-decompose (no template)'}</option>
               {templates.map(t => (
-                <div
-                  key={t.name}
-                  className={`hv2-template-card ${template === t.name ? 'selected' : ''}`}
-                  onClick={() => { setTemplate(t.name); setVars({}); }}
-                >
-                  <div className="name">{t.name}</div>
-                  <div className="desc">{t.description}</div>
-                </div>
+                <option key={t.name} value={t.name}>{t.name} — {t.description}</option>
               ))}
-            </div>
+            </select>
           </div>
         )}
 
         {/* Template variables */}
         {selectedTemplate?.variables.map(v => (
-          <div className="hv2-field" key={v.name}>
+          <div className="form-group" key={v.name}>
             <label>{v.label}{v.required && ' *'}</label>
             <input
-              className="hv2-input"
+              className="modal-input"
               value={vars[v.name] || v.default || ''}
               onChange={e => setVars({ ...vars, [v.name]: e.target.value })}
               placeholder={v.default || ''}
@@ -129,16 +121,16 @@ export default function NewProjectDialog({ onClose }: { onClose: () => void }) {
         ))}
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 8 }}>
-          <button className="hv2-btn" onClick={onClose}>
-            {lang === 'zh' ? '取消' : 'Cancel'}
+        <div className="modal-actions">
+          <button className="modal-btn cancel" onClick={onClose}>
+            {isZh ? '取消' : 'Cancel'}
           </button>
           <button
-            className="hv2-btn primary"
+            className="modal-btn confirm"
             onClick={handleCreate}
             disabled={loading || !objective.trim()}
           >
-            {loading ? '...' : (lang === 'zh' ? '创建' : 'Create')}
+            {loading ? '...' : (isZh ? '创建项目' : 'Create Project')}
           </button>
         </div>
       </div>

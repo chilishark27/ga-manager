@@ -363,3 +363,37 @@ func (h *Hive2Handler) ListTemplates(w http.ResponseWriter, r *http.Request) {
 func (h *Hive2Handler) PoolStats(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, h.pool.Stats())
 }
+
+// --- Start / Stop ---
+
+// StartProject handles POST /api/hive2/projects/{id}/start
+func (h *Hive2Handler) StartProject(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	p, err := h.store.Load(id)
+	if err != nil {
+		writeError(w, 404, "not found")
+		return
+	}
+	p.Status = hive2.ProjectStatusRunning
+	if err := h.store.Update(p); err != nil {
+		writeError(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]string{"status": "started"})
+}
+
+// StopProject handles POST /api/hive2/projects/{id}/stop
+func (h *Hive2Handler) StopProject(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	p, err := h.store.Load(id)
+	if err != nil {
+		writeError(w, 404, "not found")
+		return
+	}
+	p.Status = hive2.ProjectStatusPaused
+	if err := h.store.Update(p); err != nil {
+		writeError(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]string{"status": "stopped"})
+}

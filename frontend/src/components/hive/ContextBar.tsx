@@ -14,21 +14,46 @@ export default function ContextBar({ context }: { context: any[] }) {
   if (context.length === 0) return null;
 
   return (
-    <div className="hv2-context-bar">
-      <span style={{ fontSize: 11, fontWeight: 600, color: '#484f58', alignSelf: 'center' }}>Context</span>
+    <div style={{ display: 'flex', gap: 12, padding: '10px 0', borderTop: '1px solid var(--border)', marginTop: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+        Context
+      </span>
       {tags.map(tag =>
         counts[tag.key] ? (
-          <div key={tag.key} className="hv2-context-tag">
-            {tag.label}<span className="count">{counts[tag.key]}</span>
+          <div
+            key={tag.key}
+            style={{
+              fontSize: 11,
+              padding: '3px 10px',
+              borderRadius: 10,
+              background: 'var(--bg3)',
+              color: 'var(--text-3)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            {tag.label}
+            <span style={{ color: 'var(--text-1)', fontWeight: 600, marginLeft: 4 }}>
+              {counts[tag.key]}
+            </span>
           </div>
         ) : null
       )}
-      {/* Catch-all for unlisted types */}
       {Object.entries(counts)
         .filter(([k]) => !tags.find(t => t.key === k))
         .map(([k, v]) => (
-          <div key={k} className="hv2-context-tag">
-            {k}<span className="count">{v}</span>
+          <div
+            key={k}
+            style={{
+              fontSize: 11,
+              padding: '3px 10px',
+              borderRadius: 10,
+              background: 'var(--bg3)',
+              color: 'var(--text-3)',
+              border: '1px solid var(--border)',
+            }}
+          >
+            {k}
+            <span style={{ color: 'var(--text-1)', fontWeight: 600, marginLeft: 4 }}>{v}</span>
           </div>
         ))}
     </div>

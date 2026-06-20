@@ -10,7 +10,8 @@ function HiveProjectPage() {
   const { lang } = useI18n();
   const { selectedProjectId, projectDetail, fetchProjectDetail, selectProject } = useHiveStore();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
-  const [showMcpConfig, setShowMcpConfig] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const isZh = lang === 'zh';
 
   useEffect(() => {
     if (selectedProjectId) {
@@ -24,8 +25,8 @@ function HiveProjectPage() {
 
   if (!projectDetail) {
     return (
-      <div className="hv2-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div style={{ color: '#8b949e', fontSize: 14 }}>Loading...</div>
+      <div className="hive-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: 'var(--text-3)', fontSize: 14 }}>Loading...</div>
       </div>
     );
   }
@@ -39,64 +40,96 @@ function HiveProjectPage() {
     ? Math.round((project.task_count.done / project.task_count.total) * 100)
     : 0;
 
+  const isRunning = project.status === 'running';
+  const isPaused = project.status === 'paused';
+  const isPending = project.status === 'pending';
+
+  const handleStart = () => {
+    fetch(`/api/hive2/projects/${encodeURIComponent(project.id)}/start`, { method: 'POST' })
+      .then(() => fetchProjectDetail(project.id))
+      .catch(() => {});
+  };
+
+  const handleStop = () => {
+    fetch(`/api/hive2/projects/${encodeURIComponent(project.id)}/stop`, { method: 'POST' })
+      .then(() => fetchProjectDetail(project.id))
+      .catch(() => {});
+  };
+
+  const handleCopyId = () => {
+    navigator.clipboard.writeText(project.id).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    });
+  };
+
   return (
-    <div className="hv2-page" style={{ display: 'flex', flexDirection: 'column' }}>
+    <div className="hive-page" style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
-      <div className="hv2-exec-header">
-        <button className="hv2-btn" onClick={() => selectProject(null)}>
-          ← {lang === 'zh' ? '返回' : 'Back'}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, flexWrap: 'wrap' }}>
+        <button className="ch-btn" onClick={() => selectProject(null)}>
+          ← {isZh ? '返回' : 'Back'}
         </button>
-        <div style={{ fontWeight: 700, fontSize: 16, color: '#f0f6fc', flex: 1 }}>
+        <div style={{ fontWeight: 700, fontSize: 16, color: 'var(--text-1)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {project.name || project.objective.slice(0, 40)}
         </div>
-        <span className={`hv2-status ${project.status}`}>{project.status}</span>
-        <div className="hv2-progress" style={{ flex: '0 0 80px' }}>
+        <span className={`hive2-status ${project.status}`}>{project.status}</span>
+        <div className="hive2-progress" style={{ flex: '0 0 80px' }}>
           <div
-            className={`hv2-progress-fill ${project.status === 'running' ? 'running' : 'completed'}`}
+            className={`hive2-progress-bar ${progressPct === 100 ? 'done' : ''}`}
             style={{ width: `${progressPct}%` }}
           />
         </div>
-        <span className="hv2-stat">{project.task_count.done}/{project.task_count.total}</span>
-        <span className="hv2-stat">{project.elapsed_minutes}m</span>
-        <button
-          className="hv2-cc-badge"
-          onClick={() => setShowMcpConfig(!showMcpConfig)}
-        >
-          ⚡ Claude Code
-        </button>
+        <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
+          {project.task_count.done}/{project.task_count.total}
+        </span>
+        {(isPending || isPaused) && (
+          <button className="setup-btn" onClick={handleStart} style={{ padding: '6px 16px', fontSize: 13 }}>
+            ▶ {isZh ? '启动 Workers' : 'Start Workers'}
+          </button>
+        )}
+        {isRunning && (
+          <button className="ch-btn" onClick={handleStop}>
+            ⏸ {isZh ? '暂停' : 'Pause'}
+          </button>
+        )}
       </div>
 
-      {/* MCP Config card */}
-      {showMcpConfig && (
-        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '16px 20px', marginBottom: 16, fontSize: 12 }}>
-          <div style={{ fontWeight: 600, color: '#f0f6fc', marginBottom: 8 }}>
-            {lang === 'zh' ? '连接 Claude Code — 将以下配置添加到 MCP 设置中：' : 'Connect Claude Code — add to your MCP settings:'}
+      {/* Claude Code connection card — always visible */}
+      <div className="hive2-cc-card">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-1)' }}>
+            ⚡ {isZh ? '连接 Claude Code' : 'Connect Claude Code'}
           </div>
-          <pre className="hv2-log" style={{ minHeight: 'unset' }}>
-{JSON.stringify({
-  mcpServers: {
-    "ga-hive": {
-      command: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
-        ? `ga_manager_mcp`
-        : `curl -s ${window.location.origin}/api/hive2/mcp`,
-      env: {
-        HIVE_URL: window.location.origin,
-        HIVE_PROJECT: project.id
-      }
-    }
-  }
-}, null, 2)}
-          </pre>
-          <div style={{ fontSize: 11, color: '#8b949e', marginTop: 8 }}>
-            {lang === 'zh'
-              ? '可用 MCP tools：hive_task_list, hive_context_read, hive_task_claim 等'
-              : 'Available MCP tools: hive_task_list, hive_context_read, hive_task_claim, etc.'}
-          </div>
+          <button
+            className="ch-btn"
+            onClick={handleCopyId}
+            style={{ fontSize: 11 }}
+          >
+            {copied ? (isZh ? '已复制!' : 'Copied!') : (isZh ? '复制项目 ID' : 'Copy Project ID')}
+          </button>
         </div>
-      )}
+        <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 8 }}>
+          {isZh ? '项目 ID:' : 'Project ID:'}{' '}
+          <code style={{ background: 'var(--bg3)', padding: '2px 6px', borderRadius: 4, fontSize: 11, userSelect: 'all' }}>
+            {project.id}
+          </code>
+        </div>
+        <div style={{ fontSize: 12, color: 'var(--text-2)' }}>
+          {isZh ? '在 Claude Code 中运行:' : 'Run in Claude Code:'}{' '}
+          <code style={{ background: 'var(--bg3)', padding: '2px 6px', borderRadius: 4, fontSize: 11 }}>
+            claude mcp add ga-hive -- npx ga-hive-mcp
+          </code>
+        </div>
+        <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
+          {isZh
+            ? `设置环境变量: HIVE_URL=${window.location.origin}  HIVE_PROJECT=${project.id}`
+            : `Set env: HIVE_URL=${window.location.origin}  HIVE_PROJECT=${project.id}`}
+        </div>
+      </div>
 
       {/* 3-column grid */}
-      <div className="hv2-exec-grid" style={{ flex: 1 }}>
+      <div className="hive2-exec-grid" style={{ flex: 1 }}>
         <TaskList tasks={tasks} selectedId={selectedTaskId} onSelect={setSelectedTaskId} />
         <TaskDetail tasks={tasks} projectId={project.id} selectedId={selectedTaskId} />
         <ArtifactPanel artifacts={artifacts} projectId={project.id} />
