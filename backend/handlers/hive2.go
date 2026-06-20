@@ -135,6 +135,17 @@ func (h *Hive2Handler) GetProject(w http.ResponseWriter, r *http.Request) {
 	contextEntries, _ := h.context.List(id)
 	changes, _ := h.tracker.GetChanges(id)
 
+	// Ensure non-nil slices for JSON ([] not null)
+	if tasks == nil {
+		tasks = []*hive2.Task{}
+	}
+	if contextEntries == nil {
+		contextEntries = []hive2.ContextEntry{}
+	}
+	if changes == nil {
+		changes = []hive2.FileChange{}
+	}
+
 	writeJSON(w, 200, map[string]interface{}{
 		"project":   p,
 		"tasks":     tasks,

@@ -26,7 +26,10 @@ export default function NewProjectDialog({ onClose }: { onClose: () => void }) {
       vars: Object.keys(vars).length ? vars : undefined,
       executor_config: { ga_llm_no: llmNo, ga_workers: workers, claude_code_enabled: true },
     });
-    if (id) onClose();
+    if (id) {
+      useHiveStore.getState().selectProject(id);
+      onClose();
+    }
   };
 
   return (
