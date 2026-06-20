@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"ga_manager/handlers"
+	"ga_manager/hive2"
 	"ga_manager/models"
 	"ga_manager/services"
 )
@@ -123,6 +124,44 @@ func main() {
 	mux.HandleFunc("POST /api/hive/post", hiveHandler.PostMessage)
 	mux.HandleFunc("GET /api/hive/history", hiveHandler.ListRunHistory)
 	mux.HandleFunc("GET /api/hive/history/record", hiveHandler.GetRunRecord)
+
+	// Hive v2 (Task Graph engine)
+	hive2ProjectsDir := filepath.Join(cfg.GARoot, "hive_projects")
+	hive2EventBus := hive2.NewEventBus()
+	hive2Store := hive2.NewProjectStore(hive2ProjectsDir)
+	hive2Engine := hive2.NewTaskEngine(hive2Store, hive2EventBus)
+	hive2Context := hive2.NewContextStore(hive2Store)
+	hive2Tracker := hive2.NewFileTracker(hive2Store, hive2EventBus)
+	hive2Tracker.Start(30 * time.Second)
+	hive2Templates := hive2.NewTemplateLibrary(filepath.Join(cfg.GARoot, "hive_templates"))
+	hive2Templates.InstallBuiltinTemplates()
+	hive2PoolCfg := hive2.HiveGlobalConfig{MaxConcurrentProjects: 3, MaxGAWorkersTotal: 5, MaxClaudeSessionsTotal: 2, WorkerPoolShared: true}
+	hive2Pool := hive2.NewWorkerPool(hive2PoolCfg, hive2Engine, hive2Store, hive2EventBus)
+	_ = hive2.NewWebhookDispatcher(hive2Store, hive2EventBus)
+
+	hive2Handler := handlers.NewHive2Handler(handlers.Hive2Config{
+		GARoot: cfg.GARoot, Store: hive2Store, Engine: hive2Engine, Context: hive2Context,
+		Tracker: hive2Tracker, Pool: hive2Pool, Templates: hive2Templates, EventBus: hive2EventBus,
+	})
+
+	// Hive v2 routes
+	mux.HandleFunc("GET /api/hive2/projects", hive2Handler.ListProjects)
+	mux.HandleFunc("POST /api/hive2/projects", hive2Handler.CreateProject)
+	mux.HandleFunc("GET /api/hive2/projects/{id}", hive2Handler.GetProject)
+	mux.HandleFunc("GET /api/hive2/projects/{id}/tasks", hive2Handler.ListTasks)
+	mux.HandleFunc("POST /api/hive2/projects/{id}/tasks", hive2Handler.AddTasks)
+	mux.HandleFunc("GET /api/hive2/projects/{id}/tasks/next", hive2Handler.GetNextTask)
+	mux.HandleFunc("POST /api/hive2/projects/{id}/tasks/{tid}/claim", hive2Handler.ClaimTask)
+	mux.HandleFunc("POST /api/hive2/projects/{id}/tasks/{tid}/complete", hive2Handler.CompleteTask)
+	mux.HandleFunc("POST /api/hive2/projects/{id}/tasks/{tid}/fail", hive2Handler.FailTask)
+	mux.HandleFunc("GET /api/hive2/projects/{id}/context", hive2Handler.ListContext)
+	mux.HandleFunc("POST /api/hive2/projects/{id}/context", hive2Handler.WriteContext)
+	mux.HandleFunc("GET /api/hive2/projects/{id}/context/{key}", hive2Handler.ReadContext)
+	mux.HandleFunc("GET /api/hive2/projects/{id}/artifacts", hive2Handler.ListArtifacts)
+	mux.HandleFunc("GET /api/hive2/projects/{id}/artifacts/preview", hive2Handler.PreviewArtifact)
+	mux.HandleFunc("GET /api/hive2/projects/{id}/logs/{taskId}", hive2Handler.GetTaskLog)
+	mux.HandleFunc("GET /api/hive2/templates", hive2Handler.ListTemplates)
+	mux.HandleFunc("GET /api/hive2/pool/stats", hive2Handler.PoolStats)
 
 	// Git worktree management
 	gitHandler := handlers.NewGitHandler()

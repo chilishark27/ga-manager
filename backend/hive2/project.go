@@ -228,6 +228,9 @@ func (s *ProjectStore) GetTasks(projectID string) ([]*Task, error) {
 	return tasks, nil
 }
 
+// BaseDir returns the root directory for all projects.
+func (ps *ProjectStore) BaseDir() string { return ps.baseDir }
+
 // ---------- helpers ----------
 
 func writeJSON(dir, filename string, v interface{}) error {
