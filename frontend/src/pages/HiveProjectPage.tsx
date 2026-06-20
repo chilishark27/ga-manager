@@ -24,8 +24,8 @@ function HiveProjectPage() {
 
   if (!projectDetail) {
     return (
-      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-3)' }}>
-        Loading...
+      <div className="hv2-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div style={{ color: '#8b949e', fontSize: 14 }}>Loading...</div>
       </div>
     );
   }
@@ -35,38 +35,48 @@ function HiveProjectPage() {
   const context = rawContext || [];
   const artifacts = rawArtifacts || [];
 
-  return (
-    <div className="hive-page">
-      <div className="page-container" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-        {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
-          <button className="ch-btn" onClick={() => selectProject(null)}>
-            ← {lang === 'zh' ? '返回' : 'Back'}
-          </button>
-          <h3 style={{ margin: 0, flex: 1 }}>{project.name}</h3>
-          <button className="ch-btn" onClick={() => setShowMcpConfig(!showMcpConfig)}
-            style={{ fontSize: 11 }}>
-            🔗 Claude Code
-          </button>
-          <span style={{ fontSize: 12, color: 'var(--text-3)' }}>
-            {project.task_count.done}/{project.task_count.total} ✅ | {project.elapsed_minutes}min
-          </span>
-          <span className={`hive-status-badge hive-status-${project.status}`}>
-            {project.status}
-          </span>
-        </div>
+  const progressPct = project.task_count.total > 0
+    ? Math.round((project.task_count.done / project.task_count.total) * 100)
+    : 0;
 
-        {/* MCP Config panel */}
-        {showMcpConfig && (
-          <div className="page-card" style={{ marginBottom: 12, padding: '12px 16px', fontSize: 12 }}>
-            <div style={{ fontWeight: 600, marginBottom: 8 }}>
-              {lang === 'zh' ? '连接 Claude Code — 将以下配置添加到 Claude Code 的 MCP 设置中：' : 'Connect Claude Code — add this to your MCP settings:'}
-            </div>
-            <pre style={{ background: 'var(--bg-1)', padding: 12, borderRadius: 6, fontSize: 11, overflow: 'auto', whiteSpace: 'pre-wrap' }}>
+  return (
+    <div className="hv2-page" style={{ display: 'flex', flexDirection: 'column' }}>
+      {/* Header */}
+      <div className="hv2-exec-header">
+        <button className="hv2-btn" onClick={() => selectProject(null)}>
+          ← {lang === 'zh' ? '返回' : 'Back'}
+        </button>
+        <div style={{ fontWeight: 700, fontSize: 16, color: '#f0f6fc', flex: 1 }}>
+          {project.name || project.objective.slice(0, 40)}
+        </div>
+        <span className={`hv2-status ${project.status}`}>{project.status}</span>
+        <div className="hv2-progress" style={{ flex: '0 0 80px' }}>
+          <div
+            className={`hv2-progress-fill ${project.status === 'running' ? 'running' : 'completed'}`}
+            style={{ width: `${progressPct}%` }}
+          />
+        </div>
+        <span className="hv2-stat">{project.task_count.done}/{project.task_count.total}</span>
+        <span className="hv2-stat">{project.elapsed_minutes}m</span>
+        <button
+          className="hv2-cc-badge"
+          onClick={() => setShowMcpConfig(!showMcpConfig)}
+        >
+          ⚡ Claude Code
+        </button>
+      </div>
+
+      {/* MCP Config card */}
+      {showMcpConfig && (
+        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '16px 20px', marginBottom: 16, fontSize: 12 }}>
+          <div style={{ fontWeight: 600, color: '#f0f6fc', marginBottom: 8 }}>
+            {lang === 'zh' ? '连接 Claude Code — 将以下配置添加到 MCP 设置中：' : 'Connect Claude Code — add to your MCP settings:'}
+          </div>
+          <pre className="hv2-log" style={{ minHeight: 'unset' }}>
 {JSON.stringify({
   mcpServers: {
     "ga-hive": {
-      command: (window.location.origin.replace('http://', '').replace(':' + window.location.port, '') === 'localhost' || window.location.hostname === '127.0.0.1')
+      command: (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
         ? `ga_manager_mcp`
         : `curl -s ${window.location.origin}/api/hive2/mcp`,
       env: {
@@ -76,31 +86,24 @@ function HiveProjectPage() {
     }
   }
 }, null, 2)}
-            </pre>
-            <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 8 }}>
-              {lang === 'zh'
-                ? '或在 Claude Code 中直接使用 MCP tools：hive_task_list, hive_context_read, hive_task_claim 等'
-                : 'Or use MCP tools directly: hive_task_list, hive_context_read, hive_task_claim, etc.'}
-            </div>
+          </pre>
+          <div style={{ fontSize: 11, color: '#8b949e', marginTop: 8 }}>
+            {lang === 'zh'
+              ? '可用 MCP tools：hive_task_list, hive_context_read, hive_task_claim 等'
+              : 'Available MCP tools: hive_task_list, hive_context_read, hive_task_claim, etc.'}
           </div>
-        )}
-
-        {/* 3-column layout */}
-        <div
-          style={{
-            flex: 1, display: 'grid',
-            gridTemplateColumns: '200px 1fr 240px',
-            gap: 12, minHeight: 0,
-          }}
-        >
-          <TaskList tasks={tasks} selectedId={selectedTaskId} onSelect={setSelectedTaskId} />
-          <TaskDetail tasks={tasks} projectId={project.id} selectedId={selectedTaskId} />
-          <ArtifactPanel artifacts={artifacts} projectId={project.id} />
         </div>
+      )}
 
-        {/* Context bar */}
-        <ContextBar context={context} />
+      {/* 3-column grid */}
+      <div className="hv2-exec-grid" style={{ flex: 1 }}>
+        <TaskList tasks={tasks} selectedId={selectedTaskId} onSelect={setSelectedTaskId} />
+        <TaskDetail tasks={tasks} projectId={project.id} selectedId={selectedTaskId} />
+        <ArtifactPanel artifacts={artifacts} projectId={project.id} />
       </div>
+
+      {/* Context bar */}
+      <ContextBar context={context} />
     </div>
   );
 }

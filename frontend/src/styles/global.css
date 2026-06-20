@@ -1019,6 +1019,115 @@ body { background: var(--bg); color: var(--text-1); height: 100vh; overflow: hid
 .hive-log-list { font-size: 11px; color: var(--text-3); font-family: monospace; max-height: 500px; overflow-y: auto; }
 .hive-log-item { padding: 3px 0; border-bottom: 1px solid var(--border); }
 
+/* ===== Hive v2 — Task Board ===== */
+.hv2-page { height: 100%; background: #0d1117; overflow-y: auto; padding: 24px; border-radius: 12px; }
+.hv2-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+.hv2-title { font-size: 22px; font-weight: 700; color: #f0f6fc; letter-spacing: -0.5px; }
+.hv2-subtitle { font-size: 12px; color: #8b949e; }
+
+/* Project cards */
+.hv2-section-label { font-size: 11px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 8px; margin-top: 20px; }
+.hv2-project-card { display: flex; align-items: center; gap: 12px; padding: 14px 16px; background: #161b22; border: 1px solid rgba(48,54,61,0.8); border-radius: 6px; cursor: pointer; transition: all 0.15s; position: relative; overflow: hidden; }
+.hv2-project-card:hover { background: #1c2128; border-color: rgba(48,54,61,1); }
+.hv2-project-card::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+.hv2-project-card.status-running::before { background: #58a6ff; }
+.hv2-project-card.status-completed::before { background: #3fb950; }
+.hv2-project-card.status-failed::before { background: #f85149; }
+.hv2-project-card.status-paused::before { background: #d29922; }
+
+/* Progress bar */
+.hv2-progress { flex: 0 0 120px; height: 4px; background: #21262d; border-radius: 2px; overflow: hidden; }
+.hv2-progress-fill { height: 100%; border-radius: 2px; transition: width 0.3s; }
+.hv2-progress-fill.running { background: #58a6ff; }
+.hv2-progress-fill.completed { background: #3fb950; }
+
+/* Stats badge */
+.hv2-stat { font-size: 12px; color: #8b949e; font-variant-numeric: tabular-nums; }
+
+/* Worker dots */
+.hv2-workers { display: flex; gap: 4px; align-items: center; }
+.hv2-worker-dot { width: 8px; height: 8px; border-radius: 50%; }
+.hv2-worker-dot.busy { background: #58a6ff; }
+.hv2-worker-dot.idle { background: #21262d; border: 1px solid #30363d; }
+
+/* Button */
+.hv2-btn { padding: 8px 16px; border-radius: 6px; border: 1px solid rgba(48,54,61,0.8); background: #21262d; color: #f0f6fc; font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.15s; }
+.hv2-btn:hover { background: #30363d; border-color: #58a6ff; }
+.hv2-btn.primary { background: #238636; border-color: #2ea043; }
+.hv2-btn.primary:hover { background: #2ea043; }
+.hv2-btn.accent { background: rgba(88,166,255,0.1); border-color: #58a6ff; color: #58a6ff; }
+
+/* New project dialog */
+.hv2-dialog-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(4px); z-index: 1000; display: flex; align-items: center; justify-content: center; }
+.hv2-dialog { background: #161b22; border: 1px solid #30363d; border-radius: 12px; padding: 32px; max-width: 560px; width: 90%; max-height: 85vh; overflow-y: auto; }
+.hv2-dialog h3 { font-size: 18px; font-weight: 600; color: #f0f6fc; margin-bottom: 24px; }
+.hv2-field { margin-bottom: 16px; }
+.hv2-field label { display: block; font-size: 12px; font-weight: 500; color: #8b949e; margin-bottom: 6px; }
+.hv2-input { width: 100%; padding: 10px 14px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; color: #f0f6fc; font-size: 14px; outline: none; transition: border-color 0.15s; }
+.hv2-input:focus { border-color: #58a6ff; }
+.hv2-input::placeholder { color: #484f58; }
+textarea.hv2-input { resize: vertical; min-height: 80px; }
+select.hv2-input { height: 40px; }
+
+/* Template grid */
+.hv2-template-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 8px; }
+.hv2-template-card { padding: 12px; background: #0d1117; border: 1px solid #30363d; border-radius: 6px; cursor: pointer; transition: all 0.15s; }
+.hv2-template-card:hover { border-color: #58a6ff; }
+.hv2-template-card.selected { border-color: #58a6ff; background: rgba(88,166,255,0.05); }
+.hv2-template-card .name { font-size: 12px; font-weight: 600; color: #f0f6fc; margin-bottom: 4px; }
+.hv2-template-card .desc { font-size: 10px; color: #8b949e; }
+
+/* Project execution page */
+.hv2-exec-header { display: flex; align-items: center; gap: 12px; padding-bottom: 16px; border-bottom: 1px solid #21262d; margin-bottom: 16px; }
+.hv2-exec-grid { display: grid; grid-template-columns: 220px 1fr 240px; gap: 16px; height: calc(100% - 120px); min-height: 0; }
+
+/* Timeline task list */
+.hv2-timeline { display: flex; flex-direction: column; gap: 0; overflow-y: auto; }
+.hv2-timeline-item { display: flex; align-items: flex-start; gap: 12px; padding: 10px 12px; cursor: pointer; border-radius: 6px; transition: background 0.1s; position: relative; }
+.hv2-timeline-item:hover { background: #1c2128; }
+.hv2-timeline-item.selected { background: #1c2128; }
+.hv2-timeline-dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; border: 2px solid; }
+.hv2-timeline-dot.done { background: #3fb950; border-color: #3fb950; }
+.hv2-timeline-dot.running { background: transparent; border-color: #58a6ff; animation: pulse 2s infinite; }
+.hv2-timeline-dot.pending { background: transparent; border-color: #8b949e; }
+.hv2-timeline-dot.failed { background: #f85149; border-color: #f85149; }
+.hv2-timeline-dot.blocked { background: transparent; border-color: #6e7681; }
+.hv2-timeline-dot.stalled { background: #d29922; border-color: #d29922; }
+.hv2-timeline-line { position: absolute; left: 17px; top: 28px; bottom: -6px; width: 2px; background: #21262d; }
+.hv2-timeline-item:last-child .hv2-timeline-line { display: none; }
+.hv2-timeline-title { font-size: 13px; color: #f0f6fc; font-weight: 500; }
+.hv2-timeline-meta { font-size: 11px; color: #8b949e; margin-top: 2px; }
+
+/* Detail panel */
+.hv2-detail { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; }
+.hv2-detail-title { font-size: 16px; font-weight: 600; color: #f0f6fc; margin-bottom: 12px; }
+.hv2-detail-meta { display: flex; gap: 16px; font-size: 12px; color: #8b949e; margin-bottom: 16px; flex-wrap: wrap; }
+.hv2-detail-meta span { display: flex; align-items: center; gap: 4px; }
+.hv2-log { flex: 1; background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 11px; color: #8b949e; overflow-y: auto; white-space: pre-wrap; min-height: 100px; }
+.hv2-log-label { font-size: 11px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+/* Artifact panel */
+.hv2-artifacts { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px; overflow-y: auto; }
+.hv2-artifact-item { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 4px; cursor: pointer; transition: background 0.1s; font-size: 12px; color: #f0f6fc; }
+.hv2-artifact-item:hover { background: #1c2128; }
+.hv2-artifact-icon { color: #8b949e; }
+
+/* Context bar */
+.hv2-context-bar { display: flex; gap: 16px; padding: 12px 16px; border-top: 1px solid #21262d; margin-top: 16px; }
+.hv2-context-tag { font-size: 11px; padding: 4px 10px; border-radius: 12px; background: #21262d; color: #8b949e; }
+.hv2-context-tag .count { color: #f0f6fc; font-weight: 600; margin-left: 4px; }
+
+/* CC connection badge */
+.hv2-cc-badge { padding: 4px 10px; border-radius: 12px; background: rgba(88,166,255,0.1); border: 1px solid rgba(88,166,255,0.3); color: #58a6ff; font-size: 11px; font-weight: 500; cursor: pointer; }
+.hv2-cc-badge:hover { background: rgba(88,166,255,0.15); }
+
+/* Status badge */
+.hv2-status { padding: 3px 8px; border-radius: 12px; font-size: 11px; font-weight: 500; }
+.hv2-status.running { background: rgba(88,166,255,0.12); color: #58a6ff; }
+.hv2-status.completed { background: rgba(63,185,80,0.12); color: #3fb950; }
+.hv2-status.failed { background: rgba(248,81,73,0.12); color: #f85149; }
+.hv2-status.paused { background: rgba(210,153,34,0.12); color: #d29922; }
+
 /* ===== Responsive ===== */
 @media (max-width: 1200px) {
   .nav-bar { width: 170px !important; min-width: 150px !important; }

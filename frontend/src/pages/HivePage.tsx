@@ -18,60 +18,120 @@ function HivePage() {
     return () => clearInterval(t);
   }, []);
 
-  const statusIcon = (s: string) =>
-    s === 'running' ? '🔄' : s === 'completed' ? '✅' : s === 'paused' ? '⏸' : '❌';
+  const activeProjects = projects.filter(p => p.status === 'running' || p.status === 'paused');
+  const completedProjects = projects.filter(p => p.status === 'completed' || p.status === 'failed');
+
+  const progressPct = (p: { task_count: { done: number; total: number } }) =>
+    p.task_count.total > 0 ? Math.round((p.task_count.done / p.task_count.total) * 100) : 0;
+
+  const statusClass = (s: string) => {
+    if (s === 'running') return 'status-running';
+    if (s === 'completed') return 'status-completed';
+    if (s === 'failed') return 'status-failed';
+    if (s === 'paused') return 'status-paused';
+    return '';
+  };
+
+  const workerDots = () => {
+    if (!poolStats) return null;
+    const dots = [];
+    for (let i = 0; i < poolStats.max; i++) {
+      dots.push(
+        <div key={i} className={`hv2-worker-dot ${i < poolStats.busy ? 'busy' : 'idle'}`} />
+      );
+    }
+    return dots;
+  };
+
+  const renderProjectCard = (p: typeof projects[0]) => {
+    const pct = progressPct(p);
+    const isRunning = p.status === 'running';
+    return (
+      <div
+        key={p.id}
+        className={`hv2-project-card ${statusClass(p.status)}`}
+        onClick={() => selectProject(p.id)}
+      >
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#f0f6fc', marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {p.name || p.objective.slice(0, 48)}
+          </div>
+          <div style={{ fontSize: 11, color: '#8b949e', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {p.objective}
+          </div>
+        </div>
+        <div className="hv2-progress">
+          <div
+            className={`hv2-progress-fill ${isRunning ? 'running' : 'completed'}`}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <span className="hv2-stat">{p.task_count.done}/{p.task_count.total}</span>
+        <span className="hv2-stat">{p.elapsed_minutes || 0}m</span>
+        <span className={`hv2-status ${p.status}`}>{p.status}</span>
+      </div>
+    );
+  };
 
   return (
-    <div className="hive-page">
-      <div className="page-container">
-        <h2 className="page-header">
-          {lang === 'zh' ? 'Hive 项目' : 'Hive Projects'}
-          <button className="ch-btn" style={{ marginLeft: 12 }} onClick={() => setShowNew(true)}>
-            {lang === 'zh' ? '+ 新建' : '+ New'}
-          </button>
-        </h2>
-
+    <div className="hv2-page">
+      {/* Header */}
+      <div className="hv2-header">
+        <div>
+          <div className="hv2-title">HIVE</div>
+          {poolStats && (
+            <div className="hv2-subtitle">
+              {lang === 'zh'
+                ? `Workers: ${poolStats.busy}/${poolStats.max} 忙碌`
+                : `Workers: ${poolStats.busy}/${poolStats.max} busy`}
+            </div>
+          )}
+        </div>
         {poolStats && (
-          <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 12 }}>
-            GA Workers: {poolStats.busy}/{poolStats.max} busy | Claude Code: {poolStats.idle} idle
+          <div className="hv2-workers">
+            {workerDots()}
           </div>
         )}
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          {projects.length === 0 && (
-            <p style={{ color: 'var(--text-3)', fontSize: 13 }}>
-              {lang === 'zh' ? '暂无项目，点击新建开始' : 'No projects yet'}
-            </p>
-          )}
-          {projects.map(p => (
-            <div
-              key={p.id}
-              className="page-card"
-              style={{ cursor: 'pointer', padding: '12px 16px' }}
-              onClick={() => selectProject(p.id)}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <span>{statusIcon(p.status)}</span>
-                <span style={{ fontWeight: 600, fontSize: 14, flex: 1 }}>{p.name}</span>
-                <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
-                  {p.task_count.done}/{p.task_count.total} ✅
-                </span>
-                <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
-                  {p.elapsed_minutes || 0}min
-                </span>
-                <span style={{ fontSize: 11, color: p.priority === 'high' ? 'var(--red)' : 'var(--text-3)' }}>
-                  {p.priority}
-                </span>
-              </div>
-              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 4 }}>
-                {p.objective}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {showNew && <NewProjectDialog onClose={() => setShowNew(false)} />}
+        <div style={{ flex: 1 }} />
+        <button className="hv2-btn primary" onClick={() => setShowNew(true)}>
+          + {lang === 'zh' ? '新建' : 'New'}
+        </button>
       </div>
+
+      {/* Active projects */}
+      {activeProjects.length > 0 && (
+        <>
+          <div className="hv2-section-label">
+            {lang === 'zh' ? '进行中' : 'Active'} · {activeProjects.length}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {activeProjects.map(renderProjectCard)}
+          </div>
+        </>
+      )}
+
+      {/* Completed projects */}
+      {completedProjects.length > 0 && (
+        <>
+          <div className="hv2-section-label">
+            {lang === 'zh' ? '已完成' : 'Completed'} · {completedProjects.length}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {completedProjects.map(renderProjectCard)}
+          </div>
+        </>
+      )}
+
+      {projects.length === 0 && (
+        <div style={{ textAlign: 'center', padding: '60px 0', color: '#484f58' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⬡</div>
+          <div style={{ fontSize: 14 }}>
+            {lang === 'zh' ? '暂无项目，点击 New 开始' : 'No projects yet — click New to start'}
+          </div>
+        </div>
+      )}
+
+      {showNew && <NewProjectDialog onClose={() => setShowNew(false)} />}
     </div>
   );
 }

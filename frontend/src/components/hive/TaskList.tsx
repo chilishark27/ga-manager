@@ -1,7 +1,3 @@
-const statusIcon: Record<string, string> = {
-  done: '✅', running: '🔄', pending: '⏳', blocked: '🔒', failed: '❌', stalled: '⚠️',
-};
-
 export default function TaskList({
   tasks,
   selectedId,
@@ -12,22 +8,31 @@ export default function TaskList({
   onSelect: (id: string) => void;
 }) {
   return (
-    <div className="page-card" style={{ overflowY: 'auto', padding: '8px' }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', marginBottom: 8, padding: '0 8px' }}>任务列表</div>
-      {tasks.map(t => (
+    <div className="hv2-timeline" style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: 8, padding: '8px 0' }}>
+      <div style={{ fontSize: 11, fontWeight: 600, color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '8px 12px 4px' }}>
+        Tasks · {tasks.length}
+      </div>
+      {tasks.map((t, idx) => (
         <div
           key={t.id}
+          className={`hv2-timeline-item ${selectedId === t.id ? 'selected' : ''}`}
           onClick={() => onSelect(t.id)}
-          style={{
-            padding: '8px 10px', borderRadius: 6, cursor: 'pointer', fontSize: 12,
-            background: selectedId === t.id ? 'var(--bg-2)' : 'transparent',
-            border: selectedId === t.id ? '1px solid var(--accent)' : '1px solid transparent',
-          }}
         >
-          <span style={{ marginRight: 6 }}>{statusIcon[t.status] || '⏳'}</span>
-          <span style={{ color: 'var(--text-1)' }}>{t.title}</span>
+          {/* Connector line */}
+          {idx < tasks.length - 1 && <div className="hv2-timeline-line" />}
+          {/* Status dot */}
+          <div className={`hv2-timeline-dot ${t.status}`} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div className="hv2-timeline-title" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {t.title}
+            </div>
+            <div className="hv2-timeline-meta">{t.type} · {t.executor}</div>
+          </div>
         </div>
       ))}
+      {tasks.length === 0 && (
+        <div style={{ padding: '16px 12px', fontSize: 12, color: '#484f58' }}>No tasks yet</div>
+      )}
     </div>
   );
 }

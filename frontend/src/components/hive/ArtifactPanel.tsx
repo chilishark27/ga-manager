@@ -9,22 +9,24 @@ export default function ArtifactPanel({
   const [previewPath, setPreviewPath] = useState<string | null>(null);
 
   return (
-    <div className="page-card" style={{ overflowY: 'auto', padding: '8px 12px' }}>
-      <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-3)', marginBottom: 8 }}>产出文件</div>
+    <div className="hv2-artifacts">
+      <div style={{ fontSize: 11, fontWeight: 600, color: '#8b949e', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>
+        Artifacts · {artifacts.length}
+      </div>
       {artifacts.length === 0 && (
-        <p style={{ fontSize: 11, color: 'var(--text-3)' }}>暂无产出</p>
+        <div style={{ fontSize: 12, color: '#484f58', padding: '8px 0' }}>No artifacts yet</div>
       )}
       {artifacts.map((a, i) => (
         <div
           key={i}
-          style={{
-            padding: '6px 0', borderBottom: '1px solid var(--border)',
-            cursor: 'pointer', fontSize: 12,
-          }}
+          className="hv2-artifact-item"
           onClick={() => setPreviewPath(a.file)}
         >
-          📄 {a.file}
-          <span style={{ fontSize: 10, color: 'var(--text-3)', marginLeft: 8 }}>{a.action}</span>
+          <span className="hv2-artifact-icon">📄</span>
+          <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {a.file}
+          </span>
+          <span style={{ fontSize: 10, color: '#484f58', flexShrink: 0 }}>{a.action}</span>
         </div>
       ))}
       {previewPath && (

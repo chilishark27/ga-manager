@@ -4,18 +4,33 @@ export default function ContextBar({ context }: { context: any[] }) {
     counts[c.type] = (counts[c.type] || 0) + 1;
   });
 
+  const tags = [
+    { key: 'finding', label: 'Findings' },
+    { key: 'decision', label: 'Decisions' },
+    { key: 'summary', label: 'Summaries' },
+    { key: 'requirement', label: 'Requirements' },
+  ];
+
+  if (context.length === 0) return null;
+
   return (
-    <div
-      style={{
-        padding: '8px 16px', borderTop: '1px solid var(--border)',
-        fontSize: 11, color: 'var(--text-3)', display: 'flex', gap: 16,
-      }}
-    >
-      <span style={{ fontWeight: 600 }}>Context:</span>
-      <span>调研结论({counts['finding'] || 0})</span>
-      <span>设计决策({counts['decision'] || 0})</span>
-      <span>总结({counts['summary'] || 0})</span>
-      <span>需求({counts['requirement'] || 0})</span>
+    <div className="hv2-context-bar">
+      <span style={{ fontSize: 11, fontWeight: 600, color: '#484f58', alignSelf: 'center' }}>Context</span>
+      {tags.map(tag =>
+        counts[tag.key] ? (
+          <div key={tag.key} className="hv2-context-tag">
+            {tag.label}<span className="count">{counts[tag.key]}</span>
+          </div>
+        ) : null
+      )}
+      {/* Catch-all for unlisted types */}
+      {Object.entries(counts)
+        .filter(([k]) => !tags.find(t => t.key === k))
+        .map(([k, v]) => (
+          <div key={k} className="hv2-context-tag">
+            {k}<span className="count">{v}</span>
+          </div>
+        ))}
     </div>
   );
 }
