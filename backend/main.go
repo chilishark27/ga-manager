@@ -139,10 +139,12 @@ func main() {
 	hive2PoolCfg := hive2.HiveGlobalConfig{MaxConcurrentProjects: 3, MaxGAWorkersTotal: 5, MaxClaudeSessionsTotal: 2, WorkerPoolShared: true}
 	hive2Pool := hive2.NewWorkerPool(hive2PoolCfg, hive2Engine, hive2Store, hive2EventBus)
 	_ = hive2.NewWebhookDispatcher(hive2Store, hive2EventBus)
+	hive2Runner := hive2.NewRunner(cfg.GARoot, cfg.PythonPath, cfg.Port)
 
 	hive2Handler := handlers.NewHive2Handler(handlers.Hive2Config{
 		GARoot: cfg.GARoot, Store: hive2Store, Engine: hive2Engine, Context: hive2Context,
 		Tracker: hive2Tracker, Pool: hive2Pool, Templates: hive2Templates, EventBus: hive2EventBus,
+		Runner: hive2Runner,
 	})
 
 	// Hive v2 routes
@@ -164,6 +166,7 @@ func main() {
 	mux.HandleFunc("GET /api/hive2/pool/stats", hive2Handler.PoolStats)
 	mux.HandleFunc("POST /api/hive2/projects/{id}/start", hive2Handler.StartProject)
 	mux.HandleFunc("POST /api/hive2/projects/{id}/stop", hive2Handler.StopProject)
+	mux.HandleFunc("GET /api/hive2/projects/{id}/runner", hive2Handler.GetRunnerLogs)
 
 	// Git worktree management
 	gitHandler := handlers.NewGitHandler()

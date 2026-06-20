@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useHiveStore } from '../store/hive';
 import { useI18n } from '../i18n';
 import TaskList from '../components/hive/TaskList';
@@ -6,11 +6,18 @@ import TaskDetail from '../components/hive/TaskDetail';
 import ArtifactPanel from '../components/hive/ArtifactPanel';
 import ContextBar from '../components/hive/ContextBar';
 
+interface RunnerStatus {
+  running: boolean;
+  logs: string[];
+}
+
 function HiveProjectPage() {
   const { lang } = useI18n();
   const { selectedProjectId, projectDetail, fetchProjectDetail, selectProject } = useHiveStore();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [runnerStatus, setRunnerStatus] = useState<RunnerStatus>({ running: false, logs: [] });
+  const logsEndRef = useRef<HTMLDivElement>(null);
   const isZh = lang === 'zh';
 
   useEffect(() => {
@@ -22,6 +29,25 @@ function HiveProjectPage() {
     }, 4000);
     return () => clearInterval(t);
   }, [selectedProjectId]);
+
+  // Poll runner status every 3s
+  useEffect(() => {
+    if (!selectedProjectId) return;
+    const poll = () => {
+      fetch(`/api/hive2/projects/${encodeURIComponent(selectedProjectId)}/runner`)
+        .then(r => r.ok ? r.json() : null)
+        .then(data => { if (data) setRunnerStatus(data); })
+        .catch(() => {});
+    };
+    poll();
+    const t = setInterval(poll, 3000);
+    return () => clearInterval(t);
+  }, [selectedProjectId]);
+
+  // Auto-scroll logs to bottom when new entries arrive
+  useEffect(() => {
+    logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [runnerStatus.logs.length]);
 
   if (!projectDetail) {
     return (
@@ -128,6 +154,48 @@ function HiveProjectPage() {
         </div>
       </div>
 
+      {/* Worker status / logs card */}
+      <div className="hive2-cc-card" style={{ marginTop: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+          <span style={{
+            width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
+            background: runnerStatus.running ? '#22c55e' : 'var(--text-3)',
+            boxShadow: runnerStatus.running ? '0 0 6px #22c55e' : 'none',
+          }} />
+          <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-1)' }}>
+            {isZh ? 'GA Worker 进程' : 'GA Workers'}
+          </span>
+          <span style={{ fontSize: 11, color: 'var(--text-3)', marginLeft: 4 }}>
+            {runnerStatus.running
+              ? (isZh ? '运行中' : 'Running')
+              : (isZh ? '未启动' : 'Not started')}
+          </span>
+          {(isPending || isPaused) && !runnerStatus.running && (
+            <button className="setup-btn" onClick={handleStart} style={{ marginLeft: 'auto', padding: '4px 12px', fontSize: 12 }}>
+              ▶ {isZh ? '启动 Workers' : 'Start Workers'}
+            </button>
+          )}
+        </div>
+        {runnerStatus.logs.length > 0 && (
+          <div style={{
+            background: 'var(--bg3)',
+            borderRadius: 6,
+            padding: '8px 10px',
+            maxHeight: 160,
+            overflowY: 'auto',
+            fontSize: 11,
+            fontFamily: 'monospace',
+            color: 'var(--text-2)',
+            lineHeight: 1.6,
+          }}>
+            {runnerStatus.logs.map((line, i) => (
+              <div key={i} style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}>{line}</div>
+            ))}
+            <div ref={logsEndRef} />
+          </div>
+        )}
+      </div>
+
       {/* 3-column grid */}
       <div className="hive2-exec-grid" style={{ flex: 1 }}>
         <TaskList tasks={tasks} selectedId={selectedTaskId} onSelect={setSelectedTaskId} />
@@ -142,3 +210,4 @@ function HiveProjectPage() {
 }
 
 export default HiveProjectPage;
+

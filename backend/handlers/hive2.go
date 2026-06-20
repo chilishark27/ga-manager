@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -19,6 +20,7 @@ type Hive2Handler struct {
 	pool      *hive2.WorkerPool
 	templates *hive2.TemplateLibrary
 	eventBus  *hive2.EventBus
+	runner    *hive2.Runner
 	gaRoot    string
 }
 
@@ -32,6 +34,7 @@ type Hive2Config struct {
 	Pool      *hive2.WorkerPool
 	Templates *hive2.TemplateLibrary
 	EventBus  *hive2.EventBus
+	Runner    *hive2.Runner
 }
 
 // NewHive2Handler constructs a Hive2Handler from the given config.
@@ -44,6 +47,7 @@ func NewHive2Handler(cfg Hive2Config) *Hive2Handler {
 		pool:      cfg.Pool,
 		templates: cfg.Templates,
 		eventBus:  cfg.EventBus,
+		runner:    cfg.Runner,
 		gaRoot:    cfg.GARoot,
 	}
 }
@@ -374,12 +378,26 @@ func (h *Hive2Handler) StartProject(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 404, "not found")
 		return
 	}
-	p.Status = hive2.ProjectStatusRunning
-	if err := h.store.Update(p); err != nil {
+
+	if h.runner.IsRunning(id) {
+		writeJSON(w, 200, map[string]string{"status": "already_running"})
+		return
+	}
+
+	numWorkers := p.ExecutorConfig.GAWorkers
+	if numWorkers <= 0 {
+		numWorkers = 2
+	}
+	llmNo := p.ExecutorConfig.GALlmNo
+
+	if err := h.runner.Start(id, numWorkers, llmNo); err != nil {
 		writeError(w, 500, err.Error())
 		return
 	}
-	writeJSON(w, 200, map[string]string{"status": "started"})
+
+	p.Status = hive2.ProjectStatusRunning
+	h.store.Update(p)
+	writeJSON(w, 200, map[string]string{"status": "started", "workers": fmt.Sprintf("%d", numWorkers)})
 }
 
 // StopProject handles POST /api/hive2/projects/{id}/stop
@@ -390,10 +408,22 @@ func (h *Hive2Handler) StopProject(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 404, "not found")
 		return
 	}
+
+	h.runner.Stop(id)
 	p.Status = hive2.ProjectStatusPaused
-	if err := h.store.Update(p); err != nil {
-		writeError(w, 500, err.Error())
-		return
-	}
+	h.store.Update(p)
 	writeJSON(w, 200, map[string]string{"status": "stopped"})
+}
+
+// GetRunnerLogs handles GET /api/hive2/projects/{id}/runner
+func (h *Hive2Handler) GetRunnerLogs(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	logs := h.runner.GetLogs(id)
+	if logs == nil {
+		logs = []string{}
+	}
+	writeJSON(w, 200, map[string]interface{}{
+		"running": h.runner.IsRunning(id),
+		"logs":    logs,
+	})
 }
