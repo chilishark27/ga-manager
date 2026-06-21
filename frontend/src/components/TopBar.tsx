@@ -9,7 +9,6 @@ function TopBar() {
     toggleInstance, restartInstance,
     projectPath, projectName, setProject, clearProject, recentProjects, removeRecentProject,
     showTodoPanel, toggleTodoPanel, todos,
-    setInstanceProject,
   } = useStore();
   const { t, lang } = useI18n();
   const inst = getActiveInstance();
@@ -17,10 +16,6 @@ function TopBar() {
   const [showLLMDropdown, setShowLLMDropdown] = useState(false);
   const [showProjectDropdown, setShowProjectDropdown] = useState(false);
   const [showWorktree, setShowWorktree] = useState(false);
-  const [showInstProject, setShowInstProject] = useState(false);
-  const [instProjectDir, setInstProjectDir] = useState('');
-  const [instReflectScript, setInstReflectScript] = useState('');
-  const [instProjectSaved, setInstProjectSaved] = useState(false);
 
   if (!inst) {
     return (
@@ -86,82 +81,11 @@ function TopBar() {
         <span className="top-bar-name">{inst.name}</span>
         <span className="top-bar-status">{inst.status}</span>
         <span className="top-bar-pid">PID {inst.pid}</span>
-
-        {/* Instance project_dir badge */}
-        <div style={{ position: 'relative', display: 'inline-flex', alignItems: 'center' }}>
-          <span
-            title={inst.project_dir || (lang === 'zh' ? '设置实例项目目录' : 'Set instance project dir')}
-            style={{
-              fontSize: 11, padding: '1px 7px', borderRadius: 4, cursor: 'pointer',
-              background: inst.project_dir ? 'var(--accent2, #5a3e8a)' : 'var(--bg-3, #2a2a2a)',
-              color: inst.project_dir ? '#d4b8ff' : 'var(--text-3)',
-              border: '1px solid var(--border)',
-              maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-              marginLeft: 6,
-            }}
-            onClick={() => {
-              setInstProjectDir(inst.project_dir || '');
-              setInstReflectScript(inst.reflect_script || '');
-              setInstProjectSaved(false);
-              setShowInstProject(!showInstProject);
-            }}
-          >
-            {inst.project_dir
-              ? inst.project_dir.split(/[/\\]/).filter(Boolean).pop()
-              : (lang === 'zh' ? '无项目 📁' : 'no project 📁')}
+        {inst.project_dir && (
+          <span style={{ fontSize: 11, color: 'var(--text-3)', marginLeft: 8 }} title={inst.project_dir}>
+            📁 {inst.project_dir.split(/[/\\]/).filter(Boolean).pop()}
           </span>
-          {showInstProject && (
-            <div style={{
-              position: 'absolute', top: '100%', left: 0, zIndex: 200, marginTop: 4,
-              background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8,
-              padding: '10px 12px', width: 320, boxShadow: '0 4px 16px rgba(0,0,0,0.3)',
-            }}
-              onClick={e => e.stopPropagation()}
-            >
-              <div style={{ fontSize: 12, color: 'var(--text-2)', marginBottom: 6, fontWeight: 600 }}>
-                {lang === 'zh' ? '设置实例项目' : 'Instance Project'}
-              </div>
-              <input
-                style={{ width: '100%', boxSizing: 'border-box', padding: '4px 8px', borderRadius: 5,
-                  border: '1px solid var(--border)', background: 'var(--bg-3)', color: 'var(--text)',
-                  fontSize: 12, marginBottom: 6 }}
-                placeholder={lang === 'zh' ? '项目目录路径' : 'project_dir path'}
-                value={instProjectDir}
-                onChange={e => setInstProjectDir(e.target.value)}
-                autoFocus
-              />
-              <input
-                style={{ width: '100%', boxSizing: 'border-box', padding: '4px 8px', borderRadius: 5,
-                  border: '1px solid var(--border)', background: 'var(--bg-3)', color: 'var(--text)',
-                  fontSize: 12, marginBottom: 8 }}
-                placeholder={lang === 'zh' ? 'reflect_script (可选)' : 'reflect_script (optional)'}
-                value={instReflectScript}
-                onChange={e => setInstReflectScript(e.target.value)}
-              />
-              <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <button
-                  style={{ padding: '3px 12px', borderRadius: 5, border: 'none',
-                    background: 'var(--accent)', color: '#fff', cursor: 'pointer', fontSize: 12 }}
-                  onClick={async () => {
-                    await setInstanceProject(inst.id, instProjectDir, instReflectScript);
-                    setInstProjectSaved(true);
-                    setTimeout(() => { setShowInstProject(false); setInstProjectSaved(false); }, 1200);
-                  }}
-                >{lang === 'zh' ? '保存' : 'Save'}</button>
-                <button
-                  style={{ padding: '3px 10px', borderRadius: 5, border: '1px solid var(--border)',
-                    background: 'transparent', color: 'var(--text-2)', cursor: 'pointer', fontSize: 12 }}
-                  onClick={() => setShowInstProject(false)}
-                >{lang === 'zh' ? '取消' : 'Cancel'}</button>
-                {instProjectSaved && (
-                  <span style={{ fontSize: 11, color: 'var(--green)' }}>
-                    {lang === 'zh' ? '已保存，重启实例生效' : 'Saved, restart to apply'}
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
+        )}
       </div>
 
       {/* Project Selector */}
