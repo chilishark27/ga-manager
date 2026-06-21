@@ -71,6 +71,7 @@ func main() {
 	mux.HandleFunc("POST /api/instances/{id}/stop", instHandler.Stop)
 	mux.HandleFunc("DELETE /api/instances/{id}", instHandler.Remove)
 	mux.HandleFunc("PUT /api/instances/{id}/name", instHandler.Rename)
+	mux.HandleFunc("PATCH /api/instances/{id}/project", instHandler.SetProject)
 
 	// Instance logs & config
 	mux.HandleFunc("GET /api/instances/{id}/logs", instHandler.Logs)

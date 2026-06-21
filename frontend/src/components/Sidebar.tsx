@@ -18,6 +18,7 @@ function Sidebar() {
     toggleTheme, theme, runningCount, totalTokens, healthPercent,
     createInstance, deleteInstance, llmConfigs, fetchLLMs, moveInstance,
     discoveredInstances, discoverLoading, attachedPort, discoverInstances, attachInstance, adoptInstance,
+    setInstanceProject,
   } = useStore();
   const { t, tf, lang, setLang } = useI18n();
 
@@ -30,6 +31,11 @@ function Sidebar() {
   const [projectDir, setProjectDir] = useState('');
   const [reflectScript, setReflectScript] = useState('');
   const [reflects, setReflects] = useState<{file: string; name: string}[]>([]);
+
+  // Inline project edit per card (keyed by instance id)
+  const [editingProjectId, setEditingProjectId] = useState<string | null>(null);
+  const [editProjectDir, setEditProjectDir] = useState('');
+  const [editReflectScript, setEditReflectScript] = useState('');
 
   useEffect(() => {
     fetch('/api/config/reflects').then(r => r.json()).then(data => {
@@ -136,10 +142,29 @@ function Sidebar() {
             <div className="ic-top">
               <div className={getDotClass(inst)} />
               <span className="ic-name">{inst.name}</span>
-              {inst.project_dir && (
-                <span style={{ fontSize: 9, color: 'var(--text-3)', marginLeft: 4 }}>
+              {inst.project_dir ? (
+                <span
+                  title={inst.project_dir}
+                  style={{ fontSize: 9, color: 'var(--text-3)', marginLeft: 4, cursor: 'pointer' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingProjectId(inst.id);
+                    setEditProjectDir(inst.project_dir || '');
+                    setEditReflectScript(inst.reflect_script || '');
+                  }}
+                >
                   [{inst.project_dir.split(/[/\\]/).filter(Boolean).pop()}]
                 </span>
+              ) : (
+                <span
+                  style={{ fontSize: 9, color: 'var(--text-3)', marginLeft: 4, cursor: 'pointer', textDecoration: 'underline dotted' }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingProjectId(inst.id);
+                    setEditProjectDir('');
+                    setEditReflectScript('');
+                  }}
+                >{lang === 'zh' ? '设置项目' : 'set project'}</span>
               )}
               <span className="ic-mode" style={{ background: getModeColor(inst.mode) }}>
                 {inst.mode}
@@ -177,6 +202,45 @@ function Sidebar() {
               <span className={`ic-tag ${inst.scheduler ? 'on' : ''}`}>{t.scheduler}</span>
               <span className={`ic-tag ${inst.goal ? 'on' : ''}`}>{t.goal}</span>
             </div>
+            {editingProjectId === inst.id && (
+              <div
+                style={{ marginTop: 6, padding: '6px 8px', background: 'var(--bg-3)', borderRadius: 6, border: '1px solid var(--border)' }}
+                onClick={e => e.stopPropagation()}
+              >
+                <input
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: 4,
+                    border: '1px solid var(--border)', background: 'var(--bg-2)', color: 'var(--text)',
+                    fontSize: 11, marginBottom: 4 }}
+                  placeholder={lang === 'zh' ? '项目目录路径' : 'project_dir path'}
+                  value={editProjectDir}
+                  onChange={e => setEditProjectDir(e.target.value)}
+                  autoFocus
+                />
+                <input
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: 4,
+                    border: '1px solid var(--border)', background: 'var(--bg-2)', color: 'var(--text)',
+                    fontSize: 11, marginBottom: 6 }}
+                  placeholder={lang === 'zh' ? 'reflect_script (可选)' : 'reflect_script (optional)'}
+                  value={editReflectScript}
+                  onChange={e => setEditReflectScript(e.target.value)}
+                />
+                <div style={{ display: 'flex', gap: 5 }}>
+                  <button
+                    style={{ padding: '2px 10px', borderRadius: 4, border: 'none',
+                      background: 'var(--accent)', color: '#fff', cursor: 'pointer', fontSize: 11 }}
+                    onClick={async () => {
+                      await setInstanceProject(inst.id, editProjectDir, editReflectScript);
+                      setEditingProjectId(null);
+                    }}
+                  >{lang === 'zh' ? '保存' : 'Save'}</button>
+                  <button
+                    style={{ padding: '2px 8px', borderRadius: 4, border: '1px solid var(--border)',
+                      background: 'transparent', color: 'var(--text-2)', cursor: 'pointer', fontSize: 11 }}
+                    onClick={() => setEditingProjectId(null)}
+                  >{lang === 'zh' ? '取消' : 'Cancel'}</button>
+                </div>
+              </div>
+            )}
           </div>
         ))}
       </div>

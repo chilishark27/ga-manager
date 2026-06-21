@@ -150,6 +150,25 @@ func (h *InstanceHandler) SaveConfig(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "saved"})
 }
 
+// SetProject handles PATCH /api/instances/{id}/project
+func (h *InstanceHandler) SetProject(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+	var body struct {
+		ProjectDir    string `json:"project_dir"`
+		ReflectScript string `json:"reflect_script"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "invalid body")
+		return
+	}
+
+	if err := h.manager.SetProject(id, body.ProjectDir, body.ReflectScript); err != nil {
+		writeError(w, http.StatusNotFound, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+}
+
 // Adopt takes over a running GA by killing its process and starting a managed bridge with --recover.
 // POST /api/instances/adopt
 func (h *InstanceHandler) Adopt(w http.ResponseWriter, r *http.Request) {

@@ -839,6 +839,25 @@ func (m *InstanceManager) UpdateLLMNo(id string, llmNo int) error {
 	return nil
 }
 
+// SetProject updates the project directory and reflect script for an instance.
+// Takes effect on next restart.
+func (m *InstanceManager) SetProject(id, projectDir, reflectScript string) error {
+	m.mu.RLock()
+	inst, exists := m.instances[id]
+	m.mu.RUnlock()
+	if !exists {
+		return fmt.Errorf("instance %s not found", id)
+	}
+
+	inst.mu.Lock()
+	inst.projectDir = projectDir
+	inst.reflectScript = reflectScript
+	inst.mu.Unlock()
+
+	m.persistAll()
+	return nil
+}
+
 // RenameInstance changes the display name of an instance.
 func (m *InstanceManager) RenameInstance(id string, newName string) error {
 	m.mu.RLock()

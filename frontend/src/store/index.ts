@@ -69,6 +69,7 @@ interface AppState {
   setStringConfig: (id: string, key: 'goal' | 'peer_hint', value: string) => Promise<void>;
   switchLLM: (id: string, llmNo: number) => Promise<void>;
   setIMChannel: (id: string, channel: string) => Promise<void>;
+  setInstanceProject: (id: string, projectDir: string, reflectScript: string) => Promise<void>;
   showIMSelector: boolean;
   setShowIMSelector: (v: boolean) => void;
 
@@ -749,6 +750,24 @@ export const useStore = create<AppState>((set, get) => ({
       get().showToast(`IM渠道已切换为 ${channel || '无'}`);
     } catch {
       get().showToast('切换IM渠道失败');
+    }
+  },
+
+  setInstanceProject: async (id: string, projectDir: string, reflectScript: string) => {
+    try {
+      await fetch(`${API_BASE}/instances/${id}/project`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ project_dir: projectDir, reflect_script: reflectScript }),
+      });
+      set(state => ({
+        instances: state.instances.map(i =>
+          i.id === id ? { ...i, project_dir: projectDir || undefined, reflect_script: reflectScript || undefined } : i
+        ),
+      }));
+      get().showToast('项目已设置，重启实例生效');
+    } catch {
+      get().showToast('设置项目失败');
     }
   },
 
