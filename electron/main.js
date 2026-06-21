@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, dialog, powerMonitor, Notification } = require('electron');
+const { app, BrowserWindow, Tray, Menu, nativeImage, ipcMain, dialog, Notification } = require('electron');
 const { spawn } = require('child_process');
 const path = require('path');
 const http = require('http');
@@ -12,9 +12,6 @@ let mainWindow = null;
 let tray = null;
 let backendProcess = null;
 let isQuitting = false;
-let petWindow = null;
-let petState = 'idle'; // idle | curious | working | done
-let userWasIdle = true;
 
 function getBackendPath() {
   const isPackaged = app.isPackaged;
@@ -131,136 +128,6 @@ function createWindow() {
   });
 }
 
-function createPetWindow() {
-  const { screen } = require('electron');
-  const display = screen.getPrimaryDisplay();
-  const savedPos = { x: display.bounds.width - 250, y: display.bounds.height - 250 };
-
-  petWindow = new BrowserWindow({
-    width: 200,
-    height: 200,
-    x: savedPos.x,
-    y: savedPos.y,
-    transparent: true,
-    frame: false,
-    alwaysOnTop: true,
-    skipTaskbar: true,
-    hasShadow: false,
-    resizable: false,
-    show: false,
-    webPreferences: {
-      nodeIntegration: false,
-      contextIsolation: true,
-      preload: path.join(__dirname, 'pet-preload.js'),
-    },
-  });
-
-  petWindow.loadURL(`${BACKEND_URL}/pet.html`);
-
-  // Default: click-through (clicks pass to windows behind)
-  // Renderer toggles this when mouse enters/leaves the pet sprite
-  petWindow.setIgnoreMouseEvents(true, { forward: true });
-
-  // IPC: toggle click-through
-  ipcMain.on('pet-ignore-mouse', (_, ignore) => {
-    if (!petWindow) return;
-    if (ignore) {
-      petWindow.setIgnoreMouseEvents(true, { forward: true });
-    } else {
-      petWindow.setIgnoreMouseEvents(false);
-    }
-  });
-
-  // Show after content is ready — prevents black flash on transparent window
-  petWindow.once('ready-to-show', () => {
-    petWindow.show();
-    petWindow.setOpacity(0.99);
-    setTimeout(() => { if (petWindow) petWindow.setOpacity(1); }, 50);
-  });
-
-  // Walk: main process moves window periodically
-  let walkDir = 0; // -1 left, 0 stop, 1 right
-  let walkSpeed = 1;
-  let petX = savedPos.x, petY = savedPos.y;
-
-  setInterval(() => {
-    if (!petWindow || walkDir === 0) return;
-    try {
-      const { screen } = require('electron');
-      const display = screen.getPrimaryDisplay();
-      petX += (walkDir * walkSpeed);
-      if (petX < 0 || petX > display.bounds.width - 200) {
-        petX = Math.max(0, Math.min(petX, display.bounds.width - 200));
-        walkDir = 0;
-        petWindow.webContents.send('pet-walk-done');
-      } else {
-        petWindow.setBounds({ x: Math.round(petX), y: Math.round(petY), width: 200, height: 200 });
-      }
-    } catch {}
-  }, 50);
-
-  ipcMain.on('pet-walk-start', (_, dir, speed) => {
-    if (!petWindow) return;
-    const { screen } = require('electron');
-    const display = screen.getPrimaryDisplay();
-    if (dir === -1 && petX <= 0) return;
-    if (dir === 1 && petX >= display.bounds.width - 200) return;
-    walkDir = dir;
-    walkSpeed = Math.max(2, Math.round(display.bounds.width / 640));
-  });
-
-  ipcMain.on('pet-walk-stop', () => { walkDir = 0; });
-
-  // Drag: main process tracks cursor and moves window
-  let petDragging = false;
-  let dragOffsetX = 0, dragOffsetY = 0;
-  let dragTimer = null;
-
-  ipcMain.on('pet-drag-start', () => {
-    if (!petWindow) return;
-    petDragging = true;
-    walkDir = 0;
-    const { screen } = require('electron');
-    const cursor = screen.getCursorScreenPoint();
-    dragOffsetX = cursor.x - petX;
-    dragOffsetY = cursor.y - petY;
-    dragTimer = setInterval(() => {
-      if (!petWindow || !petDragging) return;
-      const { screen } = require('electron');
-      const cur = screen.getCursorScreenPoint();
-      petX = cur.x - dragOffsetX;
-      petY = cur.y - dragOffsetY;
-      petWindow.setBounds({ x: Math.round(petX), y: Math.round(petY), width: 200, height: 200 });
-    }, 16);
-  });
-
-  ipcMain.on('pet-drag-end', () => {
-    petDragging = false;
-    clearInterval(dragTimer);
-    // Restore click-through after drag
-    if (petWindow) petWindow.setIgnoreMouseEvents(true, { forward: true });
-  });
-
-  petWindow.on('closed', () => { petWindow = null; walkDir = 0; petDragging = false; clearInterval(dragTimer); });
-
-  // User activity detection for curious state
-  let lastCuriousTime = 0;
-  setInterval(() => {
-    if (!petWindow || petState === 'working') return;
-    const idleTime = powerMonitor.getSystemIdleTime();
-    const now = Date.now();
-    if (idleTime < 2 && now - lastCuriousTime > 30000) {
-      // User is actively typing, trigger curious every 30s at most
-      lastCuriousTime = now;
-      petState = 'curious';
-      petWindow.webContents.send('pet-state-change', 'curious');
-    } else if (idleTime > 10 && petState === 'curious') {
-      petState = 'idle';
-      petWindow.webContents.send('pet-state-change', 'idle');
-    }
-  }, 3000);
-}
-
 function createTray() {
   const iconPath = getIconPath();
   const icon = nativeImage.createFromPath(iconPath).resize({ width: 16, height: 16 });
@@ -268,8 +135,6 @@ function createTray() {
 
   const contextMenu = Menu.buildFromTemplate([
     { label: '打开管理面板', click: () => { if (mainWindow) mainWindow.show(); else createWindow(); } },
-    { label: '显示宠物', click: () => { if (petWindow) { petWindow.show(); if (petX < -9000) { const { screen } = require('electron'); const display = screen.getPrimaryDisplay(); petX = display.bounds.width - 250; petY = display.bounds.height - 250; } petWindow.setBounds({ x: Math.round(petX), y: Math.round(petY), width: 200, height: 200 }); } else { createPetWindow(); } } },
-    { label: '隐藏宠物', click: () => { if (petWindow) petWindow.hide(); } },
     { type: 'separator' },
     { label: '退出', click: () => { isQuitting = true; tray = null; app.quit(); } },
   ]);
@@ -300,61 +165,9 @@ ipcMain.handle('window-minimize', () => { if (mainWindow) mainWindow.minimize();
 ipcMain.handle('window-maximize', () => { if (mainWindow) { mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize(); } });
 ipcMain.handle('window-close', () => { if (mainWindow) mainWindow.close(); });
 
-// --- Pet Window IPC ---
-ipcMain.handle('pet-move-window', (_, x, y) => {
-  if (petWindow) {
-    petX = x; petY = y;
-    petWindow.setBounds({ x: Math.round(x), y: Math.round(y), width: 200, height: 200 });
-  }
-});
-
-ipcMain.handle('pet-get-position', () => {
-  if (petWindow) {
-    const bounds = petWindow.getBounds();
-    return [bounds.x, bounds.y];
-  }
-  return [0, 0];
-});
-
-// pet-resize-window removed — window stays fixed at 170x170
-
-ipcMain.handle('pet-save-selection', (_, petId) => {
-  global.selectedPet = petId;
-});
-
-ipcMain.handle('pet-get-selection', () => {
-  return global.selectedPet || '';
-});
-
-ipcMain.handle('pet-get-backend-url', () => {
-  return BACKEND_URL;
-});
-
 ipcMain.handle('open-external', (_, url) => {
   const { shell } = require('electron');
   shell.openExternal(url);
-});
-
-ipcMain.on('ga-state-change', (_, state) => {
-  if (!petWindow) return;
-  if (state === 'working') {
-    petState = 'working';
-    petWindow.webContents.send('pet-state-change', 'working');
-  } else if (state === 'done') {
-    petState = 'done';
-    petWindow.webContents.send('pet-state-change', 'done');
-    // System notification
-    if (Notification.isSupported()) {
-      new Notification({ title: 'GA Manager', body: '任务完成' }).show();
-    }
-    // Reset to idle after 5 seconds
-    setTimeout(() => {
-      if (petState === 'done') {
-        petState = 'idle';
-        if (petWindow) petWindow.webContents.send('pet-state-change', 'idle');
-      }
-    }, 5000);
-  }
 });
 
 // --- Auto Updater ---
@@ -429,7 +242,6 @@ app.whenReady().then(async () => {
 
   createTray();
   createWindow();
-  createPetWindow();
   setupAutoUpdater();
 });
 
@@ -444,7 +256,6 @@ app.on('activate', () => {
 
 app.on('before-quit', (e) => {
   isQuitting = true;
-  if (petWindow) { petWindow.destroy(); petWindow = null; }
   if (backendProcess) {
     try { backendProcess.kill(); } catch {}
     backendProcess = null;

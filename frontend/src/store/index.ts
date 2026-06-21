@@ -252,19 +252,13 @@ export const useStore = create<AppState>((set, get) => ({
         const shouldSelect = !currentId || !instances.find(i => i.id === currentId);
         // Desktop notifications for status changes
         const notify = (window as any).electronNotify;
-        const petBridge = (window as any).electronPet;
         if (prevInstances.length > 0) {
           for (const inst of instances) {
             const prev = prevInstances.find(p => p.id === inst.id);
             if (prev && prev.status === 'busy' && (inst.status === 'running' || inst.status === 'stopped')) {
               if (notify) notify.send('Task Complete', `${inst.name} finished`);
-              if (petBridge) petBridge.sendState('done');
             } else if (prev && prev.status !== 'error' && inst.status === 'error') {
               if (notify) notify.send('Instance Error', `${inst.name} crashed`);
-            } else if (prev && prev.status !== 'busy' && inst.status === 'busy') {
-              if (petBridge) petBridge.sendState('working');
-            } else if (prev && prev.status !== 'running' && inst.status === 'running' && prev.status !== 'busy') {
-              if (petBridge) petBridge.sendState('working');
             }
           }
         }
