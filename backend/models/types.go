@@ -27,10 +27,12 @@ type Instance struct {
 	Uptime    int64         `json:"uptime"`
 
 	// Feature toggles
-	Autonomous bool   `json:"autonomous"`
-	Goal       string `json:"goal,omitempty"`
-	Reflect    bool   `json:"reflect"`
-	DevMode    bool   `json:"dev_mode"`
+	Autonomous    bool   `json:"autonomous"`
+	Goal          string `json:"goal,omitempty"`
+	Reflect       bool   `json:"reflect"`
+	DevMode       bool   `json:"dev_mode"`
+	ProjectDir    string `json:"project_dir,omitempty"`
+	ReflectScript string `json:"reflect_script,omitempty"`
 
 	// Stats
 	TotalTurns int    `json:"total_turns"`
@@ -40,12 +42,14 @@ type Instance struct {
 
 // CreateInstanceRequest is the payload for POST /api/instances
 type CreateInstanceRequest struct {
-	Name       string `json:"name"`
-	LLMNo      int    `json:"llm_no"`
-	Autonomous bool   `json:"autonomous"`
-	Goal       string `json:"goal"`
-	GARoot     string `json:"ga_root"`
-	Reflect    bool   `json:"reflect"`
+	Name          string `json:"name"`
+	LLMNo         int    `json:"llm_no"`
+	Autonomous    bool   `json:"autonomous"`
+	Goal          string `json:"goal"`
+	GARoot        string `json:"ga_root"`
+	Reflect       bool   `json:"reflect"`
+	ProjectDir    string `json:"project_dir"`
+	ReflectScript string `json:"reflect_script"`
 }
 
 // AppConfig holds the manager-level configuration

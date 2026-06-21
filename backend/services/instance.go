@@ -61,11 +61,13 @@ type managedInstance struct {
 	llmNo     int
 	createdAt time.Time
 
-	autonomous bool
-	goal       string
-	reflect    bool
-	devMode    bool
-	gaRoot     string
+	autonomous    bool
+	goal          string
+	reflect       bool
+	devMode       bool
+	gaRoot        string
+	projectDir    string
+	reflectScript string
 
 	totalTurns int
 	tokensUsed int
@@ -102,10 +104,12 @@ func (inst *managedInstance) toDTO() models.Instance {
 		LLMNo:     inst.llmNo,
 		CreatedAt:  inst.createdAt,
 		Uptime:     int64(time.Since(inst.createdAt).Seconds()),
-		Autonomous: inst.autonomous,
-		Goal:       inst.goal,
-		Reflect:    inst.reflect,
-		DevMode:    inst.devMode,
+		Autonomous:    inst.autonomous,
+		Goal:          inst.goal,
+		Reflect:       inst.reflect,
+		DevMode:       inst.devMode,
+		ProjectDir:    inst.projectDir,
+		ReflectScript: inst.reflectScript,
 		TotalTurns: inst.totalTurns,
 		TokensUsed: inst.tokensUsed,
 		LastError:  inst.lastError,
@@ -154,19 +158,21 @@ func (m *InstanceManager) RestoreInstances() {
 			continue
 		}
 		inst := &managedInstance{
-			id:          rec.ID,
-			name:        rec.Name,
-			state:       models.StateStopped,
-			llmNo:       rec.LLMNo,
-			autonomous:  rec.Autonomous,
-			goal:        rec.Goal,
-			reflect:     rec.Reflect,
-			gaRoot:      rec.GARoot,
-			createdAt:   time.Now(),
-			tokenStats:  newTokenStats(),
-			subscribers: make(map[string]chan []byte),
-			logs:        newLogBuffer(),
-			chat:        newChatHistory(),
+			id:            rec.ID,
+			name:          rec.Name,
+			state:         models.StateStopped,
+			llmNo:         rec.LLMNo,
+			autonomous:    rec.Autonomous,
+			goal:          rec.Goal,
+			reflect:       rec.Reflect,
+			gaRoot:        rec.GARoot,
+			projectDir:    rec.ProjectDir,
+			reflectScript: rec.ReflectScript,
+			createdAt:     time.Now(),
+			tokenStats:    newTokenStats(),
+			subscribers:   make(map[string]chan []byte),
+			logs:          newLogBuffer(),
+			chat:          newChatHistory(),
 		}
 		// Restore cost data if available
 		if costData != nil {
@@ -323,6 +329,9 @@ func (m *InstanceManager) Create(req models.CreateInstanceRequest) (*models.Inst
 		return nil, fmt.Errorf("GA root directory not found: %s — configure it in Settings", gaRoot)
 	}
 
+	projectDir := req.ProjectDir
+	reflectScript := req.ReflectScript
+
 	args := []string{"-u", bridgePath,
 		"--ga-root", gaRoot,
 		"--llm-no", strconv.Itoa(req.LLMNo),
@@ -333,9 +342,24 @@ func (m *InstanceManager) Create(req models.CreateInstanceRequest) (*models.Inst
 	if req.Goal != "" {
 		args = append(args, "--goal", req.Goal)
 	}
+	if reflectScript != "" {
+		reflectPath := filepath.Join(gaRoot, "reflect", reflectScript)
+		if _, err := os.Stat(reflectPath); err == nil {
+			args = append(args, "--reflect", reflectPath)
+		}
+	}
+	if projectDir != "" {
+		args = append(args, "--project-dir", projectDir)
+	}
 
 	cmd := exec.CommandContext(ctx, pythonPath, args...)
-	cmd.Dir = gaRoot
+	workDir := gaRoot
+	if projectDir != "" {
+		if _, err := os.Stat(projectDir); err == nil {
+			workDir = projectDir
+		}
+	}
+	cmd.Dir = workDir
 	cmd.Env = buildBridgeEnv()
 	hideWindow(cmd)
 
@@ -362,24 +386,26 @@ func (m *InstanceManager) Create(req models.CreateInstanceRequest) (*models.Inst
 	}
 
 	inst := &managedInstance{
-		id:          id,
-		name:        name,
-		state:       models.StateStarting,
-		pid:         cmd.Process.Pid,
-		llmNo:       req.LLMNo,
-		createdAt:   time.Now(),
-		autonomous:  req.Autonomous,
-		goal:        req.Goal,
-		reflect:     req.Reflect,
-		gaRoot:      gaRoot,
-		tokenStats:  newTokenStats(),
-		cmd:         cmd,
-		cancel:      cancel,
-		stdin:       stdinPipe,
-		stderrBuf:   &stderrBuf,
-		subscribers: make(map[string]chan []byte),
-		logs:        newLogBuffer(),
-		chat:        newChatHistory(),
+		id:            id,
+		name:          name,
+		state:         models.StateStarting,
+		pid:           cmd.Process.Pid,
+		llmNo:         req.LLMNo,
+		createdAt:     time.Now(),
+		autonomous:    req.Autonomous,
+		goal:          req.Goal,
+		reflect:       req.Reflect,
+		gaRoot:        gaRoot,
+		projectDir:    projectDir,
+		reflectScript: reflectScript,
+		tokenStats:    newTokenStats(),
+		cmd:           cmd,
+		cancel:        cancel,
+		stdin:         stdinPipe,
+		stderrBuf:     &stderrBuf,
+		subscribers:   make(map[string]chan []byte),
+		logs:          newLogBuffer(),
+		chat:          newChatHistory(),
 	}
 
 	m.mu.Lock()

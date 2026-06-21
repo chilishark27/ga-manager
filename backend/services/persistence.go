@@ -11,13 +11,15 @@ import (
 // persistedInstance holds the minimal config needed to restore an instance after restart.
 // Chat history is NOT stored here — it's recovered from GA's model_responses/ via --recover.
 type persistedInstance struct {
-	ID         string `json:"id"`
-	Name       string `json:"name"`
-	LLMNo      int    `json:"llm_no"`
-	Autonomous bool   `json:"autonomous"`
-	Goal       string `json:"goal"`
-	Reflect    bool   `json:"reflect"`
-	GARoot     string `json:"ga_root"`
+	ID            string `json:"id"`
+	Name          string `json:"name"`
+	LLMNo         int    `json:"llm_no"`
+	Autonomous    bool   `json:"autonomous"`
+	Goal          string `json:"goal"`
+	Reflect       bool   `json:"reflect"`
+	GARoot        string `json:"ga_root"`
+	ProjectDir    string `json:"project_dir,omitempty"`
+	ReflectScript string `json:"reflect_script,omitempty"`
 }
 
 type persistenceStore struct {
@@ -51,13 +53,15 @@ func (ps *persistenceStore) Save(instances []*managedInstance) {
 	for _, inst := range instances {
 		inst.mu.RLock()
 		records = append(records, persistedInstance{
-			ID:         inst.id,
-			Name:       inst.name,
-			LLMNo:      inst.llmNo,
-			Autonomous: inst.autonomous,
-			Goal:       inst.goal,
-			Reflect:    inst.reflect,
-			GARoot:     inst.gaRoot,
+			ID:            inst.id,
+			Name:          inst.name,
+			LLMNo:         inst.llmNo,
+			Autonomous:    inst.autonomous,
+			Goal:          inst.goal,
+			Reflect:       inst.reflect,
+			GARoot:        inst.gaRoot,
+			ProjectDir:    inst.projectDir,
+			ReflectScript: inst.reflectScript,
 		})
 		inst.mu.RUnlock()
 	}
