@@ -52,12 +52,68 @@ func NewRunner(gaRoot, python string, apiPort int) *Runner {
 			}
 		}
 	}
-	return &Runner{
+
+	r := &Runner{
 		gaRoot:   gaRoot,
 		python:   python,
 		apiPort:  apiPort,
 		projects: make(map[string]*ProjectRunner),
 	}
+
+	// Auto-deploy hive_v2_worker.py to GA root if not present
+	r.deployReflectScript()
+
+	return r
+}
+
+// deployReflectScript copies hive_v2_worker.py to GA root's reflect/ directory
+func (r *Runner) deployReflectScript() {
+	target := filepath.Join(r.gaRoot, "reflect", "hive_v2_worker.py")
+	if _, err := os.Stat(target); err == nil {
+		return // Already exists
+	}
+
+	// Look for the source script in various locations
+	var source string
+	candidates := []string{}
+
+	// Next to the executable
+	if exePath, err := os.Executable(); err == nil {
+		candidates = append(candidates, filepath.Join(filepath.Dir(exePath), "reflect", "hive_v2_worker.py"))
+	}
+	// Current working directory
+	if cwd, err := os.Getwd(); err == nil {
+		candidates = append(candidates, filepath.Join(cwd, "reflect", "hive_v2_worker.py"))
+	}
+	// Parent of CWD (common in dev: running from backend/)
+	if cwd, err := os.Getwd(); err == nil {
+		candidates = append(candidates, filepath.Join(filepath.Dir(cwd), "reflect", "hive_v2_worker.py"))
+	}
+
+	for _, c := range candidates {
+		if _, err := os.Stat(c); err == nil {
+			source = c
+			break
+		}
+	}
+
+	if source == "" {
+		log.Printf("[Hive2] WARNING: hive_v2_worker.py not found, workers will fail to start")
+		return
+	}
+
+	// Copy to GA root
+	os.MkdirAll(filepath.Join(r.gaRoot, "reflect"), 0755)
+	data, err := os.ReadFile(source)
+	if err != nil {
+		log.Printf("[Hive2] Failed to read source script: %v", err)
+		return
+	}
+	if err := os.WriteFile(target, data, 0644); err != nil {
+		log.Printf("[Hive2] Failed to deploy script: %v", err)
+		return
+	}
+	log.Printf("[Hive2] Deployed hive_v2_worker.py to %s", target)
 }
 
 // Start launches workers for a project.
@@ -69,9 +125,30 @@ func (r *Runner) Start(projectID string, numWorkers int, llmNo int) error {
 		return fmt.Errorf("project %s already running", projectID)
 	}
 
+	// Look for hive_v2_worker.py in GA root first, then in exe directory
 	reflectScript := filepath.Join(r.gaRoot, "reflect", "hive_v2_worker.py")
 	if _, err := os.Stat(reflectScript); err != nil {
-		return fmt.Errorf("hive_v2_worker.py not found at %s", reflectScript)
+		// Try alongside the executable (for packaged app)
+		if exePath, err2 := os.Executable(); err2 == nil {
+			candidate := filepath.Join(filepath.Dir(exePath), "reflect", "hive_v2_worker.py")
+			if _, err3 := os.Stat(candidate); err3 == nil {
+				reflectScript = candidate
+			}
+		}
+		// Try current working directory
+		if _, err2 := os.Stat(reflectScript); err2 != nil {
+			if cwd, err3 := os.Getwd(); err3 == nil {
+				candidate := filepath.Join(cwd, "reflect", "hive_v2_worker.py")
+				if _, err4 := os.Stat(candidate); err4 == nil {
+					reflectScript = candidate
+				}
+			}
+		}
+		// Final check
+		if _, err2 := os.Stat(reflectScript); err2 != nil {
+			// Auto-deploy: copy the embedded script to GA root
+			return fmt.Errorf("hive_v2_worker.py not found. Please copy reflect/hive_v2_worker.py to %s/reflect/", r.gaRoot)
+		}
 	}
 
 	pr := &ProjectRunner{
@@ -93,6 +170,8 @@ func (r *Runner) Start(projectID string, numWorkers int, llmNo int) error {
 			filepath.Join(r.gaRoot, "agentmain.py"),
 			"--reflect", reflectScript,
 			"--llm_no", strconv.Itoa(llmNo),
+			"--base_url", baseURL,
+			"--project_id", projectID,
 		)
 		cmd.Dir = r.gaRoot
 		cmd.Env = append(os.Environ(),
