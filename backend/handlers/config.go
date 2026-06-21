@@ -3,6 +3,9 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"ga_manager/services"
 )
@@ -87,4 +90,36 @@ func (h *ConfigHandler) GetLLMs(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, llms)
+}
+
+// ListReflects returns available reflect scripts from {gaRoot}/reflect/
+// GET /api/config/reflects
+func (h *ConfigHandler) ListReflects(w http.ResponseWriter, r *http.Request) {
+	gaRoot := h.svc.GetGARoot()
+	reflectDir := filepath.Join(gaRoot, "reflect")
+
+	entries, err := os.ReadDir(reflectDir)
+	if err != nil {
+		writeJSON(w, http.StatusOK, []interface{}{})
+		return
+	}
+
+	type ReflectInfo struct {
+		File string `json:"file"`
+		Name string `json:"name"`
+	}
+
+	var results []ReflectInfo
+	for _, e := range entries {
+		if e.IsDir() || !strings.HasSuffix(e.Name(), ".py") || e.Name() == "__init__.py" {
+			continue
+		}
+		name := strings.TrimSuffix(e.Name(), ".py")
+		displayName := strings.ReplaceAll(name, "_", " ")
+		results = append(results, ReflectInfo{File: e.Name(), Name: displayName})
+	}
+	if results == nil {
+		results = []ReflectInfo{}
+	}
+	writeJSON(w, http.StatusOK, results)
 }

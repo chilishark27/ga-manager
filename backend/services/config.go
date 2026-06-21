@@ -23,6 +23,9 @@ func NewConfigService(gaRoot, pythonPath string) *ConfigService {
 	return &ConfigService{gaRoot: gaRoot, pythonPath: pythonPath}
 }
 
+// GetGARoot returns the GA root path
+func (s *ConfigService) GetGARoot() string { return s.gaRoot }
+
 // UpdateRoot updates the GA root path
 func (s *ConfigService) UpdateRoot(newRoot string) {
 	s.gaRoot = newRoot

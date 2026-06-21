@@ -225,6 +225,7 @@ func main() {
 	mux.HandleFunc("GET /api/config/templates", cfgHandler.GetTemplates)
 	mux.HandleFunc("GET /api/config/status", cfgHandler.Status)
 	mux.HandleFunc("GET /api/config/llms", cfgHandler.GetLLMs)
+	mux.HandleFunc("GET /api/config/reflects", cfgHandler.ListReflects)
 
 	// Plugins list
 	mux.HandleFunc("GET /api/plugins", func(w http.ResponseWriter, r *http.Request) {

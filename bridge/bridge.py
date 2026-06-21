@@ -338,6 +338,54 @@ def _recover_history(ga_root):
     return history
 
 
+def build_project_context(project_dir):
+    """Scan project directory and build context summary."""
+    if not os.path.isdir(project_dir):
+        return ""
+
+    lines = [f"[项目上下文] 工作目录: {project_dir}", ""]
+
+    # Directory tree (max 3 levels, exclude common junk)
+    exclude = {'node_modules', '.git', '__pycache__', 'venv', '.venv', 'dist', 'build', '.next', 'target', '.idea', '.vscode'}
+    tree_lines = []
+    for root, dirs, files in os.walk(project_dir):
+        rel = os.path.relpath(root, project_dir)
+        depth = 0 if rel == '.' else rel.count(os.sep) + 1
+        if depth >= 3:
+            dirs.clear()
+            continue
+        dirs[:] = [d for d in sorted(dirs) if d not in exclude and not d.startswith('.')]
+        indent = "  " * depth
+        if rel != '.':
+            tree_lines.append(f"{indent}{os.path.basename(root)}/")
+        for f in sorted(files)[:20]:  # max 20 files per dir
+            tree_lines.append(f"{indent}  {f}")
+
+    if tree_lines:
+        lines.append("目录结构:")
+        lines.extend(tree_lines[:60])  # cap at 60 lines
+        if len(tree_lines) > 60:
+            lines.append(f"  ... ({len(tree_lines) - 60} more)")
+        lines.append("")
+
+    # Key files
+    key_files = ['README.md', 'README.rst', 'README', 'package.json', 'go.mod',
+                 'Cargo.toml', 'pyproject.toml', 'pom.xml', 'requirements.txt']
+    for fname in key_files:
+        fpath = os.path.join(project_dir, fname)
+        if os.path.isfile(fpath):
+            try:
+                with open(fpath, 'r', encoding='utf-8', errors='ignore') as f:
+                    content = f.read(1000)  # first 1000 chars
+                lines.append(f"--- {fname} ---")
+                lines.append(content.strip())
+                lines.append("")
+            except Exception:
+                pass
+
+    return "\n".join(lines)
+
+
 def main():
     parser = argparse.ArgumentParser(description="GA Bridge subprocess")
     parser.add_argument("--ga-root", required=True, help="Path to GenericAgent root directory")
@@ -346,7 +394,13 @@ def main():
     parser.add_argument("--autonomous", action="store_true", help="Enable autonomous mode")
     parser.add_argument("--goal", default="", help="Goal prompt")
     parser.add_argument("--recover", action="store_true", help="Recover history from model_responses")
+    parser.add_argument("--project-dir", default="", help="Project directory for context injection")
     args = parser.parse_args()
+
+    # Build project context if --project-dir was specified
+    _project_context = [""]
+    if args.project_dir:
+        _project_context[0] = build_project_context(args.project_dir)
 
     agent_dir = os.path.abspath(args.ga_root)
     if not os.path.isdir(agent_dir):
@@ -830,6 +884,10 @@ def main():
                         query = f"[图片处理失败: {e}]\n\n{text}" if text else f"[图片处理失败: {e}]"
             else:
                 query = text
+            # Inject project context into the first user message
+            if _project_context[0]:
+                query = _project_context[0] + "\n\n---\n\n" + query
+                _project_context[0] = ""
             # Handle slash commands locally
             if query.startswith('/'):
                 cmd_handled = False
