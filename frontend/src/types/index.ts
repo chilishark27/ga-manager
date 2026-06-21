@@ -18,6 +18,8 @@ export interface Instance {
   mode: string;          // "Web" | "IM" | "Goal" | "Sche"
   im_channel: string;    // "qq" | "telegram" | "discord" | etc
   ga_root?: string;
+  project_dir?: string;
+  reflect_script?: string;
 }
 
 export interface ChatMessage {

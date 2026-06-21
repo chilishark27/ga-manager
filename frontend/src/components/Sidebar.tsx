@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { useStore } from '../store';
 import { useI18n } from '../i18n';
@@ -27,6 +27,15 @@ function Sidebar() {
   const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
   const defaultGaRoot = localStorage.getItem('ga_root') || '';
   const [gaRoot, setGaRoot] = useState(defaultGaRoot);
+  const [projectDir, setProjectDir] = useState('');
+  const [reflectScript, setReflectScript] = useState('');
+  const [reflects, setReflects] = useState<{file: string; name: string}[]>([]);
+
+  useEffect(() => {
+    fetch('/api/config/reflects').then(r => r.json()).then(data => {
+      if (Array.isArray(data)) setReflects(data);
+    }).catch(() => {});
+  }, []);
 
   // Adopt modal state
   const [showAdopt, setShowAdopt] = useState(false);
@@ -36,9 +45,17 @@ function Sidebar() {
   const handleCreate = async () => {
     const name = newName.trim() || `GA-${instances.length + 1}`;
     localStorage.setItem('ga_root', gaRoot);
-    await createInstance({ name, llm_no: selectedLLM, ga_root: gaRoot });
+    await createInstance({
+      name,
+      llm_no: selectedLLM,
+      ga_root: gaRoot,
+      project_dir: projectDir || undefined,
+      reflect_script: reflectScript || undefined,
+    });
     setNewName('');
     setSelectedLLM(1);
+    setProjectDir('');
+    setReflectScript('');
     setShowCreate(false);
   };
 
@@ -119,6 +136,11 @@ function Sidebar() {
             <div className="ic-top">
               <div className={getDotClass(inst)} />
               <span className="ic-name">{inst.name}</span>
+              {inst.project_dir && (
+                <span style={{ fontSize: 9, color: 'var(--text-3)', marginLeft: 4 }}>
+                  [{inst.project_dir.split(/[/\\]/).filter(Boolean).pop()}]
+                </span>
+              )}
               <span className="ic-mode" style={{ background: getModeColor(inst.mode) }}>
                 {inst.mode}
               </span>
@@ -231,6 +253,34 @@ function Sidebar() {
                 </div>
               )}
             </div>
+            <div className="modal-llm-section">
+              <label className="modal-label">项目目录 (可选)</label>
+              <input
+                className="modal-input"
+                placeholder="本地项目路径，如 D:\projects\my-app"
+                value={projectDir}
+                onChange={e => setProjectDir(e.target.value)}
+              />
+              <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 4 }}>
+                实例将以此目录为工作区，自动注入项目上下文
+              </div>
+            </div>
+            {reflects.length > 0 && (
+              <div className="modal-llm-section">
+                <label className="modal-label">Reflect 脚本 (可选)</label>
+                <select
+                  className="modal-input"
+                  value={reflectScript}
+                  onChange={e => setReflectScript(e.target.value)}
+                  style={{ height: 36 }}
+                >
+                  <option value="">无 (普通对话模式)</option>
+                  {reflects.map(r => (
+                    <option key={r.file} value={r.file}>{r.name} ({r.file})</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="modal-actions">
               <button className="modal-btn cancel" onClick={() => setShowCreate(false)}>{t.cancel}</button>
               <button className="modal-btn confirm" onClick={handleCreate}>{t.create}</button>

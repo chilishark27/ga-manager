@@ -242,6 +242,8 @@ export const useStore = create<AppState>((set, get) => ({
           health: (r.state === 'running' || r.state === 'busy' || r.state === 'starting') ? 'healthy' : 'error',
           mode: r.mode || (r.autonomous ? 'Goal' : 'Web'),
           im_channel: r.im_channel || '',
+          project_dir: r.project_dir || undefined,
+          reflect_script: r.reflect_script || undefined,
         }));
         // Auto-select first instance if none selected
         const currentId = get().activeInstanceId;
