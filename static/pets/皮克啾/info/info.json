@@ -1,0 +1,18 @@
+{
+    "coverImages": ["cover.png", "10wfansyeah.png"],
+    "pfp":"pikechuu.png",
+    "petName": "皮克啾",
+    "tages": {
+        "代号皮克嗖儿":"#C5E0B4",
+        "附属宠物":"#BDD7EE"
+    },
+    "intro": "皮克啾,一种团子形状的可爱小生灵.\n经常与皮克嗖儿结伴出现,是皮克嗖儿的好朋友.\n小天使般的存在❤",
+    "author":{
+        "name":"代号皮克嗖儿",
+        "pfp":"pikesou.png",
+        "frameColor":"#8FAADC",
+        "links":{
+            "BiliBili":"9959876"
+        }
+    }
+}

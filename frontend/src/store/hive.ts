@@ -42,7 +42,9 @@ interface HiveState {
   fetchTemplates: () => Promise<void>;
   fetchPoolStats: () => Promise<void>;
   createProject: (data: { name?: string; objective: string; budget_minutes?: number; template?: string; vars?: Record<string, string>; executor_config?: Record<string, unknown> }) => Promise<string | null>;
+  deleteProject: (id: string) => Promise<void>;
   selectProject: (id: string | null) => void;
+  readContext: (projectId: string, key: string) => Promise<string>;
 }
 
 export const useHiveStore = create<HiveState>((set, get) => ({
@@ -79,5 +81,17 @@ export const useHiveStore = create<HiveState>((set, get) => ({
     return null;
   },
 
+  deleteProject: async (id: string) => {
+    await fetch(`/api/hive2/projects/${encodeURIComponent(id)}`, { method: 'DELETE' });
+    set({ selectedProjectId: null, projectDetail: null });
+    get().fetchProjects();
+  },
+
   selectProject: (id) => set({ selectedProjectId: id }),
+
+  readContext: async (projectId: string, key: string): Promise<string> => {
+    const res = await fetch(`/api/hive2/projects/${encodeURIComponent(projectId)}/context/${encodeURIComponent(key)}`);
+    if (res.ok) { const d = await res.json(); return d.content || ''; }
+    return '';
+  },
 }));

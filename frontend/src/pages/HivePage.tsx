@@ -5,7 +5,7 @@ import NewProjectDialog from '../components/hive/NewProjectDialog';
 
 function HivePage() {
   const { lang } = useI18n();
-  const { projects, fetchProjects, selectProject } = useHiveStore();
+  const { projects, fetchProjects, selectProject, deleteProject } = useHiveStore();
   const [showNew, setShowNew] = useState(false);
   const isZh = lang === 'zh';
 
@@ -17,6 +17,13 @@ function HivePage() {
 
   const active = projects.filter(p => p.status === 'running' || p.status === 'paused');
   const done = projects.filter(p => p.status === 'completed' || p.status === 'failed');
+
+  const handleDelete = (e: React.MouseEvent, p: { id: string; name: string; objective: string }) => {
+    e.stopPropagation();
+    if (window.confirm(isZh ? `确定删除项目 "${p.name || p.objective.slice(0, 30)}"？` : `Delete "${p.name || p.objective.slice(0, 30)}"?`)) {
+      deleteProject(p.id);
+    }
+  };
 
   return (
     <div className="hive-page">
@@ -79,6 +86,11 @@ function HivePage() {
                       {p.task_count.done}/{p.task_count.total}
                     </span>
                     <span className={`hive2-status ${p.status}`}>{p.status}</span>
+                    <button
+                      onClick={e => handleDelete(e, p)}
+                      style={{ fontSize: 12, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-3)', padding: '2px 6px', borderRadius: 4 }}
+                      title={isZh ? '删除' : 'Delete'}
+                    >🗑</button>
                   </div>
                 </div>
               ))}
@@ -109,6 +121,11 @@ function HivePage() {
                       {p.task_count.done}/{p.task_count.total}
                     </span>
                     <span className={`hive2-status ${p.status}`}>{p.status}</span>
+                    <button
+                      onClick={e => handleDelete(e, p)}
+                      style={{ fontSize: 12, background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--text-3)', padding: '2px 6px', borderRadius: 4 }}
+                      title={isZh ? '删除' : 'Delete'}
+                    >🗑</button>
                   </div>
                 </div>
               ))}

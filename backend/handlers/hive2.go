@@ -247,6 +247,22 @@ func (h *Hive2Handler) GetNextTask(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, 200, task)
 }
 
+// DeleteProject handles DELETE /api/hive2/projects/{id}
+func (h *Hive2Handler) DeleteProject(w http.ResponseWriter, r *http.Request) {
+	id := r.PathValue("id")
+
+	// Stop workers if running
+	h.runner.Stop(id)
+
+	// Delete the project directory
+	dir := filepath.Join(h.store.BaseDir(), id)
+	if err := os.RemoveAll(dir); err != nil {
+		writeError(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, 200, map[string]string{"status": "deleted"})
+}
+
 // --- Context endpoints ---
 
 // ListContext handles GET /api/hive2/projects/{id}/context

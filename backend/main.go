@@ -164,6 +164,7 @@ func main() {
 	mux.HandleFunc("GET /api/hive2/projects/{id}/logs/{taskId}", hive2Handler.GetTaskLog)
 	mux.HandleFunc("GET /api/hive2/templates", hive2Handler.ListTemplates)
 	mux.HandleFunc("GET /api/hive2/pool/stats", hive2Handler.PoolStats)
+	mux.HandleFunc("DELETE /api/hive2/projects/{id}", hive2Handler.DeleteProject)
 	mux.HandleFunc("POST /api/hive2/projects/{id}/start", hive2Handler.StartProject)
 	mux.HandleFunc("POST /api/hive2/projects/{id}/stop", hive2Handler.StopProject)
 	mux.HandleFunc("GET /api/hive2/projects/{id}/runner", hive2Handler.GetRunnerLogs)

@@ -13,7 +13,7 @@ interface RunnerStatus {
 
 function HiveProjectPage() {
   const { lang } = useI18n();
-  const { selectedProjectId, projectDetail, fetchProjectDetail, selectProject } = useHiveStore();
+  const { selectedProjectId, projectDetail, fetchProjectDetail, selectProject, deleteProject } = useHiveStore();
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   const [runnerStatus, setRunnerStatus] = useState<RunnerStatus>({ running: false, logs: [] });
@@ -89,6 +89,12 @@ function HiveProjectPage() {
     });
   };
 
+  const handleDelete = () => {
+    if (window.confirm(isZh ? `确定删除项目 "${project.name || project.objective.slice(0, 30)}"？此操作不可撤销。` : `Delete project "${project.name || project.objective.slice(0, 30)}"? This cannot be undone.`)) {
+      deleteProject(project.id);
+    }
+  };
+
   return (
     <div className="hive-page" style={{ display: 'flex', flexDirection: 'column' }}>
       {/* Header */}
@@ -119,6 +125,14 @@ function HiveProjectPage() {
             ⏸ {isZh ? '暂停' : 'Pause'}
           </button>
         )}
+        <button
+          className="ch-btn"
+          onClick={handleDelete}
+          style={{ color: 'var(--red, #f87171)', borderColor: 'var(--red, #f87171)', opacity: 0.7 }}
+          title={isZh ? '删除项目' : 'Delete project'}
+        >
+          🗑
+        </button>
       </div>
 
       {/* Claude Code connection card — always visible */}
@@ -204,7 +218,7 @@ function HiveProjectPage() {
       </div>
 
       {/* Context bar */}
-      <ContextBar context={context} />
+      <ContextBar context={context} projectId={project.id} />
     </div>
   );
 }
