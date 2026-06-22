@@ -5,7 +5,7 @@ interface HivePost {
   id: number;
   author: string;
   content: string;
-  created_at: string;
+  created_at: number;
 }
 
 interface HiveStatus {
@@ -87,8 +87,16 @@ function HivePage() {
     return () => clearInterval(t);
   }, [status.running]);
 
+  const postsContainerRef = useRef<HTMLDivElement>(null);
+
+  // Only auto-scroll if user is already near the bottom
   useEffect(() => {
-    postsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = postsContainerRef.current;
+    if (!el) return;
+    const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    if (isNearBottom) {
+      postsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
   }, [posts.length]);
 
   useEffect(() => {
@@ -277,12 +285,12 @@ function HivePage() {
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 280px', gap: 12 }}>
           <div>
-            <div className="page-card" style={{ height: 360, overflowY: 'auto', marginBottom: 10, padding: '10px 12px' }}>
+            <div ref={postsContainerRef} className="page-card" style={{ height: 360, overflowY: 'auto', marginBottom: 10, padding: '10px 12px' }}>
               {posts.map(p => (
                 <div key={p.id} style={{ marginBottom: 12 }}>
                   <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 2 }}>
                     <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--accent, #7c3aed)' }}>{p.author}</span>
-                    <span style={{ fontSize: 10, color: 'var(--text-3)' }}>{new Date(p.created_at).toLocaleTimeString()}</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-3)' }}>{new Date(p.created_at * 1000).toLocaleTimeString()}</span>
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--text-1)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{p.content}</div>
                 </div>
