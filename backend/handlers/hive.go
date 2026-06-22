@@ -57,17 +57,18 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	h.mu.Unlock()
 
 	var body struct {
-		Objective string `json:"objective"`
-		Budget    int    `json:"budget_minutes"`
-		Workers   int    `json:"workers"`
-		LLMNo     int    `json:"llm_no"`
-		Mode      string `json:"mode"` // "hive" (default) or "checklist"
+		Objective  string `json:"objective"`
+		Budget     int    `json:"budget_minutes"`
+		Workers    int    `json:"workers"`
+		LLMNo      int    `json:"llm_no"`
+		Mode       string `json:"mode"` // "hive" (default) or "checklist"
+		ProjectDir string `json:"project_dir"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Objective == "" {
 		writeError(w, http.StatusBadRequest, "objective is required")
 		return
 	}
-	if body.Budget <= 0 {
+	if body.Budget < 0 {
 		body.Budget = 180
 	}
 	if body.Workers <= 0 {
@@ -137,8 +138,14 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	h.budget = body.Budget
 	h.startedAt = time.Now()
 
-	bbsCwd := filepath.Join(gaRoot, "temp", fmt.Sprintf("hive_%d", time.Now().Unix()))
-	os.MkdirAll(bbsCwd, 0755)
+	var bbsCwd string
+	if body.ProjectDir != "" {
+		bbsCwd = body.ProjectDir
+		os.MkdirAll(bbsCwd, 0755)
+	} else {
+		bbsCwd = filepath.Join(gaRoot, "temp", fmt.Sprintf("hive_%d", time.Now().Unix()))
+		os.MkdirAll(bbsCwd, 0755)
+	}
 
 	h.addLog(fmt.Sprintf("Starting BBS on port %d...", h.port))
 	h.bbsCmd = exec.Command(python, "-u", bbsScript,
@@ -384,18 +391,20 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	// Auto-stop when budget expires
-	go func() {
-		timeout := time.Duration(body.Budget) * time.Minute
-		time.Sleep(timeout + 2*time.Minute)
-		h.mu.Lock()
-		if h.running {
-			h.mu.Unlock()
-			h.addLog(fmt.Sprintf("Budget expired (%d min), auto-stopping...", body.Budget))
-			h.stopAll()
-		} else {
-			h.mu.Unlock()
-		}
-	}()
+	if body.Budget > 0 {
+		go func() {
+			timeout := time.Duration(body.Budget) * time.Minute
+			time.Sleep(timeout + 2*time.Minute)
+			h.mu.Lock()
+			if h.running {
+				h.mu.Unlock()
+				h.addLog(fmt.Sprintf("Budget expired (%d min), auto-stopping...", body.Budget))
+				h.stopAll()
+			} else {
+				h.mu.Unlock()
+			}
+		}()
+	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"status": "running", "port": h.port, "board_key": h.boardKey,
