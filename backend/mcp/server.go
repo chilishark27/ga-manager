@@ -8,6 +8,7 @@ import (
 	"os"
 
 	"ga_manager/hive2"
+	"ga_manager/models"
 )
 
 // JSON-RPC 2.0 types
@@ -36,6 +37,7 @@ type Server struct {
 	engine  *hive2.TaskEngine
 	context *hive2.ContextStore
 	tracker *hive2.FileTracker
+	cfg     *models.AppConfig // for BBS proxy (BBSBaseURL, BBSKey)
 	tools   map[string]ToolHandler
 	input   io.Reader
 	output  io.Writer
@@ -43,12 +45,13 @@ type Server struct {
 
 type ToolHandler func(params json.RawMessage) (interface{}, error)
 
-func NewServer(store *hive2.ProjectStore, engine *hive2.TaskEngine, ctx *hive2.ContextStore, tracker *hive2.FileTracker) *Server {
+func NewServer(store *hive2.ProjectStore, engine *hive2.TaskEngine, ctx *hive2.ContextStore, tracker *hive2.FileTracker, cfg *models.AppConfig) *Server {
 	s := &Server{
 		store:   store,
 		engine:  engine,
 		context: ctx,
 		tracker: tracker,
+		cfg:     cfg,
 		tools:   make(map[string]ToolHandler),
 		input:   os.Stdin,
 		output:  os.Stdout,
@@ -58,12 +61,13 @@ func NewServer(store *hive2.ProjectStore, engine *hive2.TaskEngine, ctx *hive2.C
 }
 
 // NewServerWithIO creates a server with custom IO (for testing)
-func NewServerWithIO(store *hive2.ProjectStore, engine *hive2.TaskEngine, ctx *hive2.ContextStore, tracker *hive2.FileTracker, in io.Reader, out io.Writer) *Server {
+func NewServerWithIO(store *hive2.ProjectStore, engine *hive2.TaskEngine, ctx *hive2.ContextStore, tracker *hive2.FileTracker, cfg *models.AppConfig, in io.Reader, out io.Writer) *Server {
 	s := &Server{
 		store:   store,
 		engine:  engine,
 		context: ctx,
 		tracker: tracker,
+		cfg:     cfg,
 		tools:   make(map[string]ToolHandler),
 		input:   in,
 		output:  out,
@@ -173,4 +177,7 @@ var toolDescriptions = map[string]string{
 	"hive_context_write":     "Write a new context entry",
 	"hive_artifact_register": "Register a produced artifact file",
 	"hive_project_summary":   "Get project overview with task counts and status",
+	"hive_bbs_posts":         "Read posts from the running Hive BBS (optional limit, default 30)",
+	"hive_bbs_post":          "Post a message to the running Hive BBS as ClaudeCode",
+	"hive_bbs_status":        "Get the current Hive BBS running status and connection info",
 }

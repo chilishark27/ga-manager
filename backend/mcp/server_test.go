@@ -24,7 +24,7 @@ func setupTestServer(t *testing.T) (*Server, string) {
 	})
 
 	var out bytes.Buffer
-	s := NewServerWithIO(store, engine, ctx, tracker, nil, &out)
+	s := NewServerWithIO(store, engine, ctx, tracker, nil, nil, &out)
 	return s, p.ID
 }
 
