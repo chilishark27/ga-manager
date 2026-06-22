@@ -32,3 +32,14 @@ frontend/tsconfig.tsbuildinfo
 instances.json
 costs.json
 todos.json
+
+# GA Core user data (never commit secrets or runtime data)
+ga_core/mykey.py
+ga_core/temp/
+ga_core/bbs_files/
+ga_core/hive_projects/
+ga_core/hive_templates/
+ga_core/__pycache__/
+ga_core/.coverage
+ga_core/memory/*.md
+!ga_core/memory/README.md

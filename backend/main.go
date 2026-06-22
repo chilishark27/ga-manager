@@ -898,10 +898,27 @@ return POSIX path of theFolder`)
 }
 
 func loadConfig() *models.AppConfig {
-	// Platform-aware default GA root
+	// Platform-aware default GA root: prefer bundled ga_core/ if it exists
 	defaultGARoot := ""
-	if home, err := os.UserHomeDir(); err == nil {
-		defaultGARoot = filepath.Join(home, "GenericAgent")
+	exeDir := getExeDir()
+	// Check for bundled ga_core/ next to executable
+	bundledGA := filepath.Join(exeDir, "ga_core")
+	if _, err := os.Stat(filepath.Join(bundledGA, "agentmain.py")); err == nil {
+		defaultGARoot = bundledGA
+	} else {
+		// Check in current working directory
+		if cwd, err := os.Getwd(); err == nil {
+			cwdGA := filepath.Join(cwd, "ga_core")
+			if _, err := os.Stat(filepath.Join(cwdGA, "agentmain.py")); err == nil {
+				defaultGARoot = cwdGA
+			}
+		}
+	}
+	// Fallback to ~/GenericAgent
+	if defaultGARoot == "" {
+		if home, err := os.UserHomeDir(); err == nil {
+			defaultGARoot = filepath.Join(home, "GenericAgent")
+		}
 	}
 	// Default python path: detect on unix, "python" on windows
 	defaultPython := "python"
