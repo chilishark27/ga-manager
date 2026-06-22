@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useI18n } from '../i18n';
+import { useStore } from '../store';
 
 interface HivePost {
   id: number;
@@ -34,16 +35,17 @@ const DEFAULT_STATUS: HiveStatus = {
 function HivePage() {
   const { lang } = useI18n();
   const isZh = lang === 'zh';
+  const activeInstance = useStore(s => s.activeInstance());
   const [status, setStatus] = useState<HiveStatus>(DEFAULT_STATUS);
   const [posts, setPosts] = useState<HivePost[]>([]);
   const [authors, setAuthors] = useState<string[]>([]);
   const [history, setHistory] = useState<RunSummary[]>([]);
   const [objective, setObjective] = useState('');
-  const [budget, setBudget] = useState(60);
+  const [budget, setBudget] = useState(0);
   const [workers, setWorkers] = useState(2);
-  const [llmNo, setLlmNo] = useState(0);
+  const [llmNo, setLlmNo] = useState(activeInstance?.llm_no || 0);
   const [mode, setMode] = useState('hive');
-  const [projectDir, setProjectDir] = useState('');
+  const [projectDir, setProjectDir] = useState(activeInstance?.project_dir || '');
   const [msgInput, setMsgInput] = useState('');
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
