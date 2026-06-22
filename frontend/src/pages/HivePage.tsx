@@ -214,13 +214,22 @@ function HivePage() {
                 </select>
               </div>
             </div>
-            <div style={{ marginBottom: 16 }}>
+            <div>
               <label style={{ fontSize: 12, color: 'var(--text-3)', display: 'block', marginBottom: 4 }}>
                 {isZh ? '项目目录 (可选)' : 'Project Dir (optional)'}
               </label>
-              <input type="text" value={projectDir} onChange={e => setProjectDir(e.target.value)}
-                placeholder={isZh ? '留空则自动创建临时目录' : 'Leave empty to auto-create temp dir'}
-                style={{ width: '100%', padding: '6px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text-1)', fontSize: 13, fontFamily: 'monospace', boxSizing: 'border-box' }} />
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input type="text" value={projectDir} onChange={e => setProjectDir(e.target.value)}
+                  placeholder={isZh ? '留空则自动创建临时目录' : 'Leave empty to auto-create temp dir'}
+                  style={{ flex: 1, padding: '6px 8px', borderRadius: 4, border: '1px solid var(--border)', background: 'var(--bg2)', color: 'var(--text-1)', fontSize: 13, fontFamily: 'monospace', boxSizing: 'border-box' }} />
+                <button className="ch-btn" style={{ flexShrink: 0 }} onClick={async () => {
+                  try {
+                    const res = await fetch('/api/project/browse', { method: 'POST' });
+                    const data = await res.json();
+                    if (data.path) setProjectDir(data.path);
+                  } catch {}
+                }}>📁</button>
+              </div>
             </div>
             {error && <div style={{ color: 'var(--red)', fontSize: 13, marginBottom: 8 }}>{error}</div>}
             <button className="setup-btn" onClick={handleStart} disabled={starting}

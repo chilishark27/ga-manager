@@ -319,12 +319,22 @@ function Sidebar() {
             </div>
             <div className="modal-llm-section">
               <label className="modal-label">项目目录 (可选)</label>
-              <input
-                className="modal-input"
-                placeholder="本地项目路径，如 D:\projects\my-app"
-                value={projectDir}
-                onChange={e => setProjectDir(e.target.value)}
-              />
+              <div style={{ display: 'flex', gap: 6 }}>
+                <input
+                  className="modal-input"
+                  style={{ flex: 1 }}
+                  placeholder="本地项目路径，如 D:\projects\my-app"
+                  value={projectDir}
+                  onChange={e => setProjectDir(e.target.value)}
+                />
+                <button className="ch-btn" style={{ flexShrink: 0 }} onClick={async () => {
+                  try {
+                    const res = await fetch('/api/project/browse', { method: 'POST' });
+                    const data = await res.json();
+                    if (data.path) setProjectDir(data.path);
+                  } catch {}
+                }}>📁</button>
+              </div>
               <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 4 }}>
                 实例将以此目录为工作区，自动注入项目上下文
               </div>
