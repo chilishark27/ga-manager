@@ -35,7 +35,8 @@ const DEFAULT_STATUS: HiveStatus = {
 function HivePage() {
   const { lang } = useI18n();
   const isZh = lang === 'zh';
-  const activeInstance = useStore(s => s.activeInstance());
+  const getActiveInstance = useStore(s => s.activeInstance);
+  const activeInstance = getActiveInstance();
   const [status, setStatus] = useState<HiveStatus>(DEFAULT_STATUS);
   const [posts, setPosts] = useState<HivePost[]>([]);
   const [authors, setAuthors] = useState<string[]>([]);
