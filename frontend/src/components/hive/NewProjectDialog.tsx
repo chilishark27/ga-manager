@@ -53,12 +53,13 @@ export default function NewProjectDialog({ onClose }: { onClose: () => void }) {
         {/* Settings row */}
         <div style={{ display: 'flex', gap: 12 }}>
           <div className="form-group" style={{ flex: 1 }}>
-            <label>{isZh ? '时间预算 (分钟)' : 'Budget (min)'}</label>
+            <label>{isZh ? '时间预算 (分钟, 0=无限)' : 'Budget (min, 0=∞)'}</label>
             <input
               className="modal-input"
               type="number"
               value={budget}
               onChange={e => setBudget(+e.target.value)}
+              min={0}
             />
           </div>
           <div className="form-group" style={{ flex: 1 }}>

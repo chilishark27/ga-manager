@@ -85,9 +85,8 @@ func (h *Hive2Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 		}
 		body.Name = string([]rune(body.Objective)[:end])
 	}
-	if body.Budget <= 0 {
-		body.Budget = 60
-	}
+	// Budget 0 = unlimited (no auto-stop)
+	// Only default to 60 if not explicitly provided (negative = error)
 
 	p, err := h.store.Create(body.Name, body.Objective, body.Budget, body.Config)
 	if err != nil {
