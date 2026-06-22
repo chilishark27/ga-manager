@@ -142,30 +142,6 @@ function Sidebar() {
             <div className="ic-top">
               <div className={getDotClass(inst)} />
               <span className="ic-name">{inst.name}</span>
-              {inst.project_dir ? (
-                <span
-                  title={inst.project_dir}
-                  style={{ fontSize: 9, color: 'var(--text-3)', marginLeft: 4, cursor: 'pointer' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingProjectId(inst.id);
-                    setEditProjectDir(inst.project_dir || '');
-                    setEditReflectScript(inst.reflect_script || '');
-                  }}
-                >
-                  [{inst.project_dir.split(/[/\\]/).filter(Boolean).pop()}]
-                </span>
-              ) : (
-                <span
-                  style={{ fontSize: 9, color: 'var(--text-3)', marginLeft: 4, cursor: 'pointer', textDecoration: 'underline dotted' }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingProjectId(inst.id);
-                    setEditProjectDir('');
-                    setEditReflectScript('');
-                  }}
-                >{lang === 'zh' ? '设置项目' : 'set project'}</span>
-              )}
               <span className="ic-mode" style={{ background: getModeColor(inst.mode) }}>
                 {inst.mode}
               </span>
@@ -196,6 +172,17 @@ function Sidebar() {
             <div className="ic-meta">
               PID {inst.pid} · {formatUptime(inst.uptime)} · {inst.tokens_used >= 1000 ? `${(inst.tokens_used / 1000).toFixed(1)}K` : inst.tokens_used} tok
             </div>
+            <div style={{ fontSize: 10, color: inst.project_dir ? 'var(--accent)' : 'var(--text-3)', marginTop: 2, paddingLeft: 14, cursor: 'pointer' }}
+              onClick={(e) => {
+                e.stopPropagation();
+                setEditingProjectId(editingProjectId === inst.id ? null : inst.id);
+                setEditProjectDir(inst.project_dir || '');
+                setEditReflectScript(inst.reflect_script || '');
+              }}>
+              {inst.project_dir
+                ? `📁 ${inst.project_dir.split(/[/\\]/).filter(Boolean).pop()}`
+                : (lang === 'zh' ? '📁 选择项目目录' : '📁 Set project')}
+            </div>
             <div className="ic-tags">
               <span className={`ic-tag ${inst.health === 'healthy' ? 'on' : ''}`}>{t.healthy}</span>
               <span className={`ic-tag ${inst.autonomous ? 'on' : ''}`}>{t.autonomous}</span>
@@ -207,15 +194,28 @@ function Sidebar() {
                 style={{ marginTop: 6, padding: '6px 8px', background: 'var(--bg-3)', borderRadius: 6, border: '1px solid var(--border)' }}
                 onClick={e => e.stopPropagation()}
               >
-                <input
-                  style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: 4,
-                    border: '1px solid var(--border)', background: 'var(--bg-2)', color: 'var(--text)',
-                    fontSize: 11, marginBottom: 4 }}
-                  placeholder={lang === 'zh' ? '项目目录路径' : 'project_dir path'}
-                  value={editProjectDir}
-                  onChange={e => setEditProjectDir(e.target.value)}
-                  autoFocus
-                />
+                <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
+                  <input
+                    style={{ flex: 1, boxSizing: 'border-box', padding: '3px 6px', borderRadius: 4,
+                      border: '1px solid var(--border)', background: 'var(--bg-2)', color: 'var(--text)',
+                      fontSize: 11 }}
+                    placeholder={lang === 'zh' ? '项目目录路径' : 'project_dir path'}
+                    value={editProjectDir}
+                    onChange={e => setEditProjectDir(e.target.value)}
+                    autoFocus
+                  />
+                  <button
+                    style={{ padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)',
+                      background: 'transparent', cursor: 'pointer', fontSize: 11 }}
+                    onClick={async () => {
+                      try {
+                        const res = await fetch('/api/project/browse', { method: 'POST' });
+                        const data = await res.json();
+                        if (data.path) setEditProjectDir(data.path);
+                      } catch {}
+                    }}
+                  >📁</button>
+                </div>
                 <input
                   style={{ width: '100%', boxSizing: 'border-box', padding: '3px 6px', borderRadius: 4,
                     border: '1px solid var(--border)', background: 'var(--bg-2)', color: 'var(--text)',
