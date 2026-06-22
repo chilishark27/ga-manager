@@ -41,7 +41,7 @@ interface HiveState {
   fetchProjectDetail: (id: string) => Promise<void>;
   fetchTemplates: () => Promise<void>;
   fetchPoolStats: () => Promise<void>;
-  createProject: (data: { name?: string; objective: string; budget_minutes?: number; template?: string; vars?: Record<string, string>; executor_config?: Record<string, unknown> }) => Promise<string | null>;
+  createProject: (data: { name?: string; objective: string; budget_minutes?: number; template?: string; vars?: Record<string, string>; executor_config?: Record<string, unknown>; project_dir?: string }) => Promise<string | null>;
   deleteProject: (id: string) => Promise<void>;
   selectProject: (id: string | null) => void;
   readContext: (projectId: string, key: string) => Promise<string>;

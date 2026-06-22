@@ -118,6 +118,7 @@ type Project struct {
 	ID             string         `json:"id"`
 	Name           string         `json:"name"`
 	Objective      string         `json:"objective"`
+	ProjectDir     string         `json:"project_dir,omitempty"`
 	Status         ProjectStatus  `json:"status"`
 	Priority       Priority       `json:"priority"`
 	CreatedAt      time.Time      `json:"created_at"`

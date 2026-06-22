@@ -8,11 +8,13 @@ export default function NewProjectDialog({ onClose }: { onClose: () => void }) {
   const { templates, fetchTemplates, createProject, loading } = useHiveStore();
   const llmConfigs = useStore(s => s.llmConfigs);
   const [objective, setObjective] = useState('');
-  const [budget, setBudget] = useState(60);
+  const [budget, setBudget] = useState(0);
   const [workers, setWorkers] = useState(2);
   const [llmNo, setLlmNo] = useState(0);
   const [template, setTemplate] = useState('');
   const [vars, setVars] = useState<Record<string, string>>({});
+  const [projectDir, setProjectDir] = useState('');
+  const [error, setError] = useState('');
   const isZh = lang === 'zh';
 
   useEffect(() => { fetchTemplates(); }, []);
@@ -20,12 +22,23 @@ export default function NewProjectDialog({ onClose }: { onClose: () => void }) {
   const selectedTemplate = templates.find(t => t.name === template);
 
   const handleCreate = async () => {
+    setError('');
+    // Validate required template variables
+    if (selectedTemplate) {
+      for (const v of selectedTemplate.variables) {
+        if (v.required && !vars[v.name]?.trim()) {
+          setError(isZh ? `请填写: ${v.label}` : `Required: ${v.label}`);
+          return;
+        }
+      }
+    }
     const id = await createProject({
       objective,
       budget_minutes: budget,
       template: template || undefined,
       vars: Object.keys(vars).length ? vars : undefined,
       executor_config: { ga_llm_no: llmNo, ga_workers: workers, claude_code_enabled: true },
+      project_dir: projectDir || undefined,
     });
     if (id) {
       useHiveStore.getState().selectProject(id);
@@ -120,6 +133,20 @@ export default function NewProjectDialog({ onClose }: { onClose: () => void }) {
             />
           </div>
         ))}
+
+        {/* Project directory */}
+        <div className="form-group">
+          <label>{isZh ? '项目目录 (可选)' : 'Project Dir (optional)'}</label>
+          <input
+            className="modal-input"
+            value={projectDir}
+            onChange={e => setProjectDir(e.target.value)}
+            placeholder={isZh ? 'Workers 工作目录，如 D:\\projects\\my-app' : 'Working directory for workers'}
+          />
+        </div>
+
+        {/* Error */}
+        {error && <div style={{ color: 'var(--red)', fontSize: 12, marginBottom: 8 }}>{error}</div>}
 
         {/* Actions */}
         <div className="modal-actions">

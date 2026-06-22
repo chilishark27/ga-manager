@@ -67,12 +67,13 @@ func (h *Hive2Handler) ListProjects(w http.ResponseWriter, r *http.Request) {
 // CreateProject handles POST /api/hive2/projects
 func (h *Hive2Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 	var body struct {
-		Name      string               `json:"name"`
-		Objective string               `json:"objective"`
-		Budget    int                  `json:"budget_minutes"`
-		Config    hive2.ExecutorConfig `json:"executor_config"`
-		Template  string               `json:"template,omitempty"`
-		Vars      map[string]string    `json:"vars,omitempty"`
+		Name       string               `json:"name"`
+		Objective  string               `json:"objective"`
+		Budget     int                  `json:"budget_minutes"`
+		Config     hive2.ExecutorConfig `json:"executor_config"`
+		Template   string               `json:"template,omitempty"`
+		Vars       map[string]string    `json:"vars,omitempty"`
+		ProjectDir string               `json:"project_dir,omitempty"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Objective == "" {
 		writeError(w, 400, "objective required")
@@ -85,13 +86,17 @@ func (h *Hive2Handler) CreateProject(w http.ResponseWriter, r *http.Request) {
 		}
 		body.Name = string([]rune(body.Objective)[:end])
 	}
-	// Budget 0 = unlimited (no auto-stop)
-	// Only default to 60 if not explicitly provided (negative = error)
 
 	p, err := h.store.Create(body.Name, body.Objective, body.Budget, body.Config)
 	if err != nil {
 		writeError(w, 500, err.Error())
 		return
+	}
+
+	// Set project directory if provided
+	if body.ProjectDir != "" {
+		p.ProjectDir = body.ProjectDir
+		h.store.Update(p)
 	}
 
 	// If template specified, instantiate it; otherwise create a default decompose task.
