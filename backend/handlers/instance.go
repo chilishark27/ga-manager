@@ -202,3 +202,18 @@ func writeJSON(w http.ResponseWriter, status int, data interface{}) {
 func writeError(w http.ResponseWriter, status int, msg string) {
 	writeJSON(w, status, map[string]string{"error": msg})
 }
+
+// fakeResponseWriter is a minimal http.ResponseWriter for internal handler calls
+// where we want to capture the response without an actual HTTP connection.
+type fakeResponseWriter struct {
+	header http.Header
+	status int
+	body   []byte
+}
+
+func (f *fakeResponseWriter) Header() http.Header        { return f.header }
+func (f *fakeResponseWriter) WriteHeader(status int)     { f.status = status }
+func (f *fakeResponseWriter) Write(b []byte) (int, error) {
+	f.body = append(f.body, b...)
+	return len(b), nil
+}

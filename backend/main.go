@@ -116,6 +116,7 @@ func main() {
 
 	// Hive (Goal Hive - one-click multi-agent orchestration)
 	hiveHandler := handlers.NewHiveHandler(cfg)
+	hiveHandler.SetConductor(conductorHandler)
 	mux.HandleFunc("POST /api/hive/start", hiveHandler.Start)
 	mux.HandleFunc("POST /api/hive/stop", hiveHandler.Stop)
 	mux.HandleFunc("GET /api/hive/status", hiveHandler.Status)
@@ -125,6 +126,11 @@ func main() {
 	mux.HandleFunc("POST /api/hive/post", hiveHandler.PostMessage)
 	mux.HandleFunc("GET /api/hive/history", hiveHandler.ListRunHistory)
 	mux.HandleFunc("GET /api/hive/history/record", hiveHandler.GetRunRecord)
+	mux.HandleFunc("DELETE /api/hive/history/record", hiveHandler.DeleteRunRecord)
+	mux.HandleFunc("POST /api/hive/resume", hiveHandler.Resume)
+	mux.HandleFunc("GET /api/hive/files", hiveHandler.ListFiles)
+	mux.HandleFunc("POST /api/hive/upload", hiveHandler.UploadFile)
+	mux.HandleFunc("GET /api/hive/subagents", hiveHandler.SubagentStatus)
 
 	// Hive v2 (Task Graph engine)
 	hive2ProjectsDir := filepath.Join(cfg.GARoot, "hive_projects")
@@ -280,7 +286,7 @@ func main() {
 			http.Error(w, "path required", http.StatusBadRequest)
 			return
 		}
-		// Security: only serve files under GA root or system temp
+		// Security: only serve files under GA root, system temp, or Hive project dir
 		gaRoot := cfg.GARoot
 		allowed := false
 		cleanPath := filepath.Clean(filePath)
@@ -289,6 +295,12 @@ func main() {
 		}
 		if strings.HasPrefix(cleanPath, os.TempDir()) {
 			allowed = true
+		}
+		// Also allow files under the active Hive project directory
+		if hiveProjectDir := hiveHandler.GetProjectDir(); hiveProjectDir != "" {
+			if strings.HasPrefix(cleanPath, filepath.Clean(hiveProjectDir)) {
+				allowed = true
+			}
 		}
 		if !allowed {
 			http.Error(w, "access denied", http.StatusForbidden)

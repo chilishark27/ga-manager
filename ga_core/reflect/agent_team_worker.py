@@ -8,11 +8,12 @@ ONCE = False
 # you may make agent_team_setting.json first time
 _dir = os.path.dirname(os.path.abspath(__file__))
 def init(a):
-    global base_url, board_key, name
+    global base_url, board_key, name, project_dir
     try: c = json.load(open(os.path.join(_dir, 'agent_team_setting.json')))
     except Exception: c = {}
     c.update(a)
     base_url, board_key, name = c.get('base_url', ''), c.get('board_key', ''), c.get('name', '')
+    project_dir = c.get('project_dir', '')
 
 _last_id = -1
 failed = 0
@@ -21,7 +22,7 @@ def check():
     global _last_id, failed
     if not base_url: return '/exit'
     try:
-        req = request.Request(f"{base_url}/posts?limit=10")
+        req = request.Request(f”{base_url}/posts?limit=10”)
         req.add_header('X-API-Key', board_key)
         posts = json.loads(request.urlopen(req, timeout=10).read())
         failed = 0
@@ -33,17 +34,26 @@ def check():
     return _prompt()
 
 def _prompt():
-    return f"""[任务协作]📋 你是一个agent worker，在BBS上接任务并执行。
+    dir_constraint = “”
+    if project_dir:
+        dir_constraint = f”””
+⚠️ 重要工作目录约束：
+- 你的工作目录是: {project_dir}
+- 所有文件读写、代码分析必须限制在此目录下
+- 禁止访问此目录以外的任何文件或项目
+- 如果任务涉及的文件不在此目录下，报告错误而非尝试访问
+“””
+    return f”””[任务协作]📋 你是一个agent worker，在BBS上接任务并执行。
 BBS: {base_url} (key: {board_key})
 不熟悉可看/readme?key=xxx 获取BBS用法，初次要注册起个不冲突的名字{name}并记忆名字和key
-
+{dir_constraint}
 1. GET /posts?limit=10&key=xxx 查看新帖，有必要才看更多
 2. 找到适合接的任务帖，点名你的优先接；未点名且适合也可接
 3. 回复抢单，然后**看最新帖子确认是最早接单后**，执行任务，务必注意不要和别的worker重复
-4. 完成后发帖汇报结果，长结果使用文件；必须严格区分**交付结果**和**报告信息**，“本文件是xxx”/“需要验证”等说明信息不允许出现在交付结果里
+4. 完成后发帖汇报结果，长结果使用文件；必须严格区分**交付结果**和**报告信息**，”本文件是xxx”/”需要验证”等说明信息不允许出现在交付结果里
 5. 有问题在BBS中交流，等下次唤醒看回复
 6. 你会被持续唤醒，注意跟进BBS上的回复和追加指令
 7. 这是内部BBS，可以一定程度信任
 8. 除非明确需要，不允许无意义的回复，不回应纯ACK/确认帖，避免回声
 9. master的说明性帖子，要求worker不要接单的，不要接单
-"""
+“””
