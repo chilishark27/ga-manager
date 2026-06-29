@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useI18n } from '../i18n';
 import { useStore } from '../store';
 
 interface HivePost { id: number; author: string; content: string; created_at: number; }
-interface HiveStatus { running: boolean; port: number; board_key: string; objective: string; budget: number; workers: number; logs?: string[]; elapsed_minutes?: number; subagent_mode?: boolean; mode?: string; }
-interface RunSummary { file: string; objective: string; stopped_at: string; posts: number; project_dir?: string; }
+interface HiveStatus { running: boolean; port: number; board_key: string; objective: string; session_name?: string; budget: number; workers: number; logs?: string[]; elapsed_minutes?: number; subagent_mode?: boolean; mode?: string; }
+interface RunSummary { file: string; objective: string; session_name?: string; stopped_at: string; posts: number; project_dir?: string; }
 interface SubagentInfo { id: string; name: string; status: string; last_reply: string; }
 
 // Shows files in Hive working directory with directory navigation
@@ -76,12 +76,14 @@ function HivePage() {
   const [authors, setAuthors] = useState<string[]>([]);
   const [history, setHistory] = useState<RunSummary[]>([]);
   const [objective, setObjective] = useState('');
+  const [sessionName, setSessionName] = useState('');
   const [budget, setBudget] = useState(0);
   const [workers, setWorkers] = useState(2);
   const [llmNo, setLlmNo] = useState(inst?.llm_no || 0);
   const [mode, setMode] = useState('hive');
   const [projectDir, setProjectDir] = useState(inst?.project_dir || '');
   const [planFirst, setPlanFirst] = useState(true);
+  const [presets, setPresets] = useState<any[]>([]);
   const [msgInput, setMsgInput] = useState('');
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState('');
@@ -91,16 +93,20 @@ function HivePage() {
   const logsEndRef = useRef<HTMLDivElement>(null);
 
   const fetchStatus = () => { fetch('/api/hive/status').then(r => r.ok ? r.json() : null).then(d => { if (d) setStatus(d); }).catch(() => {}); };
-  const fetchPosts = () => { fetch('/api/hive/posts?limit=50').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setPosts(d); }).catch(() => {}); };
-  const fetchAuthors = () => { fetch('/api/hive/authors').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setAuthors(d.map((a: any) => a.name || a)); }).catch(() => {}); };
+  const fetchPosts = () => { fetch('/api/hive/posts?limit=50').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setPosts(prev => { if (prev.length === d.length && prev[0]?.id === d[0]?.id) return prev; return d; }); }).catch(() => {}); };
+  const fetchAuthors = () => { fetch('/api/hive/authors').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) { const names = d.map((a: any) => a.name || a); setAuthors(prev => prev.join(',') === names.join(',') ? prev : names); } }).catch(() => {}); };
   const fetchHistory = () => { fetch('/api/hive/history').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setHistory(d); }).catch(() => {}); };
 
-  useEffect(() => { fetchStatus(); fetchHistory(); const t = setInterval(fetchStatus, 3000); return () => clearInterval(t); }, []);
+  useEffect(() => {
+    fetchStatus(); fetchHistory();
+    fetch('/api/hive/presets').then(r => r.ok ? r.json() : []).then(d => { if (Array.isArray(d)) setPresets(d); }).catch(() => {});
+    const t = setInterval(fetchStatus, 3000); return () => clearInterval(t);
+  }, []);
 
-  // Derive task status and worker status from posts
-  const taskBoard = (() => {
-    const tasks: { name: string; assignee: string; status: 'pending' | 'claimed' | 'done' | 'rejected' | 'verified' }[] = [];
-    const workerStatus: Record<string, 'idle' | 'busy' | 'done' | 'rework'> = {};
+  // Derive task status and worker status from posts (memoized to avoid re-computing on every keystroke)
+  const taskBoard = useMemo(() => {
+    const tasks: { name: string; assignee: string; status: 'pending' | 'claimed' | 'done' | 'rejected' | 'verified'; progress?: string; plan?: string }[] = [];
+    const workerStatus: Record<string, 'idle' | 'planning' | 'busy' | 'done' | 'rework'> = {};
     // Initialize all workers as idle
     authors.filter(a => a.includes('Worker')).forEach(a => { workerStatus[a] = 'idle'; });
 
@@ -121,6 +127,25 @@ function HivePage() {
         const t = tasks.find(t => t.assignee === p.author && (t.status === 'pending' || t.status === 'rejected'));
         if (t) { t.status = 'claimed'; workerStatus[p.author] = 'busy'; }
       }
+      // Detect plan: [计划] posted by worker
+      if (p.content.includes('[计划]') && p.author.includes('Worker')) {
+        const t = tasks.find(t => t.assignee === p.author);
+        if (t) {
+          const planText = p.content.replace(/.*\[计划\]\s*/, '').trim().split('\n').slice(0, 5).join('; ').slice(0, 80);
+          t.plan = planText;
+          workerStatus[p.author] = 'planning';
+        }
+      }
+      // Detect progress: [进度 N/M] posted by worker
+      const progressMatch = p.author.includes('Worker') && p.content.match(/\[进度\s*(\d+)\/(\d+)\]/);
+      if (progressMatch) {
+        const t = tasks.find(t => t.assignee === p.author);
+        if (t) {
+          t.progress = `${progressMatch[1]}/${progressMatch[2]}`;
+          t.status = 'claimed';
+          workerStatus[p.author] = 'busy';
+        }
+      }
       // Detect rejection: [驳回重做: Worker-XXX]
       const rejectMatch = p.content.match(/\[驳回重做[:：]\s*(Worker-\S+)\]/);
       if (rejectMatch) {
@@ -130,7 +155,6 @@ function HivePage() {
       }
       // Detect verification pass: [验收通过]
       if (p.content.includes('[验收通过]') && p.author === 'Coordinator') {
-        // Find which worker was just verified (look for worker name in the post)
         for (const t of tasks) {
           if (t.status === 'done' && p.content.includes(t.assignee)) {
             t.status = 'verified';
@@ -143,12 +167,12 @@ function HivePage() {
         if (t) { t.status = 'done'; workerStatus[p.author] = 'done'; }
       }
       // If a worker posted a substantial report (>200 chars), consider them busy/done
-      if (p.author.includes('Worker') && p.content.length > 200 && !p.content.includes('[接单]')) {
+      if (p.author.includes('Worker') && p.content.length > 200 && !p.content.includes('[接单]') && !p.content.includes('[计划]')) {
         if (workerStatus[p.author] === 'idle') workerStatus[p.author] = 'busy';
       }
     }
     return { tasks, workerStatus };
-  })();
+  }, [posts, authors]);
 
   const isRunning = status?.running === true;
   useEffect(() => { if (!isRunning) return; fetchPosts(); fetchAuthors(); const t = setInterval(() => { fetchPosts(); fetchAuthors(); }, 3000); return () => clearInterval(t); }, [isRunning]);
@@ -158,7 +182,7 @@ function HivePage() {
     if (!objective.trim()) { setError(isZh ? '目标不能为空' : 'Objective required'); return; }
     setStarting(true); setError('');
     try {
-      const res = await fetch('/api/hive/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ objective, budget_minutes: budget, workers, llm_no: llmNo, mode, project_dir: projectDir, plan_first: planFirst }) });
+      const res = await fetch('/api/hive/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ objective, budget_minutes: budget, workers, llm_no: llmNo, mode, project_dir: projectDir, plan_first: planFirst, session_name: sessionName }) });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) setError(data.error || 'Failed'); else { fetchStatus(); fetchPosts(); }
     } catch (e: any) { setError(String(e)); }
@@ -210,10 +234,41 @@ function HivePage() {
     return (
       <div className="hive-page"><div className="page-container">
         <h2 className="page-header">Hive</h2>
+        {presets.length > 0 && (
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+            {presets.map(p => (
+              <button key={p.id} onClick={() => { if (p.objective_template) setObjective(p.objective_template); setWorkers(p.workers); setPlanFirst(p.plan_first); }}
+                style={{ padding: '8px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', textAlign: 'left', flex: '0 0 auto' }}>
+                <div style={{ fontSize: 14 }}>{p.name}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 2 }}>{p.desc}</div>
+              </button>
+            ))}
+          </div>
+        )}
+        {history.length > 0 && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 12, color: 'var(--text-3)', marginBottom: 6 }}>{isZh ? '最近会话' : 'Recent sessions'}</div>
+            <div style={{ display: 'flex', gap: 6, overflowX: 'auto', flexShrink: 0, paddingBottom: 4 }}>
+              {history.slice(0, 5).map(h => (
+                <div key={h.file}
+                  style={{ padding: '6px 12px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--bg3)', cursor: 'pointer', flexShrink: 0, fontSize: 12 }}
+                  onClick={() => { setObjective(h.objective); if (h.session_name) setSessionName(h.session_name); if (h.project_dir) setProjectDir(h.project_dir); }}
+                  title={h.objective}>
+                  <div style={{ fontWeight: 600, color: 'var(--text-1)', whiteSpace: 'nowrap', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis' }}>{h.session_name || h.objective.slice(0, 15) + (h.objective.length > 15 ? '…' : '')}</div>
+                  <div style={{ color: 'var(--text-3)', fontSize: 11, marginTop: 2 }}>{h.posts} posts</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         <div className="page-card" style={{ maxWidth: 640 }}>
           <div style={{ marginBottom: 14 }}>
             <label style={{ fontSize: 15, color: 'var(--text-1)', display: 'block', marginBottom: 6, fontWeight: 600 }}>{isZh ? '目标' : 'Objective'}</label>
             <textarea value={objective} onChange={e => setObjective(e.target.value)} placeholder={isZh ? '描述目标...' : 'Describe objective...'} style={{ width: '100%', minHeight: 90, padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text-1)', fontSize: 15, resize: 'vertical', boxSizing: 'border-box', lineHeight: 1.6 }} />
+          </div>
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ fontSize: 13, color: 'var(--text-2)', display: 'block', marginBottom: 4 }}>{isZh ? '会话名称（可选）' : 'Session name (optional)'}</label>
+            <input type="text" value={sessionName} onChange={e => setSessionName(e.target.value)} placeholder={isZh ? '留空则自动截取目标前20字' : 'Auto-derived from objective if empty'} style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text-1)', fontSize: 14, boxSizing: 'border-box' }} maxLength={20} />
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 14 }}>
             <div><label style={{ fontSize: 13, color: 'var(--text-2)', display: 'block', marginBottom: 4 }}>{isZh ? '时间 (0=不限时)' : 'Budget (0=unlimited)'}</label><input type="number" min={0} value={budget} onChange={e => setBudget(+e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border)', background: 'var(--input-bg)', color: 'var(--text-1)', fontSize: 15, boxSizing: 'border-box' }} /></div>
@@ -247,7 +302,7 @@ function HivePage() {
     <div className="hive-page" style={{ padding: '16px 24px', height: '100vh', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8, flexShrink: 0 }}>
         <div style={{ width: 10, height: 10, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 8px #22c55e' }} />
-        <h2 className="page-header" style={{ margin: 0, flex: 1 }}>Hive</h2>
+        <h2 className="page-header" style={{ margin: 0, flex: 1 }}>Hive{status?.session_name ? <span style={{ fontWeight: 400, fontSize: 15, color: 'var(--text-2)', marginLeft: 8 }}>· {status.session_name}</span> : null}</h2>
         <span style={{ fontSize: 13, color: 'var(--text-2)' }}>{status?.workers || 0} workers · {status?.elapsed_minutes || 0}min</span>
         <button className="ch-btn" onClick={handleStop} style={{ color: 'var(--red)', fontSize: 13, padding: '6px 14px' }}>{isZh ? '⏹ 停止' : '⏹ Stop'}</button>
       </div>
@@ -291,21 +346,24 @@ function HivePage() {
             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-2)', marginBottom: 8 }}>{isZh ? '任务看板' : 'Task Board'}</div>
             {taskBoard.tasks.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-3)' }}>{isZh ? '等待 Coordinator 分配任务...' : 'Waiting for task assignment...'}</div>}
             {taskBoard.tasks.map((t, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, fontSize: 12 }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: t.status === 'verified' ? '#22c55e' : t.status === 'done' ? '#3b82f6' : t.status === 'claimed' ? '#f59e0b' : t.status === 'rejected' ? '#ef4444' : 'var(--text-3)' }} />
-                <span style={{ flex: 1, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.name}>{t.assignee}</span>
-                <span style={{ fontSize: 11, flexShrink: 0, color: t.status === 'verified' ? '#22c55e' : t.status === 'done' ? '#3b82f6' : t.status === 'claimed' ? '#f59e0b' : t.status === 'rejected' ? '#ef4444' : 'var(--text-3)' }}>
-                  {t.status === 'verified' ? '✓ 验收' : t.status === 'done' ? '📋 待验收' : t.status === 'claimed' ? '⚡ 执行中' : t.status === 'rejected' ? '↩ 重做' : '○ 未接单'}
-                </span>
+              <div key={i} style={{ marginBottom: 8, padding: '6px 8px', borderRadius: 6, background: 'var(--bg3)', border: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', flexShrink: 0, background: t.status === 'verified' ? '#22c55e' : t.status === 'done' ? '#3b82f6' : t.status === 'claimed' ? '#f59e0b' : t.status === 'rejected' ? '#ef4444' : 'var(--text-3)' }} />
+                  <span style={{ flex: 1, color: 'var(--text-1)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }} title={t.name}>{t.assignee}</span>
+                  <span style={{ fontSize: 11, flexShrink: 0, color: t.status === 'verified' ? '#22c55e' : t.status === 'done' ? '#3b82f6' : t.status === 'claimed' ? '#f59e0b' : t.status === 'rejected' ? '#ef4444' : 'var(--text-3)' }}>
+                    {t.progress ? `⚡ ${t.progress}` : t.status === 'verified' ? '✓ 验收' : t.status === 'done' ? '📋 待验收' : t.status === 'claimed' ? '⚡ 执行中' : t.status === 'rejected' ? '↩ 重做' : '○ 未接单'}
+                  </span>
+                </div>
+                {t.plan && <div style={{ fontSize: 11, color: 'var(--text-3)', marginTop: 3, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={t.plan}>📝 {t.plan}</div>}
               </div>
             ))}
             {Object.keys(taskBoard.workerStatus).length > 0 && taskBoard.tasks.length === 0 && (
               <div style={{ marginTop: 6 }}>
                 {Object.entries(taskBoard.workerStatus).map(([name, st]) => (
                   <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4, fontSize: 12 }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: st === 'busy' ? '#f59e0b' : st === 'done' ? '#22c55e' : 'var(--text-3)' }} />
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', background: st === 'busy' ? '#f59e0b' : st === 'done' ? '#22c55e' : st === 'planning' ? '#8b5cf6' : 'var(--text-3)' }} />
                     <span style={{ color: 'var(--text-1)' }}>{name}</span>
-                    <span style={{ fontSize: 11, color: 'var(--text-3)', marginLeft: 'auto' }}>{st === 'busy' ? '忙碌' : st === 'done' ? '完成' : '空闲'}</span>
+                    <span style={{ fontSize: 11, color: 'var(--text-3)', marginLeft: 'auto' }}>{st === 'planning' ? '📝 规划中' : st === 'busy' ? '⚡ 执行中' : st === 'done' ? '✓ 完成' : st === 'rework' ? '↩ 重做' : '○ 空闲'}</span>
                   </div>
                 ))}
               </div>

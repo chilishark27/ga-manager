@@ -131,6 +131,8 @@ func main() {
 	mux.HandleFunc("GET /api/hive/files", hiveHandler.ListFiles)
 	mux.HandleFunc("POST /api/hive/upload", hiveHandler.UploadFile)
 	mux.HandleFunc("GET /api/hive/subagents", hiveHandler.SubagentStatus)
+	mux.HandleFunc("GET /api/hive/presets", hiveHandler.ListPresets)
+	mux.HandleFunc("GET /api/hive/dashboard", hiveHandler.Dashboard)
 
 	// Hive v2 (Task Graph engine)
 	hive2ProjectsDir := filepath.Join(cfg.GARoot, "hive_projects")

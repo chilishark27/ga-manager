@@ -31,6 +31,7 @@ type HiveHandler struct {
 	port         int
 	boardKey     string
 	objective    string
+	sessionName  string            // user-given name for this session (optional)
 	budget       int
 	startedAt    time.Time
 	logs         []string
@@ -79,13 +80,14 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	}()
 
 	var body struct {
-		Objective  string `json:"objective"`
-		Budget     int    `json:"budget_minutes"`
-		Workers    int    `json:"workers"`
-		LLMNo      int    `json:"llm_no"`
-		Mode       string `json:"mode"` // "hive" (default), "checklist", or "subagent"
-		ProjectDir string `json:"project_dir"`
-		PlanFirst  bool   `json:"plan_first"`
+		Objective   string `json:"objective"`
+		Budget      int    `json:"budget_minutes"`
+		Workers     int    `json:"workers"`
+		LLMNo       int    `json:"llm_no"`
+		Mode        string `json:"mode"` // "hive" (default), "checklist", or "subagent"
+		ProjectDir  string `json:"project_dir"`
+		PlanFirst   bool   `json:"plan_first"`
+		SessionName string `json:"session_name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Objective == "" {
 		writeError(w, http.StatusBadRequest, "objective is required")
@@ -160,6 +162,17 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	h.objective = body.Objective
 	h.budget = body.Budget
 	h.startedAt = time.Now()
+	// Truncate session name to 20 chars; fall back to first 20 chars of objective
+	sname := body.SessionName
+	if sname == "" && len(body.Objective) > 0 {
+		sname = body.Objective
+		if len(sname) > 20 {
+			sname = sname[:20]
+		}
+	} else if len(sname) > 20 {
+		sname = sname[:20]
+	}
+	h.sessionName = sname
 
 	var bbsCwd string
 	if body.ProjectDir != "" {
@@ -170,6 +183,21 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 		os.MkdirAll(bbsCwd, 0755)
 	}
 	h.projectDir = bbsCwd
+
+	// Install git pre-push hook to prevent workers from pushing
+	if body.ProjectDir != "" {
+		hookDir := filepath.Join(body.ProjectDir, ".git", "hooks")
+		hookPath := filepath.Join(hookDir, "pre-push")
+		// Only install if .git exists and no pre-push hook already exists
+		if _, err := os.Stat(filepath.Join(body.ProjectDir, ".git")); err == nil {
+			if _, err := os.Stat(hookPath); os.IsNotExist(err) {
+				os.MkdirAll(hookDir, 0755)
+				hookContent := "#!/bin/sh\necho \"[Hive] Push blocked. Only Coordinator can push after verification.\"\nexit 1\n"
+				os.WriteFile(hookPath, []byte(hookContent), 0755)
+				h.addLog("Git pre-push hook installed (workers cannot push)")
+			}
+		}
+	}
 
 	h.addLog(fmt.Sprintf("Starting BBS on port %d...", h.port))
 	h.bbsCmd = exec.Command(python, "-u", bbsScript,
@@ -209,7 +237,7 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	}
 	h.addLog("BBS ready")
 
-	// Post initial task
+	// Post initial task — brief project context only; Coordinator agent handles detailed assignment
 	regBody := `{"name":"Coordinator"}`
 	regReq, _ := http.NewRequest("POST", baseURL+"/register", strings.NewReader(regBody))
 	regReq.Header.Set("Content-Type", "application/json")
@@ -224,92 +252,10 @@ func (h *HiveHandler) Start(w http.ResponseWriter, r *http.Request) {
 	if masterToken != "" {
 		projectInfo := ""
 		if body.ProjectDir != "" {
-			projectInfo = fmt.Sprintf("\n\n⚠️ 项目工作目录（严格限制）: %s\n- 所有文件读写、代码分析必须限制在此目录及其子目录下\n- 禁止访问此目录以外的任何文件、代码或项目\n- 指派任务时必须提醒 Worker 只在此目录工作\n- 先扫描目录结构了解项目情况再分配任务", body.ProjectDir)
+			projectInfo = fmt.Sprintf("\n项目目录: %s", body.ProjectDir)
 		}
-		task := fmt.Sprintf(`[Coordinator 任务分配] 目标: %s | 时间预算: %d分钟 | Worker数量: %d%s
-
-=== 你的职责 ===
-你是 Coordinator（项目总指挥）。你需要：
-
-1. **分析用户意图**：判断目标属于什么领域（软件开发、安全审计、市场调研、产品分析、架构设计等）
-2. **定义专业角色**：根据目标为每个 Worker 分配一个专业角色，而非通用名称。例如：
-   - 代码审计目标 → 安全审计师、架构分析师、性能专家
-   - 市场调研目标 → 行业分析师、竞品研究员、用户画像专家
-   - 功能开发目标 → 前端工程师、后端工程师、测试工程师
-   - 产品设计目标 → 产品经理、UX设计师、技术方案师
-3. **拆分任务并指派**：每个子任务必须标注 [指派: Worker-XXX]，并附上明确的验收标准
-
-=== 验收标准（每个任务必须包含） ===
-指派任务时，你必须为每个任务定义验收条件，例如：
-- ✅ 输出格式要求（报告/代码/表格/对比分析）
-- ✅ 必须覆盖的要点（至少列出 N 个关键点）
-- ✅ 深度要求（是否需要看源码、引用数据、给出具体行号）
-- ✅ 禁止事项（不要泛泛而谈、不要抄文档、不要遗漏关键模块）
-
-=== 质量验收流程 ===
-Worker 提交产出后，你必须进行验收：
-
-1. **检查完整性**：是否覆盖了所有要求的要点？
-2. **检查深度**：是否有具体证据/数据/代码引用支撑结论？还是只是泛泛描述？
-3. **检查准确性**：结论是否合理？是否有明显错误或自相矛盾？
-4. **检查可操作性**：建议是否具体可执行？还是空话套话？
-
-验收结果：
-- [验收通过] — 产出满足要求，简短点评即可
-- [驳回重做] — 产出不合格，必须指出哪里不行、具体要补什么，Worker 看到后会重新执行
-  格式：[驳回重做: Worker-XXX] 原因：xxx。补充要求：1. ... 2. ...
-
-⚠️ 不要怕驳回！质量比速度重要。泛泛而谈的报告、缺乏证据的结论、遗漏关键模块的分析，都应该驳回。
-
-=== 最终总结（所有验收通过后） ===
-所有 Worker 产出验收通过后，发一条 [最终总结]，格式：
-## 最终总结
-### 背景与目标
-（一句话概括）
-### 核心发现
-（按重要性排列的关键结论，每条一行）
-### 详细分析
-（整合各 Worker 产出为连贯的叙述，标注来源 Worker）
-### 建议行动
-（下一步该做什么，按优先级排列）
-### 质量评估
-（每个 Worker 的表现评价：完成度、深度、是否被驳回过）
-
-=== 约束 ===
-- Worker 只能执行指派给自己的任务
-- 协作记忆：Worker 完成后把关键结论发帖到 BBS
-- 持久化：重要结论通过 /memory 写入记忆
-- 不要产出超过 3000 字的帖子，太长请拆分
-
-请立即分析目标，定义 %d 个专业角色，拆分任务（附验收标准）并分别指派。`, body.Objective, body.Budget, body.Workers, projectInfo, body.Workers)
-
-		// Plan First mode: prepend planning phase instructions
-		if body.PlanFirst {
-			planPrefix := `
-=== ⚠️ Plan 阶段（必须先完成再指派任务） ===
-本次启用了 Plan 模式。你必须先执行规划阶段，再分配任务：
-
-第一步：项目调研（立即执行）
-1. 扫描项目目录结构，了解项目组成
-2. 阅读 README、配置文件、入口文件，理解项目架构
-3. 识别技术栈、核心模块、依赖关系
-
-第二步：制定执行计划
-在 BBS 发一条 [执行计划] 帖，包含：
-- 项目现状总结（一段话）
-- 任务拆解方案（每个 Worker 做什么）
-- 执行顺序和依赖关系
-- 风险点和注意事项
-
-第三步：等用户确认（如有疑问发帖询问）
-如果计划中有不确定的决策点，发帖标注 [需确认] 等用户回复
-
-第四步：计划确认后，再正式指派任务给 Workers
-
-`
-			task = planPrefix + task
-		}
-
+		task := fmt.Sprintf("[Hive 启动] 目标: %s | Worker数量: %d | 时间: %d分钟%s\n\nCoordinator 正在分析目标并分配任务，请等待...",
+			body.Objective, body.Workers, body.Budget, projectInfo)
 		payload, _ := json.Marshal(map[string]string{"token": masterToken, "content": task})
 		pr, _ := http.NewRequest("POST", baseURL+"/post", strings.NewReader(string(payload)))
 		pr.Header.Set("Content-Type", "application/json")
@@ -478,25 +424,9 @@ Worker 提交产出后，你必须进行验收：
 	h.addLog(fmt.Sprintf("Starting %d workers...", body.Workers))
 	workerReflect := filepath.Join(gaRoot, "reflect", "agent_team_worker.py")
 
-	// Create a patched copy with shorter poll interval for faster startup
-	// Write to gaRoot/temp to avoid polluting user's project directory
-	patchedReflect := filepath.Join(gaRoot, "temp", "agent_team_worker_fast.py")
-	if origData, err := os.ReadFile(workerReflect); err == nil {
-		origStr := string(origData)
-		if strings.Contains(origStr, "INTERVAL = 60") {
-			patched := strings.Replace(origStr, "INTERVAL = 60", "INTERVAL = 10", 1)
-			os.WriteFile(patchedReflect, []byte(patched), 0644)
-			workerReflect = patchedReflect
-			h.addLog("Worker poll interval: 10s (patched from 60s)")
-		} else if strings.Contains(origStr, "INTERVAL") {
-			// Different interval value, try generic patch
-			h.addLog("WARN: INTERVAL != 60 in worker script, using original interval")
-		} else {
-			h.addLog("WARN: No INTERVAL found in worker script")
-		}
-	} else {
-		h.addLog(fmt.Sprintf("WARN: Cannot read worker script: %v", err))
-	}
+	// Worker uses /wait long-poll (blocks up to 55s), INTERVAL=60 is correct as-is.
+	// No patching needed — /wait gives instant response when tasks arrive.
+	h.addLog("Worker mode: long-poll (/wait endpoint, <1s response time)")
 
 	h.workers = nil
 	workerNames := []string{"Alpha", "Beta", "Gamma", "Delta", "Epsilon"}
@@ -591,48 +521,80 @@ Worker 提交产出后，你必须进行验收：
 		}(cmd, name)
 	}
 
-	// Start master (choose reflect script based on mode)
-	goalState := map[string]interface{}{
-		"objective": body.Objective, "budget_seconds": body.Budget * 60,
-		"start_time": time.Now().Unix(), "turns_used": 0, "max_turns": 200, "status": "running",
-	}
-	goalData, _ := json.MarshalIndent(goalState, "", "  ")
-	goalPath := filepath.Join(gaRoot, "temp", "goal_state.json")
-	os.WriteFile(goalPath, goalData, 0644)
-
-	goalReflect := filepath.Join(gaRoot, "reflect", "goal_mode.py")
+	// Start master (Coordinator agent that assigns tasks via BBS)
+	coordReflect := filepath.Join(gaRoot, "reflect", "agent_team_coordinator.py")
 	if body.Mode == "checklist" {
 		checklistReflect := filepath.Join(gaRoot, "reflect", "checklist_master.py")
 		if _, err := os.Stat(checklistReflect); err == nil {
-			goalReflect = checklistReflect
+			coordReflect = checklistReflect
 			h.addLog("Mode: checklist (structured task decomposition)")
 		} else {
-			h.addLog("WARN: checklist_master.py not found, falling back to goal_mode")
+			h.addLog("WARN: checklist_master.py not found, falling back to coordinator")
 		}
 	} else {
-		h.addLog("Mode: hive (goal-driven coordination)")
+		h.addLog("Mode: hive (Coordinator assigns tasks via BBS)")
 	}
-	h.masterCmd = exec.Command(python, "-u", filepath.Join(gaRoot, "agentmain.py"), "--reflect", goalReflect, "--llm_no", strconv.Itoa(body.LLMNo))
+
+	// Pass coordinator params as extra CLI args (parsed by agentmain into reflect init dict)
+	planFirstStr := "0"
+	if body.PlanFirst {
+		planFirstStr = "1"
+	}
+	h.masterCmd = exec.Command(python, "-u", filepath.Join(gaRoot, "agentmain.py"),
+		"--reflect", coordReflect, "--llm_no", strconv.Itoa(body.LLMNo),
+		"--base_url", baseURL, "--board_key", h.boardKey,
+		"--worker_count", strconv.Itoa(body.Workers),
+		"--objective", body.Objective,
+		"--project_dir", body.ProjectDir,
+		"--plan_first", planFirstStr)
 	if body.ProjectDir != "" {
 		h.masterCmd.Dir = body.ProjectDir
 	} else {
 		h.masterCmd.Dir = gaRoot
 	}
-	h.masterCmd.Env = append(os.Environ(), "GOAL_STATE="+goalPath, "PYTHONPATH="+gaRoot)
-	h.masterCmd.Stdout = os.Stdout
-	h.masterCmd.Stderr = os.Stderr
+	h.masterCmd.Env = append(os.Environ(), "PYTHONUNBUFFERED=1", "PYTHONIOENCODING=utf-8", "PYTHONPATH="+gaRoot)
+
+	// Capture Coordinator output to hive logs (same as workers)
+	masterStdout, _ := h.masterCmd.StdoutPipe()
+	masterStderr, _ := h.masterCmd.StderrPipe()
+
 	if err := h.masterCmd.Start(); err != nil {
 		h.addLog("Master failed: " + err.Error())
 	} else {
-		h.addLog(fmt.Sprintf("Master started (PID %d)", h.masterCmd.Process.Pid))
+		h.addLog(fmt.Sprintf("Coordinator started (PID %d)", h.masterCmd.Process.Pid))
+
+		go func(r io.Reader) {
+			scanner := bufio.NewScanner(r)
+			scanner.Buffer(make([]byte, 64*1024), 64*1024)
+			for scanner.Scan() {
+				line := scanner.Text()
+				if line == "" { continue }
+				h.mu.Lock()
+				h.addLog(fmt.Sprintf("[Coordinator] %s", line))
+				h.mu.Unlock()
+			}
+		}(masterStdout)
+		go func(r io.Reader) {
+			scanner := bufio.NewScanner(r)
+			scanner.Buffer(make([]byte, 64*1024), 64*1024)
+			for scanner.Scan() {
+				line := scanner.Text()
+				if line != "" {
+					h.mu.Lock()
+					h.addLog(fmt.Sprintf("[Coordinator:err] %s", line))
+					h.mu.Unlock()
+				}
+			}
+		}(masterStderr)
+
 		go func(c *exec.Cmd) {
 			err := c.Wait()
 			h.mu.Lock()
 			if h.running {
 				if err != nil {
-					h.addLog(fmt.Sprintf("Master exited with error: %v", err))
+					h.addLog(fmt.Sprintf("Coordinator exited with error: %v", err))
 				} else {
-					h.addLog("Master finished")
+					h.addLog("Coordinator finished")
 				}
 			}
 			h.mu.Unlock()
@@ -730,6 +692,16 @@ func (h *HiveHandler) stopAll() {
 		killProcessTree(bbsCmd.Process.Pid)
 	}
 
+	// Remove git pre-push hook on stop
+	if h.projectDir != "" {
+		hookPath := filepath.Join(h.projectDir, ".git", "hooks", "pre-push")
+		if data, err := os.ReadFile(hookPath); err == nil {
+			if strings.Contains(string(data), "[Hive] Push blocked") {
+				os.Remove(hookPath)
+			}
+		}
+	}
+
 	h.mu.Lock()
 	h.addLog("Stopped")
 	h.mu.Unlock()
@@ -763,6 +735,7 @@ func (h *HiveHandler) Status(w http.ResponseWriter, r *http.Request) {
 		"port":          h.port,
 		"board_key":     h.boardKey,
 		"objective":     h.objective,
+		"session_name":  h.sessionName,
 		"budget":        h.budget,
 		"workers":       workerCount,
 		"logs":          h.logs,
@@ -877,6 +850,7 @@ func (h *HiveHandler) saveRunRecord() {
 
 	record := map[string]interface{}{
 		"objective":    h.objective,
+		"session_name": h.sessionName,
 		"budget":       h.budget,
 		"workers":      len(h.workers),
 		"started_at":   h.startedAt,
@@ -973,11 +947,12 @@ func (h *HiveHandler) ListRunHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	type RunSummary struct {
-		File       string `json:"file"`
-		Objective  string `json:"objective"`
-		StoppedAt  string `json:"stopped_at"`
-		Posts      int    `json:"posts"`
-		ProjectDir string `json:"project_dir,omitempty"`
+		File        string `json:"file"`
+		Objective   string `json:"objective"`
+		SessionName string `json:"session_name,omitempty"`
+		StoppedAt   string `json:"stopped_at"`
+		Posts       int    `json:"posts"`
+		ProjectDir  string `json:"project_dir,omitempty"`
 	}
 	var results []RunSummary
 	for i := len(entries) - 1; i >= 0 && len(results) < 20; i-- {
@@ -994,11 +969,12 @@ func (h *HiveHandler) ListRunHistory(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		obj, _ := rec["objective"].(string)
+		sname, _ := rec["session_name"].(string)
 		stopped, _ := rec["stopped_at"].(string)
 		postsArr, _ := rec["posts"].([]interface{})
 		projDir, _ := rec["project_dir"].(string)
 		results = append(results, RunSummary{
-			File: e.Name(), Objective: obj, StoppedAt: stopped, Posts: len(postsArr), ProjectDir: projDir,
+			File: e.Name(), Objective: obj, SessionName: sname, StoppedAt: stopped, Posts: len(postsArr), ProjectDir: projDir,
 		})
 	}
 	writeJSON(w, http.StatusOK, results)
@@ -1180,6 +1156,150 @@ func (h *HiveHandler) ListFiles(w http.ResponseWriter, r *http.Request) {
 		"root":  root,
 		"sub":   sub,
 	})
+}
+
+// ListPresets returns hardcoded scene preset configurations.
+func (h *HiveHandler) ListPresets(w http.ResponseWriter, r *http.Request) {
+	presets := []map[string]interface{}{
+		{"id": "code_audit", "name": "🔍 代码审计", "desc": "安全+架构+性能三视角审查", "workers": 3, "plan_first": true, "objective_template": "对项目进行全面代码审计，涵盖安全漏洞、架构设计、性能瓶颈三个维度"},
+		{"id": "market_research", "name": "📊 市场调研", "desc": "行业+竞品+用户三方向", "workers": 3, "plan_first": true, "objective_template": "调研{topic}市场，涵盖行业趋势、竞品分析、目标用户画像"},
+		{"id": "feature_dev", "name": "🛠️ 功能开发", "desc": "设计+实现，串行依赖", "workers": 2, "plan_first": true, "objective_template": "设计并实现{feature}功能"},
+		{"id": "bug_fix", "name": "🐛 Bug修复", "desc": "单Worker快速定位修复", "workers": 1, "plan_first": false, "objective_template": "定位并修复：{bug_description}"},
+		{"id": "doc_writing", "name": "📝 文档撰写", "desc": "调研+撰写", "workers": 2, "plan_first": false, "objective_template": "撰写{doc_topic}文档"},
+		{"id": "custom", "name": "⚙️ 自定义", "desc": "手动配置所有参数", "workers": 2, "plan_first": true, "objective_template": ""},
+	}
+	writeJSON(w, http.StatusOK, presets)
+}
+
+// Dashboard parses BBS posts and returns structured phase/worker status.
+func (h *HiveHandler) Dashboard(w http.ResponseWriter, r *http.Request) {
+	h.mu.Lock()
+	running := h.running
+	port := h.port
+	boardKey := h.boardKey
+	objective := h.objective
+	projectDir := h.projectDir
+	startedAt := h.startedAt
+	h.mu.Unlock()
+
+	if !running {
+		writeJSON(w, http.StatusOK, map[string]interface{}{"phase": "stopped"})
+		return
+	}
+
+	// Fetch posts from BBS
+	baseURL := fmt.Sprintf("http://127.0.0.1:%d", port)
+	var posts []map[string]interface{}
+	req, _ := http.NewRequest("GET", baseURL+"/posts?limit=50", nil)
+	req.Header.Set("X-API-Key", boardKey)
+	if resp, err := http.DefaultClient.Do(req); err == nil {
+		json.NewDecoder(resp.Body).Decode(&posts)
+		resp.Body.Close()
+	}
+
+	// Parse posts to determine phase and worker status
+	type WorkerInfo struct {
+		Name     string `json:"name"`
+		Role     string `json:"role"`
+		Status   string `json:"status"`
+		Progress string `json:"progress"`
+		Plan     string `json:"plan"`
+	}
+
+	phase := "waiting" // waiting | planning | assigning | executing | reviewing | done
+	workerMap := make(map[string]*WorkerInfo)
+	totalTasks := 0
+	claimedTasks := 0
+	doneTasks := 0
+	verifiedTasks := 0
+
+	for _, p := range posts {
+		author, _ := p["author"].(string)
+		content, _ := p["content"].(string)
+
+		// Detect assignments
+		if strings.Contains(content, "[指派") {
+			phase = "executing"
+			totalTasks += strings.Count(content, "[指派")
+		}
+
+		if strings.Contains(content, "[执行计划]") {
+			phase = "planning"
+		}
+
+		// Track workers
+		if strings.Contains(author, "Worker") {
+			if _, exists := workerMap[author]; !exists {
+				workerMap[author] = &WorkerInfo{Name: author, Status: "idle"}
+			}
+			wi := workerMap[author]
+
+			if strings.Contains(content, "[接单]") || strings.Contains(content, "[认领]") {
+				wi.Status = "busy"
+				claimedTasks++
+			}
+			if strings.Contains(content, "[计划]") {
+				wi.Status = "planning"
+				planIdx := strings.Index(content, "[计划]")
+				if planIdx >= 0 {
+					planText := content[planIdx+len("[计划]"):]
+					if len(planText) > 80 {
+						planText = planText[:80]
+					}
+					wi.Plan = strings.TrimSpace(planText)
+				}
+			}
+			// Progress: [进度 N/M]
+			if idx := strings.Index(content, "[进度"); idx >= 0 {
+				end := strings.Index(content[idx:], "]")
+				if end > 0 {
+					wi.Progress = content[idx+1 : idx+end]
+					wi.Status = "busy"
+				}
+			}
+			if strings.Contains(content, "[完成]") || strings.Contains(content, "[任务完成]") {
+				wi.Status = "done"
+				doneTasks++
+			}
+		}
+
+		// Coordinator actions
+		if author == "Coordinator" {
+			if strings.Contains(content, "[验收通过]") {
+				verifiedTasks++
+				phase = "reviewing"
+			}
+			if strings.Contains(content, "[驳回重做") {
+				phase = "reviewing"
+			}
+			if strings.Contains(content, "[最终总结]") || strings.Contains(content, "## 最终总结") {
+				phase = "done"
+			}
+		}
+	}
+
+	// Build workers slice from map
+	finalWorkers := make([]WorkerInfo, 0, len(workerMap))
+	for _, wi := range workerMap {
+		finalWorkers = append(finalWorkers, *wi)
+	}
+
+	elapsed := int(time.Since(startedAt).Minutes())
+
+	result := map[string]interface{}{
+		"phase":           phase,
+		"objective":       objective,
+		"project_dir":     projectDir,
+		"elapsed_minutes": elapsed,
+		"progress": map[string]int{
+			"total":    totalTasks,
+			"claimed":  claimedTasks,
+			"done":     doneTasks,
+			"verified": verifiedTasks,
+		},
+		"workers": finalWorkers,
+	}
+	writeJSON(w, http.StatusOK, result)
 }
 
 // Resume restarts a Hive from history

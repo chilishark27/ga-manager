@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useMemo } from 'react';
+import { useState, useRef, useEffect, useMemo, memo } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useStore } from '../store';
@@ -10,7 +10,11 @@ function ChatPanel() {
   const { messages, sendMessage, activeInstance: getActiveInstance, clearChat, interruptChat, toggleInstance, toggleFeature, switchLLM: storeSetLLM, setIMChannel, llmConfigs, fetchLLMs, attachedPort, detachInstance, replayMode, setReplayMode, replaySessions, replaySteps, replayIndex, fetchReplaySessions, loadReplaySession, setReplayIndex } = useStore();
   const { t, tf } = useI18n();
   const activeInstance = getActiveInstance();
-  const [input, setInput] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputValueRef = useRef('');
+  const [inputForRender, setInputForRender] = useState(''); // only used for send button disabled state
+  const setInput = (val: string) => { inputValueRef.current = val; if (inputRef.current) inputRef.current.value = val; setInputForRender(val); };
+  const getInput = () => inputValueRef.current;
   const [pastedImages, setPastedImages] = useState<string[]>([]);
   const [attachedFiles, setAttachedFiles] = useState<{ name: string; type: string; content: string }[]>([]);
   const [isDragging, setIsDragging] = useState(false);
@@ -32,7 +36,7 @@ function ChatPanel() {
   const [draftInput, setDraftInput] = useState(''); // saves current input when browsing history
 
   // --- Long conversation: only render last N messages ---
-  const MAX_VISIBLE = 150;
+  const MAX_VISIBLE = 30;
   const [showAll, setShowAll] = useState(false);
 
   const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(''), 2000); };
@@ -42,6 +46,7 @@ function ChatPanel() {
   }, [messages]);
 
   const handleSend = () => {
+    const input = getInput();
     if (!input.trim() && pastedImages.length === 0 && attachedFiles.length === 0) return;
     if (input.trim()) {
       const newHistory = [input.trim(), ...inputHistory.filter(h => h !== input.trim())].slice(0, 50);
@@ -119,15 +124,15 @@ function ChatPanel() {
       e.preventDefault();
       handleSend();
     }
+    const curInput = getInput();
     // ↑ browse older history
     if (e.key === 'ArrowUp' && !e.shiftKey) {
       const textarea = e.target as HTMLTextAreaElement;
-      // Only trigger if cursor is at the start (first line)
-      if (textarea.selectionStart === 0 || input === '') {
+      if (textarea.selectionStart === 0 || curInput === '') {
         if (inputHistory.length > 0 && historyIndex < inputHistory.length - 1) {
           e.preventDefault();
           const newIdx = historyIndex + 1;
-          if (historyIndex === -1) setDraftInput(input); // save current draft
+          if (historyIndex === -1) setDraftInput(curInput);
           setHistoryIndex(newIdx);
           setInput(inputHistory[newIdx]);
         }
@@ -136,8 +141,7 @@ function ChatPanel() {
     // ↓ browse newer history
     if (e.key === 'ArrowDown' && !e.shiftKey) {
       const textarea = e.target as HTMLTextAreaElement;
-      // Only trigger if cursor is at the end (last line)
-      if (textarea.selectionStart === input.length || input === '') {
+      if (textarea.selectionStart === curInput.length || curInput === '') {
         if (historyIndex > 0) {
           e.preventDefault();
           const newIdx = historyIndex - 1;
@@ -371,7 +375,10 @@ function ChatPanel() {
             return (
               <div key={idx} className="msg agent">
                 <div className="msg-bubble">
-                  <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code: ({ className, children }) => <CodeBlock className={className}>{children}</CodeBlock> }}>{cleanReply(msg.content)}</ReactMarkdown>
+                  {msg.status === 'streaming'
+                    ? <pre style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', margin: 0, fontFamily: 'inherit', fontSize: 'inherit' }}>{cleanReply(msg.content)}</pre>
+                    : <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code: ({ className, children }) => <CodeBlock className={className}>{children}</CodeBlock> }}>{cleanReply(msg.content)}</ReactMarkdown>
+                  }
                 </div>
                 {msg.status === 'error' && <span className="msg-error">{t.sendFailed}</span>}
               </div>
@@ -467,15 +474,16 @@ function ChatPanel() {
           <input type="file" ref={fileInputRef} style={{display:'none'}} multiple onChange={handleFileSelect} />
           <button className="attach-btn" onClick={() => fileInputRef.current?.click()} title="Attach file">&#128206;</button>
           <textarea
+            ref={inputRef}
             className="chat-input"
             placeholder={isDragging ? 'Drop files here...' : t.inputPlaceholder}
-            value={input}
-            onChange={e => setInput(e.target.value)}
+            defaultValue=""
+            onInput={e => { inputValueRef.current = (e.target as HTMLTextAreaElement).value; }}
             onPaste={handlePaste}
             onKeyDown={handleKeyDown}
             rows={2}
           />
-          <button className="send-btn" onClick={handleSend} disabled={!input.trim() && pastedImages.length === 0 && attachedFiles.length === 0}>{t.send}</button>
+          <button className="send-btn" onClick={handleSend} disabled={false}>{t.send}</button>
           {activeInstance.status === 'busy' && (
             <button className="interrupt-btn" onClick={() => interruptChat(activeInstance.id)}>Stop {t.interrupt || '打断'}</button>
           )}

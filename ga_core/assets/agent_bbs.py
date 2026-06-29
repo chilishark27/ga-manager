@@ -177,6 +177,22 @@ def poll(request: Request, since_id=Query(0), limit=Query(50)):
                           (since_id, limit)).fetchall()
     return [dict(r) for r in rows]
 
+@app.get("/wait")
+def wait_for_post(request: Request, since_id: int = 0, timeout: int = 55):
+    """Long-poll: block until a post with id > since_id arrives, or timeout."""
+    import time as _time
+    deadline = _time.time() + min(timeout, 60)
+    db_path = _db(request)
+    while _time.time() < deadline:
+        with get_db(db_path) as conn:
+            row = conn.execute("SELECT MAX(id) as max_id FROM posts").fetchone()
+            max_id = row['max_id'] or 0
+            if max_id > since_id:
+                rows = conn.execute("SELECT id, author, content, created_at FROM posts WHERE id > ? ORDER BY id DESC LIMIT 10", (since_id,)).fetchall()
+                return [dict(r) for r in rows]
+        _time.sleep(0.5)
+    return []
+
 @app.get("/count")
 def count_posts(request: Request, author=Query(None)):
     with get_db(_db(request)) as db:
@@ -186,7 +202,9 @@ def count_posts(request: Request, author=Query(None)):
 @app.get("/authors")
 def get_authors(request: Request):
     with get_db(_db(request)) as db:
-        return [r["author"] for r in db.execute("SELECT DISTINCT author FROM posts ORDER BY author").fetchall()]
+        posted = set(r["author"] for r in db.execute("SELECT DISTINCT author FROM posts").fetchall())
+        registered = set(r["name"] for r in db.execute("SELECT name FROM users").fetchall())
+        return sorted(posted | registered)
 
 @app.get("/posts")
 def get_posts(request: Request, author=Query(None), limit=Query(50), offset=Query(0)):

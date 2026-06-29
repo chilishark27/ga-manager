@@ -464,7 +464,7 @@ export const useStore = create<AppState>((set, get) => ({
           // Throttle UI updates to avoid excessive re-renders with long markdown
           const rawText = data.text || '';
           const now = Date.now();
-          if (!streamThrottleRef.lastUpdate || now - streamThrottleRef.lastUpdate > 150 || rawText.length < 500) {
+          if (!streamThrottleRef.lastUpdate || now - streamThrottleRef.lastUpdate > 350 || rawText.length < 200) {
             streamThrottleRef.lastUpdate = now;
             const display = rawText
               .replace(/\s*\*\*LLM Running[^*]*\*\*\s*/g, '')
